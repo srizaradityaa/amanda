@@ -17,17 +17,6 @@ import { AlokasiPagu } from '@/pages/modules/AlokasiPagu';
 import { AlokasiRekening } from '@/pages/modules/AlokasiRekening';
 import { KuitansiModule } from '@/pages/modules/KuitansiModule';
 import { BkuModule } from '@/pages/modules/BkuModule';
-import { SpdEfisiensi } from '@/pages/modules/SpdEfisiensi';
-import { PergeseranAnggaran } from '@/pages/modules/PergeseranAnggaran';
-import { AntreanSpj } from '@/pages/modules/AntreanSpj';
-import { HeatmapRealisasi } from '@/pages/modules/HeatmapRealisasi';
-import { LaporanKustom } from '@/pages/modules/LaporanKustom';
-import { SpjFormDinamis } from '@/pages/modules/SpjFormDinamis';
-import { MasterSotk } from '@/pages/modules/MasterSotk';
-import { MasterPersonel } from '@/pages/modules/MasterPersonel';
-import { TahunAnggaran } from '@/pages/modules/TahunAnggaran';
-import { AkunPengawas } from '@/pages/modules/AkunPengawas';
-import { DirektoriRekeningBank } from '@/pages/modules/DirektoriRekeningBank';
 
 interface MainLayoutProps {
   session: SessionUser;
@@ -48,21 +37,10 @@ const moduleRegistry: Record<string, (props: { session: SessionUser }) => JSX.El
   drilldown: DrillDownAnggaran,
   audit: JejakAudit,
   laporan: KatalogLaporan,
-  'laporan-kustom': LaporanKustom,
   alokasi: AlokasiPagu,
   'alokasi-rekening': AlokasiRekening,
   kuitansi: KuitansiModule,
   bku: BkuModule,
-  spd: SpdEfisiensi,
-  pergeseran: PergeseranAnggaran,
-  antrean: AntreanSpj,
-  spj: SpjFormDinamis,
-  heatmap: HeatmapRealisasi,
-  sotk: MasterSotk,
-  personel: MasterPersonel,
-  ta: TahunAnggaran,
-  akun: AkunPengawas,
-  'bank-direktori': DirektoriRekeningBank,
 };
 
 export function MainLayout({ session, onLogout }: MainLayoutProps) {

@@ -96,8 +96,11 @@ export const mockSpjAntrean: SpjAntrean[] = [
 export interface KuitansiRow {
   id: string;
   uraian: string;
+  penerima: string;
+  subkegiatanId: string;
   subkegiatanName: string;
   kodeSubkegiatan: string;
+  rekeningId: string;
   kodeRekening: string;
   bruto: number;
   tanggal: string;
@@ -106,9 +109,9 @@ export interface KuitansiRow {
 }
 
 export const mockKuitansiPptk: KuitansiRow[] = [
-  { id: 'kwt-001', uraian: 'Honor narasumber kegiatan evaluasi', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', kodeRekening: '5.1.02.02.6.2.01.01', bruto: 4_500_000, tanggal: '2026-10-18', status: 'terkunci', spjStatus: 'terkunci' },
-  { id: 'kwt-009', uraian: 'Cetak dokumen perencanaan', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', kodeRekening: '5.1.02.01.6.1.02.01', bruto: 1_200_000, tanggal: '2026-10-25', status: 'terkunci', spjStatus: 'dibukukan' },
-  { id: 'kwt-012', uraian: 'Sewa ruang rapat koordinasi', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', kodeRekening: '5.1.02.02.6.2.01.05', bruto: 2_800_000, tanggal: '2026-10-28', status: 'aktif', spjStatus: 'belum' },
+  { id: 'kwt-001', uraian: 'Honor narasumber kegiatan evaluasi', penerima: 'Dr. Hasan Basri, M.Kes', subkegiatanId: 'sub-pem-01', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', rekeningId: 'rek-pem-01a', kodeRekening: '5.1.02.02.6.2.01.01', bruto: 4_500_000, tanggal: '2026-10-18', status: 'terkunci', spjStatus: 'terkunci' },
+  { id: 'kwt-009', uraian: 'Cetak dokumen perencanaan', penerima: 'CV Sinar Cetak Mandiri', subkegiatanId: 'sub-pem-01', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', rekeningId: 'rek-pem-01b', kodeRekening: '5.1.02.01.6.1.02.01', bruto: 1_200_000, tanggal: '2026-10-25', status: 'terkunci', spjStatus: 'dibukukan' },
+  { id: 'kwt-012', uraian: 'Sewa ruang rapat koordinasi', penerima: 'Hotel Nusantara Banjarmasin', subkegiatanId: 'sub-pem-02', subkegiatanName: 'Penyelenggaraan Rapat Koordinasi', kodeSubkegiatan: '2.16.03.2.02', rekeningId: 'rek-pem-02a', kodeRekening: '5.1.02.02.6.2.01.05', bruto: 2_800_000, tanggal: '2026-10-28', status: 'aktif', spjStatus: 'belum' },
 ];
 
 // ── Jejak Audit mock ──

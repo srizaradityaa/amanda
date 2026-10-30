@@ -14,6 +14,7 @@ export interface TaAssignment {
   role: Role;
   seksiId?: string;
   seksiName?: string;
+  delegasi?: { berakhir: string };
 }
 
 export interface SessionUser {

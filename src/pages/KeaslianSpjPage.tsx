@@ -1,18 +1,10 @@
 import { ArrowLeft, ShieldCheck, ShieldX } from 'lucide-react';
 import { findKeaslianByToken } from '@/data/keaslianMock';
+import { formatTanggalWita } from '@/lib/formatDate';
 
 interface KeaslianSpjPageProps {
   token: string;
   onBack: () => void;
-}
-
-function formatTanggal(iso: string): string {
-  return new Date(`${iso}T00:00:00+08:00`).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Makassar',
-  });
 }
 
 export function KeaslianSpjPage({ token, onBack }: KeaslianSpjPageProps) {
@@ -68,7 +60,7 @@ export function KeaslianSpjPage({ token, onBack }: KeaslianSpjPageProps) {
                 <div className="flex justify-between gap-4 py-3">
                   <dt className="text-2xs uppercase tracking-wider text-ink-muted">Tanggal Verifikasi</dt>
                   <dd className="text-sm text-ink-primary text-right">
-                    {formatTanggal(record.tanggalVerifikasi)}
+                    {formatTanggalWita(record.tanggalVerifikasi)}
                   </dd>
                 </div>
               </dl>

@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { ArrowLeft, Briefcase, CalendarRange, ChevronRight, LogOut, ShieldCheck } from 'lucide-react';
 import type { SessionUser, TaAssignment } from '@/auth/types';
 import { roleFullLabel } from '@/config/navigation';
+import { formatTanggalWita } from '@/lib/formatDate';
+
+function jabatanTitle(a: TaAssignment): string {
+  const label = roleFullLabel[a.role];
+  return a.delegasi ? `Plh. ${label}` : label;
+}
 
 interface SelectAssignmentPageProps {
   user: SessionUser;
@@ -87,10 +93,12 @@ export function SelectAssignmentPage({ user, onSelect, onLogout }: SelectAssignm
                     <Briefcase className="h-5 w-5 text-amber shrink-0" strokeWidth={1.5} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-ink-primary">
-                        {roleFullLabel[option.role]}
+                        {jabatanTitle(option)}
                       </div>
                       <div className="text-2xs text-ink-muted mt-0.5 truncate">
                         {option.seksiName ?? 'Tanpa seksi'} • TA {option.taYear}
+                        {option.delegasi &&
+                          ` • Berakhir ${formatTanggalWita(option.delegasi.berakhir)}`}
                       </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-ink-muted group-hover:text-ink-secondary" />

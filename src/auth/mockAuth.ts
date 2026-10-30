@@ -122,6 +122,22 @@ export const mockUsers: MockUser[] = [
         { taId: 'ta-2026', taYear: 2026, role: 'verifikator' },
         { taId: 'ta-2026', taYear: 2026, role: 'pa_kpa' },
         { taId: 'ta-2025', taYear: 2025, role: 'verifikator' },
+        {
+          taId: 'ta-2026',
+          taYear: 2026,
+          role: 'pptk',
+          seksiId: 'seksi-pem',
+          seksiName: 'Seksi Perencanaan & Evaluasi',
+          delegasi: { berakhir: '2026-12-31' },
+        },
+        {
+          taId: 'ta-2025',
+          taYear: 2025,
+          role: 'pptk',
+          seksiId: 'seksi-pem',
+          seksiName: 'Seksi Perencanaan & Evaluasi',
+          delegasi: { berakhir: '2025-12-31' },
+        },
       ],
     },
   },
@@ -129,13 +145,22 @@ export const mockUsers: MockUser[] = [
 
 const STORAGE_KEY = 'amanda-session-v1';
 
+function todayWita(): string {
+  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
+}
+
 function resolveLogin(identifier: string, password: string): SessionUser | null {
   const cleanId = identifier.trim();
   const found = mockUsers.find(
     (m) => m.identifier.toLowerCase() === cleanId.toLowerCase() && m.password === password,
   );
   if (!found) return null;
-  return { ...found.user, activeTa: undefined };
+  const today = todayWita();
+  const assignments = found.user.assignments.filter(
+    (a) => !a.delegasi || a.delegasi.berakhir >= today,
+  );
+  if (assignments.length === 0) return null;
+  return { ...found.user, assignments, activeTa: undefined };
 }
 
 function pickDefaultAssignment(user: SessionUser): SessionUser {

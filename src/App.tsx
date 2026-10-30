@@ -3,6 +3,7 @@ import { useAuthSession } from '@/auth/mockAuth';
 import { LoginPage } from '@/pages/LoginPage';
 import { MainLayout } from '@/components/MainLayout';
 import { PublicPortalPlaceholder } from '@/pages/PublicPortalPlaceholder';
+import { KeaslianSpjPage } from '@/pages/KeaslianSpjPage';
 import { useRouter } from '@/router/useRouter';
 import {
   DEFAULT_APP_PATH,
@@ -17,10 +18,14 @@ export default function App() {
   const { route, navigate } = useRouter();
 
   useEffect(() => {
-    if (route.kind === 'portal') return;
+    if (route.kind === 'portal' || route.kind === 'keaslian') return;
     if (!session && route.kind === 'unknown') navigate(LOGIN_PATH, { replace: true });
     if (session && route.kind !== 'app') navigate(DEFAULT_APP_PATH, { replace: true });
   }, [session, route.kind, navigate]);
+
+  if (route.kind === 'keaslian') {
+    return <KeaslianSpjPage token={route.token} onBack={() => navigate(LOGIN_PATH)} />;
+  }
 
   if (route.kind === 'portal') {
     return <PublicPortalPlaceholder onBack={() => navigate(LOGIN_PATH)} />;

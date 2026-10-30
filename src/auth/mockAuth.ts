@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { MockUser, SessionUser, TaAssignment } from './types';
+import type { MockUser, SessionUser } from './types';
 
 export const mockUsers: MockUser[] = [
   {
@@ -158,27 +158,9 @@ export function useAuthSession() {
     return withDefault;
   };
 
-  const selectTa = (taId: string) => {
-    setSession((prev) => {
-      if (!prev) return prev;
-      const ta = prev.assignments.find((a) => a.taId === taId);
-      if (!ta) return prev;
-      return { ...prev, activeTa: ta };
-    });
-  };
-
-  const selectRole = (taId: string, role: SessionUser['role']) => {
-    setSession((prev) => {
-      if (!prev) return prev;
-      const ta = prev.assignments.find((a) => a.taId === taId && a.role === role);
-      if (!ta) return prev;
-      return { ...prev, activeTa: ta };
-    });
-  };
-
   const logout = () => setSession(null);
 
-  return { session, login, selectTa, selectRole, logout };
+  return { session, login, logout };
 }
 
 export function formatNipNik(value: string): string {

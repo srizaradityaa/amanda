@@ -43,6 +43,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
   const [view, setView] = useState<KuitansiView>({ kind: 'list' });
   const [pendingCancel, setPendingCancel] = useState<KuitansiRow | null>(null);
   const [spjAction, setSpjAction] = useState<{ kind: 'create' | 'ajukan' | 'lepas'; row: KuitansiRow } | null>(null);
+  const [ajukanError, setAjukanError] = useState<string | null>(null);
 
   const editingRow = view.kind === 'form' && view.id ? rows.find((r) => r.id === view.id) ?? null : null;
 
@@ -66,7 +67,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
 
   const handleAjukanSpj = () => {
     if (spjAction?.kind !== 'ajukan') return;
-    ajukanSpj(spjAction.row.id);
+    setAjukanError(ajukanSpj(spjAction.row.id));
     setSpjAction(null);
   };
 
@@ -93,6 +94,12 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
       <PageHeader title="Kuitansi" subtitle={`${mySeksi.name} • TA ${ta?.taYear ?? 2026}`} mode="PRO" />
 
       {gatekeeperActive && <GatekeeperBanner seksiNames={belumSeimbang.map((s) => s.name)} />}
+
+      {ajukanError && (
+        <div role="alert" className="surface-card mb-5 px-4 py-3 border-status-red/50 text-xs text-status-red leading-relaxed">
+          {ajukanError}
+        </div>
+      )}
 
       <div className="surface-card mb-5 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-ink-secondary">

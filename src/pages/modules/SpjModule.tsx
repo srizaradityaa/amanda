@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ClipboardCheck, Eye, Lock, PencilLine, Wallet } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
+import { mockFormDinamis } from '@/data/formDinamisMock';
 import {
   computeJumlahDibayarkan,
   computeTotalPajak,
 } from '@/pages/modules/spj/pajakRules';
 import { PajakDialog } from '@/pages/modules/spj/PajakDialog';
+import { SpjIsianForm } from '@/pages/modules/spj/SpjIsianForm';
 import {
   formatDateID,
   formatRupiah,
@@ -32,19 +34,44 @@ export function SpjModule({ session }: { session: SessionUser }) {
   return <PptkSpj session={session} />;
 }
 
+type SpjView = { kind: 'list' } | { kind: 'isian'; id: string };
+
 function PptkSpj({ session }: { session: SessionUser }) {
   const mySeksi = mockSeksiList[0];
   const ta = session.activeTa;
-  const { rows, pajakByKuitansi, savePajak } = useKuitansiSpj();
+  const { rows, pajakByKuitansi, isianByKuitansi, saveIsian, savePajak } = useKuitansiSpj();
+  const [view, setView] = useState<SpjView>({ kind: 'list' });
   const [pajakTargetId, setPajakTargetId] = useState<string | null>(null);
 
   const spjRows = rows.filter((r) => r.spjStatus !== 'belum');
+  const isianTarget: KuitansiRow | null =
+    view.kind === 'isian' ? rows.find((r) => r.id === view.id) ?? null : null;
+  const isianForm = isianTarget?.spjJenisBelanja ? mockFormDinamis[isianTarget.spjJenisBelanja] : undefined;
   const pajakTarget: KuitansiRow | null = pajakTargetId
     ? rows.find((r) => r.id === pajakTargetId) ?? null
     : null;
 
   const totalBruto = spjRows.reduce((sum, r) => sum + r.bruto, 0);
   const totalPajak = spjRows.reduce((sum, r) => sum + computeTotalPajak(pajakByKuitansi[r.id] ?? []), 0);
+
+  if (isianTarget && isianForm) {
+    return (
+      <SpjIsianForm
+        key={isianTarget.id}
+        kuitansi={isianTarget}
+        form={isianForm}
+        initial={isianByKuitansi[isianTarget.id]}
+        onBack={() => setView({ kind: 'list' })}
+        onSave={(isian) => {
+          const error = saveIsian(isianTarget.id, isian);
+          if (error) return error;
+          setView({ kind: 'list' });
+          setPajakTargetId(isianTarget.id);
+          return null;
+        }}
+      />
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -56,11 +83,11 @@ function PptkSpj({ session }: { session: SessionUser }) {
         <StatCard label="Total Pajak" value={formatRupiahFull(totalPajak)} accent="teal" sublabel="Jumlah seluruh entri pajak" />
       </div>
 
-      <p className="text-2xs text-ink-muted mb-1">
+      <p className="text-2xs text-ink-muted mb-4">
         Pajak diisi manual per SPJ dan tidak mengubah nilai bruto kuitansi maupun komitmen SPD.
       </p>
 
-      <div className="surface-card mt-4">
+      <div className="surface-card">
         <div className="px-4 py-3 border-b border-border">
           <h2 className="text-sm font-semibold text-ink-primary">Daftar SPJ</h2>
         </div>
@@ -100,14 +127,24 @@ function PptkSpj({ session }: { session: SessionUser }) {
                       <td className="px-4 py-1 text-right font-mono tnum text-xs text-ink-secondary hidden lg:table-cell">{formatRupiah(computeJumlahDibayarkan(r.bruto, entries))}</td>
                       <td className="px-4 py-1"><StatusBadge status={r.spjStatus} type="spj" /></td>
                       <td className="px-4 py-1">
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-1">
+                          {isDraft && (
+                            <button
+                              type="button"
+                              onClick={() => setView({ kind: 'isian', id: r.id })}
+                              className="btn-ghost px-2 py-1 text-xs flex items-center gap-1"
+                            >
+                              <PencilLine className="h-3 w-3" aria-hidden="true" />
+                              Isi SPJ
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setPajakTargetId(r.id)}
                             className="btn-ghost px-2 py-1 text-xs flex items-center gap-1"
                           >
-                            {isDraft ? <PencilLine className="h-3 w-3" aria-hidden="true" /> : <Eye className="h-3 w-3" aria-hidden="true" />}
-                            {isDraft ? 'Isi Pajak' : 'Lihat Pajak'}
+                            <Eye className="h-3 w-3" aria-hidden="true" />
+                            {isDraft ? 'Pajak' : 'Lihat Pajak'}
                           </button>
                         </div>
                       </td>

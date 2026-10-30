@@ -1,4 +1,4 @@
-import { formatRupiahFull, type PajakEntry } from '@/data/mockData';
+import { formatRupiahFull, mockJenisPajak, type PajakEntry } from '@/data/mockData';
 
 export function computeTotalPajak(entries: PajakEntry[]): number {
   return entries.reduce((sum, entry) => sum + entry.nominal, 0);
@@ -12,4 +12,9 @@ export function validateTotalPajak(bruto: number, entries: PajakEntry[]): string
   const totalPajak = computeTotalPajak(entries);
   if (totalPajak <= bruto) return null;
   return `Total Pajak ${formatRupiahFull(totalPajak)} melebihi nilai bruto kuitansi ${formatRupiahFull(bruto)}. Total Pajak tidak boleh lebih dari nilai bruto kuitansi.`;
+}
+
+export function jenisPajakLabel(id: string): string {
+  const jenis = mockJenisPajak.find((j) => j.id === id);
+  return jenis ? `${jenis.kode} — ${jenis.nama}` : id;
 }

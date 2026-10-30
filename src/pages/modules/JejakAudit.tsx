@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { ScrollText, Search, Filter, RotateCcw, Lock } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { mockAuditEventsFull, type AuditEvent } from '@/data/mockData';
+import type { AuditEvent } from '@/data/mockData';
 import { PageHeader } from '@/components/ui/Primitives';
+import { useKuitansiSpj } from '@/state/KuitansiSpjContext';
 
 function formatWaktu(iso: string): string {
   const d = new Date(iso);
@@ -16,6 +17,7 @@ function formatWaktu(iso: string): string {
 export function JejakAudit({ session }: { session: SessionUser }) {
   const role = session.role;
   const ta = session.activeTa;
+  const { auditEvents } = useKuitansiSpj();
 
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -25,11 +27,11 @@ export function JejakAudit({ session }: { session: SessionUser }) {
   // - PPTK: only own seksi entries
   // - Auditor: all TA, read-only
   // - Bendahara/Verifikator/PA-KPA: all TA (read-only for verifikator & PA-KPA)
-  let scopedEvents: AuditEvent[] = mockAuditEventsFull;
+  let scopedEvents: AuditEvent[] = auditEvents;
   let scopeNote = '';
   if (role === 'pptk') {
     // PPTK only sees own seksi audit entries
-    scopedEvents = mockAuditEventsFull.filter(
+    scopedEvents = auditEvents.filter(
       (e) => e.peran === 'PPTK' || e.entitas.includes('seksi-pem') || e.aktorName === 'Dwi Putri Lestari, S.T.',
     );
     scopeNote = 'Hanya entri milik seksinya sendiri yang terlihat. (Dokumen 01 §6 poin 5, Dokumen 05 skenario 23c)';

@@ -7,15 +7,14 @@ import {
   formatDateID,
   type KuitansiRow,
 } from '@/data/mockData';
-import { useKuitansiSpj } from '@/state/KuitansiSpjContext';
+import { toKuitansiActor, useKuitansiSpj } from '@/state/KuitansiSpjContext';
 import { PageHeader, StatusBadge, GatekeeperBanner } from '@/components/ui/Primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { KuitansiForm, type KuitansiInput } from '@/pages/modules/kuitansi/KuitansiForm';
 import { SpjCreateDialog } from '@/pages/modules/spj/SpjCreateDialog';
+import { todayWita } from '@/lib/witaDate';
 
 type KuitansiView = { kind: 'list' } | { kind: 'form'; id: string | null };
-
-const TODAY_ISO = '2026-10-30';
 
 export function KuitansiModule({ session }: { session: SessionUser }) {
   if (session.role !== 'pptk') {
@@ -39,11 +38,12 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
   const belumSeimbang = mockSeksiList.filter((s) => s.alokasiStatus !== 'tuntas');
   const gatekeeperActive = belumSeimbang.length > 0;
 
-  const { rows, saveKuitansi, cancelKuitansi, createSpj, ajukanSpj, lepasSpj } = useKuitansiSpj();
+  const { rows: allRows, saveKuitansi, cancelKuitansi, createSpj, ajukanSpj, lepasSpj } = useKuitansiSpj();
+  const rows = allRows.filter((r) => r.seksiId === mySeksi.id);
   const [view, setView] = useState<KuitansiView>({ kind: 'list' });
   const [pendingCancel, setPendingCancel] = useState<KuitansiRow | null>(null);
   const [spjAction, setSpjAction] = useState<{ kind: 'create' | 'ajukan' | 'lepas'; row: KuitansiRow } | null>(null);
-  const [ajukanError, setAjukanError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const editingRow = view.kind === 'form' && view.id ? rows.find((r) => r.id === view.id) ?? null : null;
 
@@ -55,7 +55,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
 
   const handleConfirmCancel = () => {
     if (!pendingCancel) return;
-    cancelKuitansi(pendingCancel.id);
+    setActionError(cancelKuitansi(pendingCancel.id));
     setPendingCancel(null);
   };
 
@@ -67,13 +67,13 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
 
   const handleAjukanSpj = () => {
     if (spjAction?.kind !== 'ajukan') return;
-    setAjukanError(ajukanSpj(spjAction.row.id));
+    setActionError(ajukanSpj(spjAction.row.id, toKuitansiActor(session)));
     setSpjAction(null);
   };
 
   const handleLepasSpj = () => {
     if (spjAction?.kind !== 'lepas') return;
-    lepasSpj(spjAction.row.id);
+    setActionError(lepasSpj(spjAction.row.id));
     setSpjAction(null);
   };
 
@@ -81,7 +81,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
     return (
       <KuitansiForm
         seksiId={mySeksi.id}
-        tanggalHariIni={TODAY_ISO}
+        tanggalHariIni={todayWita()}
         initial={editingRow}
         onSave={handleSave}
         onBack={() => setView({ kind: 'list' })}
@@ -95,9 +95,9 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
 
       {gatekeeperActive && <GatekeeperBanner seksiNames={belumSeimbang.map((s) => s.name)} />}
 
-      {ajukanError && (
+      {actionError && (
         <div role="alert" className="surface-card mb-5 px-4 py-3 border-status-red/50 text-xs text-status-red leading-relaxed">
-          {ajukanError}
+          {actionError}
         </div>
       )}
 
@@ -150,7 +150,12 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
                     <td className="px-4 py-1 text-right font-mono tnum text-xs text-ink-primary">{formatRupiah(r.bruto)}</td>
                     <td className="px-4 py-1 text-xs text-ink-secondary hidden lg:table-cell">{formatDateID(r.tanggal)}</td>
                     <td className="px-4 py-1"><StatusBadge status={r.status} type="kuitansi" /></td>
-                    <td className="px-4 py-1"><StatusBadge status={r.spjStatus} type="spj" /></td>
+                    <td className="px-4 py-1">
+                      <StatusBadge status={r.spjStatus} type="spj" />
+                      {r.catatanRevisi && (
+                        <div className="mt-1 max-w-[220px] text-2xs text-status-yellow leading-snug">Revisi: {r.catatanRevisi}</div>
+                      )}
+                    </td>
                     <td className="px-4 py-1">
                       {isAktif ? (
                         <div className="flex items-center justify-end gap-1">

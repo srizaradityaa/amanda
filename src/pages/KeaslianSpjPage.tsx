@@ -1,6 +1,7 @@
 import { ArrowLeft, ShieldCheck, ShieldX } from 'lucide-react';
-import { findKeaslianByToken } from '@/data/keaslianMock';
 import { formatTanggalWita } from '@/lib/formatDate';
+import { findKeaslianByToken } from '@/pages/modules/verifikasi/verifikasiRules';
+import { useKuitansiSpj } from '@/state/KuitansiSpjContext';
 
 interface KeaslianSpjPageProps {
   token: string;
@@ -8,7 +9,8 @@ interface KeaslianSpjPageProps {
 }
 
 export function KeaslianSpjPage({ token, onBack }: KeaslianSpjPageProps) {
-  const record = findKeaslianByToken(token);
+  const { rows } = useKuitansiSpj();
+  const record = findKeaslianByToken(rows, token);
   const berlaku = record?.berlaku === true;
   const Icon = berlaku ? ShieldCheck : ShieldX;
 
@@ -44,7 +46,7 @@ export function KeaslianSpjPage({ token, onBack }: KeaslianSpjPageProps) {
                 berlaku ? 'text-status-green' : 'text-status-red'
               }`}
             >
-              {berlaku ? 'Berlaku' : 'Tidak berlaku'}
+              {record ? (berlaku ? 'Berlaku' : 'Tidak berlaku') : 'Tidak dikenali'}
             </h1>
 
             {record ? (

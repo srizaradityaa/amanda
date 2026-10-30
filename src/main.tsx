@@ -1,10 +1,13 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { KuitansiSpjProvider } from '@/state/KuitansiSpjContext';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <KuitansiSpjProvider>
+      <App />
+    </KuitansiSpjProvider>
   </StrictMode>
 );

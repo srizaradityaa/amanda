@@ -18,7 +18,7 @@ import { AlokasiPagu } from '@/pages/modules/AlokasiPagu';
 import { AlokasiRekening } from '@/pages/modules/AlokasiRekening';
 import { KuitansiModule } from '@/pages/modules/KuitansiModule';
 import { SpjModule } from '@/pages/modules/SpjModule';
-import { KuitansiSpjProvider } from '@/state/KuitansiSpjContext';
+import { AntreanVerifikasi } from '@/pages/modules/AntreanVerifikasi';
 import { BkuModule } from '@/pages/modules/BkuModule';
 import { TaManagement } from '@/pages/modules/TaManagement';
 import { SotkManagement } from '@/pages/modules/SotkManagement';
@@ -50,18 +50,11 @@ const moduleRegistry: Record<string, (props: { session: SessionUser }) => JSX.El
   'alokasi-rekening': AlokasiRekening,
   kuitansi: KuitansiModule,
   spj: SpjModule,
+  antrean: AntreanVerifikasi,
   bku: BkuModule,
 };
 
-export function MainLayout(props: MainLayoutProps) {
-  return (
-    <KuitansiSpjProvider>
-      <MainLayoutView {...props} />
-    </KuitansiSpjProvider>
-  );
-}
-
-function MainLayoutView({ session, moduleId, onNavigate, onLogout }: MainLayoutProps) {
+export function MainLayout({ session, moduleId, onNavigate, onLogout }: MainLayoutProps) {
   const isAuditor = session.role === 'auditor';
   const sections = roleNav[session.role];
   const activeItem = findNavItem(session.role, moduleId);

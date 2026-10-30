@@ -71,33 +71,27 @@ export function computeSerapan(row: SeksiRow): number {
   return ((row.realisasiBku + row.komitmenKwitansi) / row.pagu) * 100;
 }
 
-// ── SPJ antrean mock (Verifikator) ──
-export interface SpjAntrean {
-  id: string;
-  noRef: string;
-  seksiName: string;
-  uraian: string;
-  bruto: number;
-  jenisBelanja: string;
-  tanggalKwitansi: string;
-  status: 'terkunci' | 'menunggu_bku' | 'dibukukan' | 'draft';
-  diajukanOleh: string;
-  catatanRevisi?: string;
+// ── Kuitansi & SPJ mock (PPTK) ──
+export interface VerifikasiInfo {
+  nomor: string;
+  token: string;
+  status: 'berlaku' | 'tidak_berlaku';
+  tanggal: string;
+  verifikatorName: string;
+  verifikatorNip: string;
 }
 
-export const mockSpjAntrean: SpjAntrean[] = [
-  { id: 'spj-001', noRef: 'KWT-PEM-001', seksiName: 'Seksi Perencanaan & Evaluasi', uraian: 'Honor narasumber kegiatan evaluasi', bruto: 4_500_000, jenisBelanja: 'Honor', tanggalKwitansi: '2026-10-18', status: 'terkunci', diajukanOleh: 'Dwi Putri Lestari, S.T.' },
-  { id: 'spj-002', noRef: 'KWT-PEN-014', seksiName: 'Seksi Penataan Keuangan', uraian: 'Belanja alat tulis kantor Q3', bruto: 8_200_000, jenisBelanja: 'Barang & Jasa', tanggalKwitansi: '2026-10-20', status: 'terkunci', diajukanOleh: 'Rizki Ananda, S.E.' },
-  { id: 'spj-003', noRef: 'KWT-PUB-007', seksiName: 'Seksi Pelayanan Publik', uraian: 'Perjalanan dinas koordinasi wilayah', bruto: 12_800_000, jenisBelanja: 'Perjalanan Dinas', tanggalKwitansi: '2026-10-22', status: 'menunggu_bku', diajukanOleh: 'Siti Rahmawati, S.AP.' },
-  { id: 'spj-004', noRef: 'KWT-PUG-003', seksiName: 'Seksi Pengembangan UMKM', uraian: 'Pembinaan kelompok UMKM kecamatan', bruto: 6_000_000, jenisBelanja: 'Barang & Jasa', tanggalKwitansi: '2026-10-24', status: 'terkunci', diajukanOleh: 'Hendra Wijaya, S.Sos.' },
-  { id: 'spj-005', noRef: 'KWT-PEM-009', seksiName: 'Seksi Perencanaan & Evaluasi', uraian: 'Cetak dokumen perencanaan', bruto: 1_200_000, jenisBelanja: 'Barang & Jasa', tanggalKwitansi: '2026-10-25', status: 'dibukukan', diajukanOleh: 'Dwi Putri Lestari, S.T.' },
-];
+export interface BkuInfo {
+  noBku: string;
+  tanggal: string;
+}
 
-// ── Kuitansi mock (PPTK) ──
 export interface KuitansiRow {
   id: string;
   uraian: string;
   penerima: string;
+  seksiId: string;
+  seksiName: string;
   subkegiatanId: string;
   subkegiatanName: string;
   kodeSubkegiatan: string;
@@ -108,12 +102,64 @@ export interface KuitansiRow {
   status: 'aktif' | 'terkunci';
   spjStatus: 'belum' | 'draft' | 'terkunci' | 'menunggu_bku' | 'dibukukan';
   spjJenisBelanja?: string;
+  pengajuId?: string;
+  pengajuName?: string;
+  catatanRevisi?: string;
+  bkuDicabut?: boolean;
+  verifikasi?: VerifikasiInfo;
+  verifikasiSebelumnya?: VerifikasiInfo[];
+  bku?: BkuInfo;
 }
 
 export const mockKuitansiPptk: KuitansiRow[] = [
-  { id: 'kwt-001', uraian: 'Honor narasumber kegiatan evaluasi', penerima: 'Dr. Hasan Basri, M.Kes', subkegiatanId: 'sub-pem-01', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', rekeningId: 'rek-pem-01a', kodeRekening: '5.1.02.02.6.2.01.01', bruto: 4_500_000, tanggal: '2026-10-18', status: 'terkunci', spjStatus: 'terkunci' },
-  { id: 'kwt-009', uraian: 'Cetak dokumen perencanaan', penerima: 'CV Sinar Cetak Mandiri', subkegiatanId: 'sub-pem-01', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01', rekeningId: 'rek-pem-01b', kodeRekening: '5.1.02.01.6.1.02.01', bruto: 1_200_000, tanggal: '2026-10-25', status: 'terkunci', spjStatus: 'dibukukan' },
-  { id: 'kwt-012', uraian: 'Sewa ruang rapat koordinasi', penerima: 'Hotel Nusantara Banjarmasin', subkegiatanId: 'sub-pem-02', subkegiatanName: 'Penyelenggaraan Rapat Koordinasi', kodeSubkegiatan: '2.16.03.2.02', rekeningId: 'rek-pem-02a', kodeRekening: '5.1.02.02.6.2.01.05', bruto: 2_800_000, tanggal: '2026-10-28', status: 'aktif', spjStatus: 'belum' },
+  {
+    id: 'kwt-001', uraian: 'Honor narasumber kegiatan evaluasi', penerima: 'Dr. Hasan Basri, M.Kes',
+    seksiId: 'seksi-pem', seksiName: 'Seksi Perencanaan & Evaluasi',
+    subkegiatanId: 'sub-pem-01', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01',
+    rekeningId: 'rek-pem-01a', kodeRekening: '5.1.02.02.6.2.01.01',
+    bruto: 4_500_000, tanggal: '2026-10-18', status: 'terkunci', spjStatus: 'terkunci',
+    spjJenisBelanja: 'Honor', pengajuId: 'u-pptk-01', pengajuName: 'Dwi Putri Lestari, S.T.',
+  },
+  {
+    id: 'kwt-009', uraian: 'Cetak dokumen perencanaan', penerima: 'CV Sinar Cetak Mandiri',
+    seksiId: 'seksi-pem', seksiName: 'Seksi Perencanaan & Evaluasi',
+    subkegiatanId: 'sub-pem-01', subkegiatanName: 'Penyelenggaraan Perencanaan & Evaluasi', kodeSubkegiatan: '2.16.03.2.01',
+    rekeningId: 'rek-pem-01b', kodeRekening: '5.1.02.01.6.1.02.01',
+    bruto: 1_200_000, tanggal: '2026-10-25', status: 'terkunci', spjStatus: 'dibukukan',
+    spjJenisBelanja: 'Barang & Jasa', pengajuId: 'u-pptk-01', pengajuName: 'Dwi Putri Lestari, S.T.',
+    verifikasi: {
+      nomor: 'VER/2026/0001', token: 'Qm7vRk2xLp9TzA4w', status: 'berlaku', tanggal: '2026-10-25',
+      verifikatorName: 'Agus Setiawan, M.Si.', verifikatorNip: '198812122020121003',
+    },
+    bku: { noBku: 'B-0141', tanggal: '2026-10-26' },
+  },
+  {
+    id: 'kwt-012', uraian: 'Sewa ruang rapat koordinasi', penerima: 'Hotel Nusantara Banjarmasin',
+    seksiId: 'seksi-pem', seksiName: 'Seksi Perencanaan & Evaluasi',
+    subkegiatanId: 'sub-pem-02', subkegiatanName: 'Penyelenggaraan Rapat Koordinasi', kodeSubkegiatan: '2.16.03.2.02',
+    rekeningId: 'rek-pem-02a', kodeRekening: '5.1.02.02.6.2.01.05',
+    bruto: 2_800_000, tanggal: '2026-10-28', status: 'aktif', spjStatus: 'belum',
+  },
+  {
+    id: 'kwt-020', uraian: 'Belanja alat tulis kantor triwulan III', penerima: 'CV Maju Bersama',
+    seksiId: 'seksi-pen', seksiName: 'Seksi Penataan Keuangan',
+    subkegiatanId: 'sub-pen-01', subkegiatanName: 'Penataan Keuangan Daerah', kodeSubkegiatan: '2.16.01.2.01',
+    rekeningId: 'rek-pen-01a', kodeRekening: '5.1.02.01.6.1.01.01',
+    bruto: 8_200_000, tanggal: '2026-10-20', status: 'terkunci', spjStatus: 'terkunci',
+    spjJenisBelanja: 'Barang & Jasa', pengajuId: 'u-pptk-02', pengajuName: 'Rizki Ananda, S.E.',
+  },
+  {
+    id: 'kwt-021', uraian: 'Perjalanan dinas koordinasi wilayah', penerima: 'Siti Rahmawati, S.AP.',
+    seksiId: 'seksi-pub', seksiName: 'Seksi Pelayanan Publik',
+    subkegiatanId: 'sub-pub-01', subkegiatanName: 'Pelayanan Administrasi Umum', kodeSubkegiatan: '2.16.05.2.01',
+    rekeningId: 'rek-pub-01a', kodeRekening: '5.1.02.02.6.2.03.01',
+    bruto: 12_800_000, tanggal: '2026-10-22', status: 'terkunci', spjStatus: 'menunggu_bku',
+    spjJenisBelanja: 'Perjalanan Dinas', pengajuId: 'u-pptk-03', pengajuName: 'Siti Rahmawati, S.AP.',
+    verifikasi: {
+      nomor: 'VER/2026/0002', token: 'Hb4eN8sUqW1dKr6c', status: 'berlaku', tanggal: '2026-10-22',
+      verifikatorName: 'Agus Setiawan, M.Si.', verifikatorNip: '198812122020121003',
+    },
+  },
 ];
 
 // ── Master Jenis Pajak & entri pajak SPJ (Dokumen 05 poin 71-76) ──
@@ -141,6 +187,7 @@ export interface PajakEntry {
 export const mockSpjPajakAwal: Record<string, PajakEntry[]> = {
   'kwt-001': [{ id: 'pj-001', jenisPajakId: 'pjk-pph21', nominal: 225_000 }],
   'kwt-009': [{ id: 'pj-002', jenisPajakId: 'pjk-ppn', nominal: 120_000 }],
+  'kwt-021': [{ id: 'pj-003', jenisPajakId: 'pjk-pph23', nominal: 256_000 }],
 };
 
 // ── Jejak Audit mock ──

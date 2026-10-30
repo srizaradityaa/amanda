@@ -3,6 +3,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import {
   formatRupiah,
   mockRekeningBySubkegiatan,
+  mockSeksiList,
   mockSubkegiatanBySeksi,
   type KuitansiRow,
 } from '@/data/mockData';
@@ -63,6 +64,8 @@ export function KuitansiForm({ seksiId, tanggalHariIni, initial, onSave, onBack 
     if (!sub || !rek || Object.keys(nextErrors).length > 0) return;
 
     onSave({
+      seksiId,
+      seksiName: mockSeksiList.find((s) => s.id === seksiId)?.name ?? '',
       uraian: uraian.trim(),
       penerima: penerima.trim(),
       subkegiatanId: sub.id,

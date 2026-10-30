@@ -82,6 +82,7 @@ export interface SpjAntrean {
   tanggalKwitansi: string;
   status: 'terkunci' | 'menunggu_bku' | 'dibukukan' | 'draft';
   diajukanOleh: string;
+  catatanRevisi?: string;
 }
 
 export const mockSpjAntrean: SpjAntrean[] = [

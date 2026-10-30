@@ -1,13 +1,29 @@
+import { useState } from 'react';
 import { ClipboardCheck, Inbox, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { mockSpjAntrean, formatRupiah, formatDateID } from '@/data/mockData';
+import { mockSpjAntrean, formatRupiah, formatDateID, type SpjAntrean } from '@/data/mockData';
 import { PageHeader, StatCard, Ticker, StatusBadge } from '@/components/ui/Primitives';
+import { SpjReturnDialog } from '@/pages/modules/spj/SpjReturnDialog';
 
 export function VerifikatorDashboard({ session }: { session: SessionUser }) {
   const ta = session.activeTa;
-  const antrean = mockSpjAntrean.filter((s) => s.status === 'terkunci');
-  const menunggu = mockSpjAntrean.filter((s) => s.status === 'menunggu_bku');
-  const dibukukan = mockSpjAntrean.filter((s) => s.status === 'dibukukan');
+  const [spjList, setSpjList] = useState<SpjAntrean[]>(mockSpjAntrean);
+  const [returning, setReturning] = useState<SpjAntrean | null>(null);
+  const antrean = spjList.filter((s) => s.status === 'terkunci');
+  const menunggu = spjList.filter((s) => s.status === 'menunggu_bku');
+  const dibukukan = spjList.filter((s) => s.status === 'dibukukan');
+
+  const updateSpj = (id: string, patch: Partial<SpjAntrean>) => {
+    setSpjList((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  };
+
+  const handleApprove = (spj: SpjAntrean) => updateSpj(spj.id, { status: 'menunggu_bku', catatanRevisi: undefined });
+
+  const handleReturn = (catatan: string) => {
+    if (!returning) return;
+    updateSpj(returning.id, { status: 'draft', catatanRevisi: catatan });
+    setReturning(null);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -23,7 +39,7 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
           <StatCard label="Antrean Verifikasi" value={antrean.length} sublabel="SPJ Terkunci" accent="yellow" icon={Inbox} />
           <StatCard label="Menunggu BKU" value={menunggu.length} sublabel="disetujui" accent="teal" icon={Clock} />
           <StatCard label="Dibukukan" value={dibukukan.length} sublabel="realisasi" accent="green" icon={CheckCircle2} />
-          <StatCard label="Total SPJ" value={mockSpjAntrean.length} sublabel="seluruh seksi" accent="default" icon={ClipboardCheck} />
+          <StatCard label="Total SPJ" value={spjList.length} sublabel="seluruh seksi" accent="default" icon={ClipboardCheck} />
         </Ticker>
       </div>
 
@@ -52,7 +68,9 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
               </tr>
             </thead>
             <tbody>
-              {mockSpjAntrean.map((spj) => (
+              {spjList.map((spj) => {
+                const isOwn = spj.diajukanOleh === session.displayName;
+                return (
                 <tr key={spj.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors h-8">
                   <td className="px-4 py-1 font-mono text-xs text-ink-secondary whitespace-nowrap">{spj.noRef}</td>
                   <td className="px-4 py-1 text-xs text-ink-primary whitespace-nowrap">{spj.seksiName}</td>
@@ -64,22 +82,27 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
                   <td className="px-4 py-1"><StatusBadge status={spj.status} type="spj" /></td>
                   <td className="px-4 py-1 text-right">
                     {spj.status === 'terkunci' ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <button className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-green" title="Setujui">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Setujui
-                        </button>
-                        <button className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-red" title="Kembalikan">
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Kembalikan
-                        </button>
-                      </div>
+                      isOwn ? (
+                        <span className="text-2xs text-ink-muted" title="Verifikator tidak boleh memverifikasi SPJ yang ia ajukan">Milik sendiri</span>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => handleApprove(spj)} className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-green" title="Setujui">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Setujui
+                          </button>
+                          <button onClick={() => setReturning(spj)} className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-red" title="Kembalikan">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Kembalikan
+                          </button>
+                        </div>
+                      )
                     ) : (
                       <span className="text-2xs text-ink-muted">—</span>
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -87,6 +110,10 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
           SPJ Terkunci sejak dikirim ke Verifikator. Pengembalian membuka kunci SPJ menjadi Draft, tetapi kuitansi terkait tetap Terkunci dan komitmen SPD tetap berlaku.
         </div>
       </div>
+
+      {returning && (
+        <SpjReturnDialog spj={returning} onConfirm={handleReturn} onClose={() => setReturning(null)} />
+      )}
 
       {/* Verifikator scope note */}
       <div className="surface-card px-4 py-3 flex items-start gap-3">

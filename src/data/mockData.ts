@@ -116,6 +116,33 @@ export const mockKuitansiPptk: KuitansiRow[] = [
   { id: 'kwt-012', uraian: 'Sewa ruang rapat koordinasi', penerima: 'Hotel Nusantara Banjarmasin', subkegiatanId: 'sub-pem-02', subkegiatanName: 'Penyelenggaraan Rapat Koordinasi', kodeSubkegiatan: '2.16.03.2.02', rekeningId: 'rek-pem-02a', kodeRekening: '5.1.02.02.6.2.01.05', bruto: 2_800_000, tanggal: '2026-10-28', status: 'aktif', spjStatus: 'belum' },
 ];
 
+// ── Master Jenis Pajak & entri pajak SPJ (Dokumen 05 poin 71-76) ──
+export interface JenisPajakRow {
+  id: string;
+  kode: string;
+  nama: string;
+  aktif: boolean;
+}
+
+export const mockJenisPajak: JenisPajakRow[] = [
+  { id: 'pjk-pph21', kode: 'PPh 21', nama: 'Pajak Penghasilan Pasal 21', aktif: true },
+  { id: 'pjk-pph22', kode: 'PPh 22', nama: 'Pajak Penghasilan Pasal 22', aktif: true },
+  { id: 'pjk-pph23', kode: 'PPh 23', nama: 'Pajak Penghasilan Pasal 23', aktif: true },
+  { id: 'pjk-ppn', kode: 'PPN', nama: 'Pajak Pertambahan Nilai', aktif: true },
+  { id: 'pjk-restoran', kode: 'Restoran', nama: 'Pajak Restoran (tidak berlaku)', aktif: false },
+];
+
+export interface PajakEntry {
+  id: string;
+  jenisPajakId: string;
+  nominal: number;
+}
+
+export const mockSpjPajakAwal: Record<string, PajakEntry[]> = {
+  'kwt-001': [{ id: 'pj-001', jenisPajakId: 'pjk-pph21', nominal: 225_000 }],
+  'kwt-009': [{ id: 'pj-002', jenisPajakId: 'pjk-ppn', nominal: 120_000 }],
+};
+
 // ── Jejak Audit mock ──
 export interface AuditEvent {
   id: string;

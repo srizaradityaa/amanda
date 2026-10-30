@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Receipt, Lock, Plus, Pencil, Trash2, FileText, Send, Undo2 } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
 import {
-  mockKuitansiPptk,
   mockSeksiList,
   formatRupiah,
   formatDateID,
   type KuitansiRow,
 } from '@/data/mockData';
+import { useKuitansiSpj } from '@/state/KuitansiSpjContext';
 import { PageHeader, StatusBadge, GatekeeperBanner } from '@/components/ui/Primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { KuitansiForm, type KuitansiInput } from '@/pages/modules/kuitansi/KuitansiForm';
@@ -39,7 +39,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
   const belumSeimbang = mockSeksiList.filter((s) => s.alokasiStatus !== 'tuntas');
   const gatekeeperActive = belumSeimbang.length > 0;
 
-  const [rows, setRows] = useState<KuitansiRow[]>(mockKuitansiPptk);
+  const { rows, saveKuitansi, cancelKuitansi, createSpj, ajukanSpj, lepasSpj } = useKuitansiSpj();
   const [view, setView] = useState<KuitansiView>({ kind: 'list' });
   const [pendingCancel, setPendingCancel] = useState<KuitansiRow | null>(null);
   const [spjAction, setSpjAction] = useState<{ kind: 'create' | 'ajukan' | 'lepas'; row: KuitansiRow } | null>(null);
@@ -48,41 +48,31 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
 
   const handleSave = (input: KuitansiInput) => {
     if (view.kind !== 'form') return;
-    if (view.id) {
-      setRows((prev) => prev.map((r) => (r.id === view.id ? { ...r, ...input } : r)));
-    } else {
-      const nextId = `kwt-${Date.now().toString(36)}`;
-      setRows((prev) => [...prev, { ...input, id: nextId, status: 'aktif', spjStatus: 'belum' }]);
-    }
+    saveKuitansi(view.id, input);
     setView({ kind: 'list' });
   };
 
   const handleConfirmCancel = () => {
     if (!pendingCancel) return;
-    const targetId = pendingCancel.id;
-    setRows((prev) => prev.filter((r) => r.id !== targetId));
+    cancelKuitansi(pendingCancel.id);
     setPendingCancel(null);
-  };
-
-  const updateRow = (id: string, patch: Partial<KuitansiRow>) => {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   };
 
   const handleCreateSpj = (jenisBelanja: string) => {
     if (spjAction?.kind !== 'create') return;
-    updateRow(spjAction.row.id, { status: 'terkunci', spjStatus: 'draft', spjJenisBelanja: jenisBelanja });
+    createSpj(spjAction.row.id, jenisBelanja);
     setSpjAction(null);
   };
 
   const handleAjukanSpj = () => {
     if (spjAction?.kind !== 'ajukan') return;
-    updateRow(spjAction.row.id, { spjStatus: 'terkunci' });
+    ajukanSpj(spjAction.row.id);
     setSpjAction(null);
   };
 
   const handleLepasSpj = () => {
     if (spjAction?.kind !== 'lepas') return;
-    updateRow(spjAction.row.id, { status: 'aktif', spjStatus: 'belum', spjJenisBelanja: undefined });
+    lepasSpj(spjAction.row.id);
     setSpjAction(null);
   };
 

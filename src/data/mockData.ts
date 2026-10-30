@@ -92,16 +92,6 @@ export const mockSpjAntrean: SpjAntrean[] = [
   { id: 'spj-005', noRef: 'KWT-PEM-009', seksiName: 'Seksi Perencanaan & Evaluasi', uraian: 'Cetak dokumen perencanaan', bruto: 1_200_000, jenisBelanja: 'Barang & Jasa', tanggalKwitansi: '2026-10-25', status: 'dibukukan', diajukanOleh: 'Dwi Putri Lestari, S.T.' },
 ];
 
-export const mockJenisBelanja = ['Honor', 'Barang & Jasa', 'Perjalanan Dinas', 'Modal'];
-
-export const mockJenisPajak = [
-  { kode: 'PPN', label: 'PPN' },
-  { kode: 'PPH21', label: 'PPh Pasal 21' },
-  { kode: 'PPH22', label: 'PPh Pasal 22' },
-  { kode: 'PPH23', label: 'PPh Pasal 23' },
-  { kode: 'PPH42', label: 'PPh Pasal 4(2)' },
-];
-
 // ── Kuitansi mock (PPTK) ──
 export interface KuitansiRow {
   id: string;

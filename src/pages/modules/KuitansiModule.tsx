@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { Receipt, Lock, Plus, Pencil, Trash2 } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { mockSeksiList, formatRupiah, formatDateID, type KuitansiRow } from '@/data/mockData';
-import { useDocumentStore } from '@/state/documentStore';
+import {
+  mockKuitansiPptk,
+  mockSeksiList,
+  formatRupiah,
+  formatDateID,
+  type KuitansiRow,
+} from '@/data/mockData';
 import { PageHeader, StatusBadge, GatekeeperBanner } from '@/components/ui/Primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { KuitansiForm, type KuitansiInput } from '@/pages/modules/kuitansi/KuitansiForm';
@@ -33,7 +38,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
   const belumSeimbang = mockSeksiList.filter((s) => s.alokasiStatus !== 'tuntas');
   const gatekeeperActive = belumSeimbang.length > 0;
 
-  const { rows, addKuitansi, updateKuitansi, cancelKuitansi } = useDocumentStore();
+  const [rows, setRows] = useState<KuitansiRow[]>(mockKuitansiPptk);
   const [view, setView] = useState<KuitansiView>({ kind: 'list' });
   const [pendingCancel, setPendingCancel] = useState<KuitansiRow | null>(null);
 
@@ -42,16 +47,18 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
   const handleSave = (input: KuitansiInput) => {
     if (view.kind !== 'form') return;
     if (view.id) {
-      updateKuitansi(view.id, input);
+      setRows((prev) => prev.map((r) => (r.id === view.id ? { ...r, ...input } : r)));
     } else {
-      addKuitansi(input);
+      const nextId = `kwt-${Date.now().toString(36)}`;
+      setRows((prev) => [...prev, { ...input, id: nextId, status: 'aktif', spjStatus: 'belum' }]);
     }
     setView({ kind: 'list' });
   };
 
   const handleConfirmCancel = () => {
     if (!pendingCancel) return;
-    cancelKuitansi(pendingCancel.id);
+    const targetId = pendingCancel.id;
+    setRows((prev) => prev.filter((r) => r.id !== targetId));
     setPendingCancel(null);
   };
 

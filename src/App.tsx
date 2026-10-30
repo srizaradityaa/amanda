@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAuthSession } from '@/auth/mockAuth';
 import { LoginPage } from '@/pages/LoginPage';
 import { MainLayout } from '@/components/MainLayout';
-import { DocumentStoreProvider } from '@/state/documentStore';
 import { PublicPortalPlaceholder } from '@/pages/PublicPortalPlaceholder';
 
 export default function App() {
@@ -22,9 +21,5 @@ export default function App() {
     );
   }
 
-  return (
-    <DocumentStoreProvider>
-      <MainLayout session={session} onLogout={logout} />
-    </DocumentStoreProvider>
-  );
+  return <MainLayout session={session} onLogout={logout} />;
 }

@@ -151,6 +151,10 @@ export const roleShortLabel: Record<Role, string> = {
   auditor: 'Pengawas',
 };
 
+export function findNavItem(role: Role, id: string): NavItem | undefined {
+  return roleNav[role].flatMap((s) => s.items).find((i) => i.id === id);
+}
+
 export const roleFullLabel: Record<Role, string> = {
   admin: 'Administrator Sistem',
   bendahara: 'Bendahara Pengeluaran',

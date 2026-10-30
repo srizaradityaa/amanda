@@ -1,9 +1,10 @@
-import { useState } from 'react';
 import type { SessionUser } from '@/auth/types';
 import { Topbar } from '@/components/Topbar';
 import { Sidebar } from '@/components/Sidebar';
 import { PlaceholderView } from '@/components/PlaceholderView';
-import { roleNav } from '@/config/navigation';
+import { AccessDeniedView } from '@/components/AccessDeniedView';
+import { findNavItem, roleNav } from '@/config/navigation';
+import { DEFAULT_MODULE_ID } from '@/router/routes';
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard';
 import { BendaharaDashboard } from '@/pages/dashboards/BendaharaDashboard';
 import { PptkDashboard } from '@/pages/dashboards/PptkDashboard';
@@ -20,6 +21,8 @@ import { BkuModule } from '@/pages/modules/BkuModule';
 
 interface MainLayoutProps {
   session: SessionUser;
+  moduleId: string;
+  onNavigate: (id: string) => void;
   onLogout: () => void;
 }
 
@@ -43,26 +46,22 @@ const moduleRegistry: Record<string, (props: { session: SessionUser }) => JSX.El
   bku: BkuModule,
 };
 
-export function MainLayout({ session, onLogout }: MainLayoutProps) {
+export function MainLayout({ session, moduleId, onNavigate, onLogout }: MainLayoutProps) {
   const isAuditor = session.role === 'auditor';
   const sections = roleNav[session.role];
-  const firstId = sections[0]?.items[0]?.id ?? 'dashboard';
-
-  const [activeId, setActiveId] = useState(firstId);
-  const activeItem = sections
-    .flatMap((s) => s.items)
-    .find((i) => i.id === activeId);
-  const title = activeItem?.label ?? 'Dasbor';
-  const Icon = activeItem?.icon;
+  const activeItem = findNavItem(session.role, moduleId);
 
   function renderContent() {
-    if (activeId === 'dashboard') {
+    if (!activeItem) {
+      return <AccessDeniedView onBack={() => onNavigate(DEFAULT_MODULE_ID)} />;
+    }
+    if (moduleId === 'dashboard') {
       const Dash = dashboards[session.role];
       if (Dash) return <Dash session={session} />;
     }
-    const Mod = moduleRegistry[activeId];
+    const Mod = moduleRegistry[moduleId];
     if (Mod) return <Mod session={session} />;
-    return <PlaceholderView title={title} session={session} icon={Icon} />;
+    return <PlaceholderView title={activeItem.label} session={session} icon={activeItem.icon} />;
   }
 
   if (isAuditor) {
@@ -72,11 +71,11 @@ export function MainLayout({ session, onLogout }: MainLayoutProps) {
         <nav className="h-11 bg-surface border-b border-border flex items-center gap-1 px-4 overflow-x-auto shrink-0">
           {sections[0].items.map((item) => {
             const I = item.icon;
-            const active = item.id === activeId;
+            const active = item.id === moduleId;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveId(item.id)}
+                onClick={() => onNavigate(item.id)}
                 className={`flex items-center gap-2 px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
                   active
                     ? 'text-amber border-b-2 border-amber -mb-px'
@@ -99,7 +98,7 @@ export function MainLayout({ session, onLogout }: MainLayoutProps) {
   return (
     <div className="h-screen flex bg-bg">
       <div className="hidden md:block h-full">
-        <Sidebar session={session} activeId={activeId} onNavigate={setActiveId} />
+        <Sidebar session={session} activeId={moduleId} onNavigate={onNavigate} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">

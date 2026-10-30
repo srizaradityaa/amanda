@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, Lock, Plus } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { formatRupiah, formatDateID } from '@/data/mockData';
+import { formatRupiah, formatDateID, mockSpjAntrean } from '@/data/mockData';
 import { PageHeader, StatusBadge } from '@/components/ui/Primitives';
 
 interface BkuRow {
@@ -23,7 +23,12 @@ const mockBku: BkuRow[] = [
 ];
 
 export function BkuModule({ session }: { session: SessionUser }) {
+  const [rows, setRows] = useState<BkuRow[]>(mockBku);
   const [showForm, setShowForm] = useState(false);
+  const [formNoBku, setFormNoBku] = useState('');
+  const [formTanggal, setFormTanggal] = useState('2026-10-30');
+  const [formSpjId, setFormSpjId] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const allowed = session.role === 'bendahara' || session.role === 'verifikator';
   if (!allowed) {
     return (
@@ -40,16 +45,59 @@ export function BkuModule({ session }: { session: SessionUser }) {
   const ta = session.activeTa;
   const canEdit = session.role === 'bendahara';
 
+  const tercatatRows = rows.filter((r) => r.status === 'tercatat');
+  const spjMenungguBku = mockSpjAntrean.filter(
+    (s) => s.status === 'menunggu_bku' && !tercatatRows.some((r) => r.kuitansiRef === s.noRef),
+  );
+  const selectedSpj = spjMenungguBku.find((s) => s.id === formSpjId);
+
+  const resetForm = () => {
+    setFormNoBku('');
+    setFormTanggal('2026-10-30');
+    setFormSpjId('');
+    setFormError(null);
+    setShowForm(false);
+  };
+
+  const handleSaveBku = () => {
+    const noBku = formNoBku.trim();
+    if (!noBku) {
+      setFormError('No. BKU wajib diisi.');
+      return;
+    }
+    if (tercatatRows.some((r) => r.noBku.toLowerCase() === noBku.toLowerCase())) {
+      setFormError(`No. BKU ${noBku} sudah dipakai pada TA ini.`);
+      return;
+    }
+    if (!selectedSpj) {
+      setFormError('Pilih SPJ yang sudah disetujui Verifikator.');
+      return;
+    }
+    setRows((list) => [
+      {
+        id: `bku-${Date.now()}`,
+        noBku,
+        tanggal: formTanggal,
+        uraian: selectedSpj.uraian,
+        kuitansiRef: selectedSpj.noRef,
+        bruto: selectedSpj.bruto,
+        status: 'tercatat',
+      },
+      ...list,
+    ]);
+    resetForm();
+  };
+
   return (
     <div className="animate-fade-in">
       <PageHeader title="Buku Kas (BKU)" subtitle={`TA ${ta?.taYear ?? 2026} ${canEdit ? '• Bendahara pencatat' : '• Verifikator (baca)'}`} mode="PRO" />
 
       <div className="surface-card mb-5 px-4 py-3 flex items-center justify-between">
         <div className="text-xs text-ink-secondary">
-          <span className="text-ink-primary font-medium">{mockBku.filter((r) => r.status === 'tercatat').length}</span> tercatat • <span className="text-status-red">{mockBku.filter((r) => r.status === 'dicabut').length}</span> dicabut
+          <span className="text-ink-primary font-medium">{tercatatRows.length}</span> tercatat • <span className="text-status-red">{rows.filter((r) => r.status === 'dicabut').length}</span> dicabut
         </div>
         {canEdit && (
-          <button className="btn-amber text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={() => setShowForm((v) => !v)}>
+          <button className="btn-amber text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={() => (showForm ? resetForm() : setShowForm(true))}>
             <Plus className="h-3.5 w-3.5" />
             Catat BKU
           </button>
@@ -61,28 +109,54 @@ export function BkuModule({ session }: { session: SessionUser }) {
           <h3 className="text-sm font-semibold text-ink-primary mb-4">Catat BKU Baru</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-2xs uppercase tracking-wider text-ink-muted">No. BKU</label>
-              <input className="input-base w-full mt-1 text-sm font-mono" placeholder="B-0143" />
+              <label htmlFor="bku-no" className="text-2xs uppercase tracking-wider text-ink-muted">No. BKU</label>
+              <input
+                id="bku-no"
+                value={formNoBku}
+                onChange={(e) => setFormNoBku(e.target.value)}
+                className="input-base w-full mt-1 text-sm font-mono"
+                placeholder="B-0143"
+              />
             </div>
             <div>
-              <label className="text-2xs uppercase tracking-wider text-ink-muted">Tanggal BKU</label>
-              <input type="date" className="input-base w-full mt-1 text-sm" defaultValue="2026-10-30" />
+              <label htmlFor="bku-tgl" className="text-2xs uppercase tracking-wider text-ink-muted">Tanggal BKU</label>
+              <input
+                id="bku-tgl"
+                type="date"
+                value={formTanggal}
+                onChange={(e) => setFormTanggal(e.target.value)}
+                className="input-base w-full mt-1 text-sm"
+              />
             </div>
             <div>
-              <label className="text-2xs uppercase tracking-wider text-ink-muted">Kuitansi Terkait</label>
-              <select className="input-base w-full mt-1 text-sm">
-                <option>kwt-001 — Honor narasumber (Rp 4.500.000)</option>
-                <option>KWT-PEN-014 — ATK Q3 (Rp 8.200.000)</option>
+              <label htmlFor="bku-spj" className="text-2xs uppercase tracking-wider text-ink-muted">SPJ Menunggu BKU</label>
+              <select
+                id="bku-spj"
+                value={formSpjId}
+                onChange={(e) => setFormSpjId(e.target.value)}
+                className="input-base w-full mt-1 text-sm"
+              >
+                <option value="">Pilih SPJ</option>
+                {spjMenungguBku.map((s) => (
+                  <option key={s.id} value={s.id}>{`${s.noRef} — ${s.uraian}`}</option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="text-2xs uppercase tracking-wider text-ink-muted">Nominal (Rp)</label>
-              <input type="number" className="input-base w-full mt-1 text-sm font-mono tnum" placeholder="0" />
+              <label htmlFor="bku-nominal" className="text-2xs uppercase tracking-wider text-ink-muted">Nominal (Rp)</label>
+              <input
+                id="bku-nominal"
+                readOnly
+                value={selectedSpj ? formatRupiah(selectedSpj.bruto) : ''}
+                placeholder="Mengikuti nilai bruto SPJ"
+                className="input-base w-full mt-1 text-sm font-mono tnum opacity-80"
+              />
             </div>
           </div>
+          {formError && <p className="mt-3 text-xs text-status-red">{formError}</p>}
           <div className="flex items-center justify-end gap-2 mt-4">
-            <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => setShowForm(false)}>Batal</button>
-            <button className="btn-amber text-xs px-3 py-1.5" onClick={() => setShowForm(false)}>Simpan BKU</button>
+            <button className="btn-ghost text-xs px-3 py-1.5" onClick={resetForm}>Batal</button>
+            <button className="btn-amber text-xs px-3 py-1.5" onClick={handleSaveBku}>Simpan BKU</button>
           </div>
         </div>
       )}
@@ -104,7 +178,7 @@ export function BkuModule({ session }: { session: SessionUser }) {
               </tr>
             </thead>
             <tbody>
-              {mockBku.map((r) => (
+              {rows.map((r) => (
                 <tr key={r.id} className={`border-b border-border last:border-0 hover:bg-surface-hover transition-colors h-8 ${r.status === 'dicabut' ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-1 font-mono text-xs text-ink-primary">{r.noBku}</td>
                   <td className="px-4 py-1 text-xs text-ink-secondary">{formatDateID(r.tanggal)}</td>

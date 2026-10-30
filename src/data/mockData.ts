@@ -107,6 +107,7 @@ export interface KuitansiRow {
   tanggal: string;
   status: 'aktif' | 'terkunci';
   spjStatus: 'belum' | 'draft' | 'terkunci' | 'menunggu_bku' | 'dibukukan';
+  spjJenisBelanja?: string;
 }
 
 export const mockKuitansiPptk: KuitansiRow[] = [

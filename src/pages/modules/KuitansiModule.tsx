@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Receipt, Lock, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Receipt, Lock, Plus, Pencil, Trash2, FileText, Send, Undo2 } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
 import {
   mockKuitansiPptk,
@@ -11,6 +11,7 @@ import {
 import { PageHeader, StatusBadge, GatekeeperBanner } from '@/components/ui/Primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { KuitansiForm, type KuitansiInput } from '@/pages/modules/kuitansi/KuitansiForm';
+import { SpjCreateDialog } from '@/pages/modules/spj/SpjCreateDialog';
 
 type KuitansiView = { kind: 'list' } | { kind: 'form'; id: string | null };
 
@@ -41,6 +42,7 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
   const [rows, setRows] = useState<KuitansiRow[]>(mockKuitansiPptk);
   const [view, setView] = useState<KuitansiView>({ kind: 'list' });
   const [pendingCancel, setPendingCancel] = useState<KuitansiRow | null>(null);
+  const [spjAction, setSpjAction] = useState<{ kind: 'create' | 'ajukan' | 'lepas'; row: KuitansiRow } | null>(null);
 
   const editingRow = view.kind === 'form' && view.id ? rows.find((r) => r.id === view.id) ?? null : null;
 
@@ -60,6 +62,28 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
     const targetId = pendingCancel.id;
     setRows((prev) => prev.filter((r) => r.id !== targetId));
     setPendingCancel(null);
+  };
+
+  const updateRow = (id: string, patch: Partial<KuitansiRow>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const handleCreateSpj = (jenisBelanja: string) => {
+    if (spjAction?.kind !== 'create') return;
+    updateRow(spjAction.row.id, { status: 'terkunci', spjStatus: 'draft', spjJenisBelanja: jenisBelanja });
+    setSpjAction(null);
+  };
+
+  const handleAjukanSpj = () => {
+    if (spjAction?.kind !== 'ajukan') return;
+    updateRow(spjAction.row.id, { spjStatus: 'terkunci' });
+    setSpjAction(null);
+  };
+
+  const handleLepasSpj = () => {
+    if (spjAction?.kind !== 'lepas') return;
+    updateRow(spjAction.row.id, { status: 'aktif', spjStatus: 'belum', spjJenisBelanja: undefined });
+    setSpjAction(null);
   };
 
   if (view.kind === 'form') {
@@ -149,6 +173,34 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
                             <Trash2 className="h-3 w-3" aria-hidden="true" />
                             Batalkan
                           </button>
+                          <button
+                            type="button"
+                            disabled={gatekeeperActive}
+                            onClick={() => setSpjAction({ kind: 'create', row: r })}
+                            className="btn-ghost px-2 py-1 text-xs flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <FileText className="h-3 w-3" aria-hidden="true" />
+                            Buat SPJ
+                          </button>
+                        </div>
+                      ) : r.spjStatus === 'draft' ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setSpjAction({ kind: 'ajukan', row: r })}
+                            className="btn-ghost px-2 py-1 text-xs flex items-center gap-1 text-status-green"
+                          >
+                            <Send className="h-3 w-3" aria-hidden="true" />
+                            Ajukan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSpjAction({ kind: 'lepas', row: r })}
+                            className="btn-ghost px-2 py-1 text-xs flex items-center gap-1"
+                          >
+                            <Undo2 className="h-3 w-3" aria-hidden="true" />
+                            Tarik Draft
+                          </button>
                         </div>
                       ) : (
                         <div className="flex items-center justify-end gap-1 text-2xs text-ink-muted">
@@ -171,6 +223,34 @@ function PptkKuitansi({ session }: { session: SessionUser }) {
           <span className="text-ink-primary font-medium">Siklus kuitansi:</span> Aktif → Terkunci (setelah masuk SPJ) → tidak dapat diedit. Pembatalan kuitansi Aktif tidak meninggalkan jejak. Kuitansi terkunci tidak dapat diubah atau dibatalkan. (D02 §2-4, D03 §4)
         </p>
       </div>
+
+      {spjAction?.kind === 'create' && (
+        <SpjCreateDialog
+          kuitansi={spjAction.row}
+          onConfirm={handleCreateSpj}
+          onClose={() => setSpjAction(null)}
+        />
+      )}
+
+      {spjAction?.kind === 'ajukan' && (
+        <ConfirmDialog
+          title="Ajukan SPJ ke Verifikator?"
+          message={`SPJ untuk "${spjAction.row.uraian}" akan terkunci dan tidak dapat diubah sampai Verifikator mengembalikannya ke Draft.`}
+          confirmLabel="Ya, ajukan"
+          onConfirm={handleAjukanSpj}
+          onCancel={() => setSpjAction(null)}
+        />
+      )}
+
+      {spjAction?.kind === 'lepas' && (
+        <ConfirmDialog
+          title="Tarik SPJ Draft?"
+          message={`SPJ draft untuk "${spjAction.row.uraian}" akan dihapus dan kuitansi kembali Aktif. Tidak meninggalkan jejak audit.`}
+          confirmLabel="Ya, tarik draft"
+          onConfirm={handleLepasSpj}
+          onCancel={() => setSpjAction(null)}
+        />
+      )}
 
       {pendingCancel && (
         <ConfirmDialog

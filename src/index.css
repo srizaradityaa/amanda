@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-bg text-ink-primary antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* Tabular figures for all nominal/columnar numbers */
+  .tnum {
+    font-feature-settings: 'tnum' 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Focus ring: amber 2px */
+  *:focus-visible {
+    outline: 2px solid #F59E0B;
+    outline-offset: 1px;
+    border-radius: 2px;
+  }
+
+  /* Scrollbars — subtle, terminal-like */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1F2937 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #1F2937;
+    border-radius: 4px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #374151;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .surface-card {
+    @apply bg-surface border border-border;
+  }
+
+  .input-base {
+    @apply w-full bg-bg border border-border px-3 py-2.5 text-sm text-ink-primary placeholder:text-ink-muted rounded-none transition-colors focus:border-amber;
+  }
+
+  .btn-amber {
+    @apply bg-amber text-amber-dark font-semibold text-sm px-4 py-2.5 transition-colors hover:bg-amber-hover disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-teal-outline {
+    @apply border border-teal text-teal text-sm font-medium px-4 py-2.5 transition-colors hover:bg-teal/10;
+  }
+
+  .btn-ghost {
+    @apply text-ink-secondary text-sm font-medium px-3 py-2 transition-colors hover:text-ink-primary hover:bg-surface-hover;
+  }
+
+  .status-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+  }
+}

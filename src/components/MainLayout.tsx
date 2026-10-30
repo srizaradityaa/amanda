@@ -17,6 +17,8 @@ import { AlokasiPagu } from '@/pages/modules/AlokasiPagu';
 import { AlokasiRekening } from '@/pages/modules/AlokasiRekening';
 import { KuitansiModule } from '@/pages/modules/KuitansiModule';
 import { BkuModule } from '@/pages/modules/BkuModule';
+import { AntreanSpjModule } from '@/pages/modules/AntreanSpjModule';
+import { SpjModule } from '@/pages/modules/SpjModule';
 
 interface MainLayoutProps {
   session: SessionUser;
@@ -40,6 +42,8 @@ const moduleRegistry: Record<string, (props: { session: SessionUser }) => JSX.El
   alokasi: AlokasiPagu,
   'alokasi-rekening': AlokasiRekening,
   kuitansi: KuitansiModule,
+  spj: SpjModule,
+  antrean: AntreanSpjModule,
   bku: BkuModule,
 };
 

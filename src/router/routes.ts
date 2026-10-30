@@ -31,6 +31,3 @@ export function parseRoute(pathname: string): AppRoute {
   }
   return { kind: 'unknown' };
 }
-
-
-export { parseRoute }

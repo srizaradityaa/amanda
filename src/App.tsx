@@ -4,6 +4,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { MainLayout } from '@/components/MainLayout';
 import { PublicPortalPlaceholder } from '@/pages/PublicPortalPlaceholder';
 import { KeaslianSpjPage } from '@/pages/KeaslianSpjPage';
+import { SelectAssignmentPage } from '@/pages/SelectAssignmentPage';
 import { useRouter } from '@/router/useRouter';
 import {
   DEFAULT_APP_PATH,
@@ -14,7 +15,7 @@ import {
 } from '@/router/routes';
 
 export default function App() {
-  const { session, login, logout } = useAuthSession();
+  const { session, login, logout, selectAssignment } = useAuthSession();
   const { route, navigate } = useRouter();
 
   useEffect(() => {
@@ -43,6 +44,12 @@ export default function App() {
   function handleLogout() {
     logout();
     navigate(LOGIN_PATH, { replace: true });
+  }
+
+  if (!session.activeTa) {
+    return (
+      <SelectAssignmentPage user={session} onSelect={selectAssignment} onLogout={handleLogout} />
+    );
   }
 
   return (

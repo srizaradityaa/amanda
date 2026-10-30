@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { MockUser, SessionUser } from './types';
+import type { MockUser, SessionUser, TaAssignment } from './types';
 
 export const mockUsers: MockUser[] = [
   {
@@ -107,6 +107,24 @@ export const mockUsers: MockUser[] = [
       ],
     },
   },
+  {
+    identifier: '198803152012011005',
+    password: 'multi2026',
+    label: 'Multi-Penugasan',
+    description: 'Uji alur pemilih — dua TA dan beberapa jabatan.',
+    user: {
+      id: 'u-multi-01',
+      displayName: 'Yudi Prasetyo, S.T.',
+      nipNikOrEmail: '198803152012011005',
+      role: 'verifikator',
+      actorType: 'internal',
+      assignments: [
+        { taId: 'ta-2026', taYear: 2026, role: 'verifikator' },
+        { taId: 'ta-2026', taYear: 2026, role: 'pa_kpa' },
+        { taId: 'ta-2025', taYear: 2025, role: 'verifikator' },
+      ],
+    },
+  },
 ];
 
 const STORAGE_KEY = 'amanda-session-v1';
@@ -158,9 +176,13 @@ export function useAuthSession() {
     return withDefault;
   };
 
+  const selectAssignment = (assignment: TaAssignment) => {
+    setSession((prev) => (prev ? { ...prev, role: assignment.role, activeTa: assignment } : prev));
+  };
+
   const logout = () => setSession(null);
 
-  return { session, login, logout };
+  return { session, login, logout, selectAssignment };
 }
 
 export function formatNipNik(value: string): string {

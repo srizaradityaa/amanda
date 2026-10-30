@@ -19,6 +19,7 @@ import { AlokasiRekening } from '@/pages/modules/AlokasiRekening';
 import { KuitansiModule } from '@/pages/modules/KuitansiModule';
 import { BkuModule } from '@/pages/modules/BkuModule';
 import { TaManagement } from '@/pages/modules/TaManagement';
+import { SotkManagement } from '@/pages/modules/SotkManagement';
 
 interface MainLayoutProps {
   session: SessionUser;
@@ -39,6 +40,7 @@ const dashboards: Record<string, (props: { session: SessionUser }) => JSX.Elemen
 // Module registry: id → component (all take { session })
 const moduleRegistry: Record<string, (props: { session: SessionUser }) => JSX.Element> = {
   ta: TaManagement,
+  sotk: SotkManagement,
   drilldown: DrillDownAnggaran,
   audit: JejakAudit,
   laporan: KatalogLaporan,

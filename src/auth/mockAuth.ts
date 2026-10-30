@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { MockUser, SessionUser, TaAssignment } from './types';
+import { todayWita } from '@/lib/witaDate';
 
 export const mockUsers: MockUser[] = [
   {
@@ -144,10 +145,6 @@ export const mockUsers: MockUser[] = [
 ];
 
 const STORAGE_KEY = 'amanda-session-v1';
-
-function todayWita(): string {
-  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
-}
 
 function resolveLogin(identifier: string, password: string): SessionUser | null {
   const cleanId = identifier.trim();

@@ -50,6 +50,7 @@ export function StatusBadge({ status, type = 'default' }: { status: string; type
     menunggu_bku: 'text-teal border-teal/40',
     dibukukan: 'text-status-green border-status-green/40',
     'arsip_readonly': 'text-ink-secondary border-border',
+    diarsipkan: 'text-ink-secondary border-border',
     perlu_perbaikan: 'text-status-red border-status-red/40',
   };
   const cls = colors[status] ?? 'text-ink-secondary border-border';

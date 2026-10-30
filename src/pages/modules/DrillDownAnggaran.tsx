@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, PieChart, ArrowLeft, Lock, Home } from 'lucide-react';
+import { ChevronRight, ChartPie as PieChart, ArrowLeft, Lock, Chrome as Home } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
 import {
   mockSeksiList,
@@ -29,6 +29,8 @@ export function DrillDownAnggaran({ session }: { session: SessionUser }) {
   const role = session.role;
   const ta = session.activeTa;
 
+  const [state, setState] = useState<DrillState>({ level: 'seksi' });
+
   // Admin has no drill-down access (Dokumen 01 §7 poin 5f)
   if (role === 'admin') {
     return (
@@ -44,8 +46,6 @@ export function DrillDownAnggaran({ session }: { session: SessionUser }) {
       </div>
     );
   }
-
-  const [state, setState] = useState<DrillState>({ level: 'seksi' });
 
   // PPTK only sees own seksi (Dokumen 01 §7 poin 5d)
   const visibleSeksi: SeksiRow[] =

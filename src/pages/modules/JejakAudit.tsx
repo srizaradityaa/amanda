@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ScrollText, Search, Filter, RotateCcw, Lock } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
 import { mockAuditEventsFull, type AuditEvent } from '@/data/mockData';
-import { PageHeader, StatusBadge } from '@/components/ui/Primitives';
+import { PageHeader } from '@/components/ui/Primitives';
 
 function formatWaktu(iso: string): string {
   const d = new Date(iso);

@@ -5,18 +5,6 @@ import { mockSeksiList, mockSubkegiatanBySeksi, mockRekeningBySubkegiatan, forma
 import { PageHeader, StatusBadge } from '@/components/ui/Primitives';
 
 export function AlokasiRekening({ session }: { session: SessionUser }) {
-  if (session.role !== 'pptk') {
-    return (
-      <div className="animate-fade-in">
-        <PageHeader title="Alokasi Rekening Belanja" subtitle="Akses ditolak" />
-        <div className="surface-card p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
-          <Lock className="h-8 w-8 text-status-red mb-4" />
-          <p className="text-sm text-ink-secondary max-w-md">Hanya PPTK yang dapat mengalokasikan pagu subkegiatan ke rekening belanja. (D03 §4)</p>
-        </div>
-      </div>
-    );
-  }
-
   const ta = session.activeTa;
   // PPTK only sees own seksi
   const mySeksi = mockSeksiList[0];
@@ -28,6 +16,18 @@ export function AlokasiRekening({ session }: { session: SessionUser }) {
     Object.values(mockRekeningBySubkegiatan).flat().forEach((r) => { init[r.id] = r.pagu; });
     return init;
   });
+
+  if (session.role !== 'pptk') {
+    return (
+      <div className="animate-fade-in">
+        <PageHeader title="Alokasi Rekening Belanja" subtitle="Akses ditolak" />
+        <div className="surface-card p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
+          <Lock className="h-8 w-8 text-status-red mb-4" />
+          <p className="text-sm text-ink-secondary max-w-md">Hanya PPTK yang dapat mengalokasikan pagu subkegiatan ke rekening belanja. (D03 §4)</p>
+        </div>
+      </div>
+    );
+  }
 
   const rekenings = selectedSub ? (mockRekeningBySubkegiatan[selectedSub.id] ?? []) : [];
   const totalAlokasi = rekenings.reduce((sum, r) => sum + (alokasi[r.id] ?? 0), 0);

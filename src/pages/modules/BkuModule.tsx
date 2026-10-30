@@ -23,6 +23,7 @@ const mockBku: BkuRow[] = [
 ];
 
 export function BkuModule({ session }: { session: SessionUser }) {
+  const [showForm, setShowForm] = useState(false);
   const allowed = session.role === 'bendahara' || session.role === 'verifikator';
   if (!allowed) {
     return (
@@ -38,7 +39,6 @@ export function BkuModule({ session }: { session: SessionUser }) {
 
   const ta = session.activeTa;
   const canEdit = session.role === 'bendahara';
-  const [showForm, setShowForm] = useState(false);
 
   return (
     <div className="animate-fade-in">

@@ -1,10 +1,21 @@
 import { useState } from 'react';
-import { PieChart, Lock, AlertTriangle, Check } from 'lucide-react';
+import { ChartPie as PieChart, Lock, TriangleAlert as AlertTriangle, Check } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { mockSeksiList, mockSubkegiatanBySeksi, formatRupiah, formatPct, type SeksiRow } from '@/data/mockData';
+import { mockSeksiList, mockSubkegiatanBySeksi, formatRupiah, type SeksiRow } from '@/data/mockData';
 import { PageHeader, StatusBadge } from '@/components/ui/Primitives';
 
 export function AlokasiPagu({ session }: { session: SessionUser }) {
+  const ta = session.activeTa;
+  const paguInduk = 12_480_000_000;
+  const [selectedSeksi, setSelectedSeksi] = useState<SeksiRow>(mockSeksiList[0]);
+
+  // Mock editable subkegiatan alokasi (local state for demo)
+  const [alokasi, setAlokasi] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    Object.values(mockSubkegiatanBySeksi).flat().forEach((s) => { init[s.id] = s.pagu; });
+    return init;
+  });
+
   if (session.role !== 'bendahara') {
     return (
       <div className="animate-fade-in">
@@ -16,17 +27,6 @@ export function AlokasiPagu({ session }: { session: SessionUser }) {
       </div>
     );
   }
-
-  const ta = session.activeTa;
-  const paguInduk = 12_480_000_000;
-  const [selectedSeksi, setSelectedSeksi] = useState<SeksiRow>(mockSeksiList[0]);
-
-  // Mock editable subkegiatan alokasi (local state for demo)
-  const [alokasi, setAlokasi] = useState<Record<string, number>>(() => {
-    const init: Record<string, number> = {};
-    Object.values(mockSubkegiatanBySeksi).flat().forEach((s) => { init[s.id] = s.pagu; });
-    return init;
-  });
 
   const seksiSubs = mockSubkegiatanBySeksi[selectedSeksi.id] ?? [];
   const totalAlokasi = seksiSubs.reduce((sum, s) => sum + (alokasi[s.id] ?? 0), 0);

@@ -10,6 +10,24 @@ import { PptkDashboard } from '@/pages/dashboards/PptkDashboard';
 import { VerifikatorDashboard } from '@/pages/dashboards/VerifikatorDashboard';
 import { PaKpaDashboard } from '@/pages/dashboards/PaKpaDashboard';
 import { AuditorDashboard } from '@/pages/dashboards/AuditorDashboard';
+import { DrillDownAnggaran } from '@/pages/modules/DrillDownAnggaran';
+import { JejakAudit } from '@/pages/modules/JejakAudit';
+import { KatalogLaporan } from '@/pages/modules/KatalogLaporan';
+import { AlokasiPagu } from '@/pages/modules/AlokasiPagu';
+import { AlokasiRekening } from '@/pages/modules/AlokasiRekening';
+import { KuitansiModule } from '@/pages/modules/KuitansiModule';
+import { BkuModule } from '@/pages/modules/BkuModule';
+import { SpdEfisiensi } from '@/pages/modules/SpdEfisiensi';
+import { PergeseranAnggaran } from '@/pages/modules/PergeseranAnggaran';
+import { AntreanSpj } from '@/pages/modules/AntreanSpj';
+import { HeatmapRealisasi } from '@/pages/modules/HeatmapRealisasi';
+import { LaporanKustom } from '@/pages/modules/LaporanKustom';
+import { SpjFormDinamis } from '@/pages/modules/SpjFormDinamis';
+import { MasterSotk } from '@/pages/modules/MasterSotk';
+import { MasterPersonel } from '@/pages/modules/MasterPersonel';
+import { TahunAnggaran } from '@/pages/modules/TahunAnggaran';
+import { AkunPengawas } from '@/pages/modules/AkunPengawas';
+import { DirektoriRekeningBank } from '@/pages/modules/DirektoriRekeningBank';
 
 interface MainLayoutProps {
   session: SessionUser;
@@ -23,6 +41,28 @@ const dashboards: Record<string, (props: { session: SessionUser }) => JSX.Elemen
   verifikator: VerifikatorDashboard,
   pa_kpa: PaKpaDashboard,
   auditor: AuditorDashboard,
+};
+
+// Module registry: id → component (all take { session })
+const moduleRegistry: Record<string, (props: { session: SessionUser }) => JSX.Element> = {
+  drilldown: DrillDownAnggaran,
+  audit: JejakAudit,
+  laporan: KatalogLaporan,
+  'laporan-kustom': LaporanKustom,
+  alokasi: AlokasiPagu,
+  'alokasi-rekening': AlokasiRekening,
+  kuitansi: KuitansiModule,
+  bku: BkuModule,
+  spd: SpdEfisiensi,
+  pergeseran: PergeseranAnggaran,
+  antrean: AntreanSpj,
+  spj: SpjFormDinamis,
+  heatmap: HeatmapRealisasi,
+  sotk: MasterSotk,
+  personel: MasterPersonel,
+  ta: TahunAnggaran,
+  akun: AkunPengawas,
+  'bank-direktori': DirektoriRekeningBank,
 };
 
 export function MainLayout({ session, onLogout }: MainLayoutProps) {
@@ -42,15 +82,15 @@ export function MainLayout({ session, onLogout }: MainLayoutProps) {
       const Dash = dashboards[session.role];
       if (Dash) return <Dash session={session} />;
     }
+    const Mod = moduleRegistry[activeId];
+    if (Mod) return <Mod session={session} />;
     return <PlaceholderView title={title} session={session} icon={Icon} />;
   }
 
   if (isAuditor) {
-    // Auditor: top nav only, no sidebar, no mini progress bar
     return (
       <div className="h-screen flex flex-col bg-bg">
         <Topbar session={session} onLogout={onLogout} />
-        {/* Auditor top nav strip */}
         <nav className="h-11 bg-surface border-b border-border flex items-center gap-1 px-4 overflow-x-auto shrink-0">
           {sections[0].items.map((item) => {
             const I = item.icon;
@@ -80,7 +120,6 @@ export function MainLayout({ session, onLogout }: MainLayoutProps) {
 
   return (
     <div className="h-screen flex bg-bg">
-      {/* Sidebar — hidden on small screens */}
       <div className="hidden md:block h-full">
         <Sidebar session={session} activeId={activeId} onNavigate={setActiveId} />
       </div>

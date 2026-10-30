@@ -1,35 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BookOpen, Lock, Plus } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { formatRupiah, formatDateID, mockSpjAntrean } from '@/data/mockData';
+import { formatRupiah, formatDateID, type KuitansiRow } from '@/data/mockData';
 import { PageHeader, StatusBadge } from '@/components/ui/Primitives';
-
-interface BkuRow {
-  id: string;
-  noBku: string;
-  tanggal: string;
-  uraian: string;
-  kuitansiRef: string;
-  bruto: number;
-  status: 'tercatat' | 'dicabut';
-}
-
-const mockBku: BkuRow[] = [
-  { id: 'bku-001', noBku: 'B-0142', tanggal: '2026-10-28', uraian: 'Honor narasumber kegiatan evaluasi', kuitansiRef: 'kwt-001', bruto: 4_500_000, status: 'tercatat' },
-  { id: 'bku-002', noBku: 'B-0138', tanggal: '2026-10-26', uraian: 'Belanja alat tulis kantor Q3', kuitansiRef: 'KWT-PEN-014', bruto: 8_200_000, status: 'tercatat' },
-  { id: 'bku-003', noBku: 'B-0120', tanggal: '2026-10-22', uraian: 'Sewa ruang rapat koordinasi', kuitansiRef: 'kwt-012', bruto: 2_800_000, status: 'dicabut' },
-  { id: 'bku-004', noBku: 'B-0115', tanggal: '2026-10-20', uraian: 'Perjalanan dinas koordinasi wilayah', kuitansiRef: 'KWT-PUB-007', bruto: 12_800_000, status: 'tercatat' },
-  { id: 'bku-005', noBku: 'B-0108', tanggal: '2026-10-18', uraian: 'Pembinaan kelompok UMKM kecamatan', kuitansiRef: 'KWT-PUG-003', bruto: 6_000_000, status: 'tercatat' },
-];
+import { toKuitansiActor, useKuitansiSpj } from '@/state/KuitansiSpjContext';
+import { todayWita } from '@/lib/witaDate';
 
 export function BkuModule({ session }: { session: SessionUser }) {
-  const [rows, setRows] = useState<BkuRow[]>(mockBku);
+  const { rows, bukukanSpj } = useKuitansiSpj();
+  const actor = toKuitansiActor(session);
   const [showForm, setShowForm] = useState(false);
   const [formNoBku, setFormNoBku] = useState('');
-  const [formTanggal, setFormTanggal] = useState('2026-10-30');
+  const [formTanggal, setFormTanggal] = useState(todayWita());
   const [formSpjId, setFormSpjId] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const allowed = session.role === 'bendahara' || session.role === 'verifikator';
+
+  const bukuRows = useMemo(() => rows.filter((r) => r.spjStatus === 'dibukukan' && r.bku), [rows]);
+  const dicabutCount = useMemo(() => rows.filter((r) => r.bkuDicabut).length, [rows]);
+  const spjMenungguBku = useMemo(
+    () => rows.filter((r) => r.spjStatus === 'menunggu_bku' && !r.bkuDicabut),
+    [rows],
+  );
+  const selectedSpj: KuitansiRow | undefined = spjMenungguBku.find((s) => s.id === formSpjId);
+
   if (!allowed) {
     return (
       <div className="animate-fade-in">
@@ -45,46 +39,24 @@ export function BkuModule({ session }: { session: SessionUser }) {
   const ta = session.activeTa;
   const canEdit = session.role === 'bendahara';
 
-  const tercatatRows = rows.filter((r) => r.status === 'tercatat');
-  const spjMenungguBku = mockSpjAntrean.filter(
-    (s) => s.status === 'menunggu_bku' && !tercatatRows.some((r) => r.kuitansiRef === s.noRef),
-  );
-  const selectedSpj = spjMenungguBku.find((s) => s.id === formSpjId);
-
   const resetForm = () => {
     setFormNoBku('');
-    setFormTanggal('2026-10-30');
+    setFormTanggal(todayWita());
     setFormSpjId('');
     setFormError(null);
     setShowForm(false);
   };
 
   const handleSaveBku = () => {
-    const noBku = formNoBku.trim();
-    if (!noBku) {
-      setFormError('No. BKU wajib diisi.');
-      return;
-    }
-    if (tercatatRows.some((r) => r.noBku.toLowerCase() === noBku.toLowerCase())) {
-      setFormError(`No. BKU ${noBku} sudah dipakai pada TA ini.`);
-      return;
-    }
     if (!selectedSpj) {
       setFormError('Pilih SPJ yang sudah disetujui Verifikator.');
       return;
     }
-    setRows((list) => [
-      {
-        id: `bku-${Date.now()}`,
-        noBku,
-        tanggal: formTanggal,
-        uraian: selectedSpj.uraian,
-        kuitansiRef: selectedSpj.noRef,
-        bruto: selectedSpj.bruto,
-        status: 'tercatat',
-      },
-      ...list,
-    ]);
+    const error = bukukanSpj(selectedSpj.id, { noBku: formNoBku, tanggal: formTanggal }, actor);
+    if (error) {
+      setFormError(error);
+      return;
+    }
     resetForm();
   };
 
@@ -94,7 +66,7 @@ export function BkuModule({ session }: { session: SessionUser }) {
 
       <div className="surface-card mb-5 px-4 py-3 flex items-center justify-between">
         <div className="text-xs text-ink-secondary">
-          <span className="text-ink-primary font-medium">{tercatatRows.length}</span> tercatat • <span className="text-status-red">{rows.filter((r) => r.status === 'dicabut').length}</span> dicabut
+          <span className="text-ink-primary font-medium">{bukuRows.length}</span> tercatat • <span className="text-status-red">{dicabutCount}</span> dicabut
         </div>
         {canEdit && (
           <button className="btn-amber text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={() => (showForm ? resetForm() : setShowForm(true))}>
@@ -138,7 +110,7 @@ export function BkuModule({ session }: { session: SessionUser }) {
               >
                 <option value="">Pilih SPJ</option>
                 {spjMenungguBku.map((s) => (
-                  <option key={s.id} value={s.id}>{`${s.noRef} — ${s.uraian}`}</option>
+                  <option key={s.id} value={s.id}>{`${s.verifikasi?.nomor ?? s.id} — ${s.uraian}`}</option>
                 ))}
               </select>
             </div>
@@ -178,14 +150,14 @@ export function BkuModule({ session }: { session: SessionUser }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className={`border-b border-border last:border-0 hover:bg-surface-hover transition-colors h-8 ${r.status === 'dicabut' ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-1 font-mono text-xs text-ink-primary">{r.noBku}</td>
-                  <td className="px-4 py-1 text-xs text-ink-secondary">{formatDateID(r.tanggal)}</td>
+              {bukuRows.map((r) => (
+                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors h-8">
+                  <td className="px-4 py-1 font-mono text-xs text-ink-primary">{r.bku?.noBku}</td>
+                  <td className="px-4 py-1 text-xs text-ink-secondary">{r.bku ? formatDateID(r.bku.tanggal) : '—'}</td>
                   <td className="px-4 py-1 text-xs text-ink-primary">{r.uraian}</td>
-                  <td className="px-4 py-1 font-mono text-xs text-ink-secondary hidden md:table-cell">{r.kuitansiRef}</td>
+                  <td className="px-4 py-1 font-mono text-xs text-ink-secondary hidden md:table-cell">{r.verifikasi?.nomor ?? '—'}</td>
                   <td className="px-4 py-1 text-right font-mono tnum text-xs text-ink-primary">{formatRupiah(r.bruto)}</td>
-                  <td className="px-4 py-1"><StatusBadge status={r.status} /></td>
+                  <td className="px-4 py-1"><StatusBadge status="dibukukan" /></td>
                 </tr>
               ))}
             </tbody>

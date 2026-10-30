@@ -1,28 +1,29 @@
 import { useState, type FormEvent } from 'react';
 import { ModalShell } from '@/components/ui/ModalShell';
-import type { SpjAntrean } from '@/data/mockData';
+import type { KuitansiRow } from '@/data/mockData';
 
 interface SpjReturnDialogProps {
-  spj: SpjAntrean;
-  onConfirm: (catatan: string) => void;
+  spj: KuitansiRow;
+  onConfirm: (catatan: string) => string | null;
   onClose: () => void;
 }
 
 export function SpjReturnDialog({ spj, onConfirm, onClose }: SpjReturnDialogProps) {
   const [catatan, setCatatan] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const trimmed = catatan.trim();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!trimmed) return;
-    onConfirm(trimmed);
+    setError(onConfirm(trimmed));
   };
 
   return (
     <ModalShell
       titleId="spj-return-title"
       title="Kembalikan SPJ ke Seksi"
-      description={`${spj.noRef} • ${spj.uraian}. SPJ kembali berstatus Draft dan kuitansi terkait tetap Terkunci.`}
+      description={`${spj.uraian}. SPJ kembali berstatus Draft dan kuitansi terkait tetap Terkunci.`}
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
@@ -42,6 +43,7 @@ export function SpjReturnDialog({ spj, onConfirm, onClose }: SpjReturnDialogProp
           {!trimmed && catatan.length > 0 && (
             <p className="mt-1 text-2xs text-status-red">Catatan revisi tidak boleh kosong.</p>
           )}
+          {error && <p className="mt-1 text-2xs text-status-red">{error}</p>}
         </div>
         <div className="flex justify-end gap-2">
           <button type="button" className="btn-ghost text-xs px-3 py-1.5" onClick={onClose}>

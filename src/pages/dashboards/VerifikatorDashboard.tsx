@@ -1,28 +1,33 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ClipboardCheck, Inbox, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
 import type { SessionUser } from '@/auth/types';
-import { mockSpjAntrean, formatRupiah, formatDateID, type SpjAntrean } from '@/data/mockData';
+import type { KuitansiRow } from '@/data/mockData';
+import { formatRupiah, formatDateID } from '@/data/mockData';
 import { PageHeader, StatCard, Ticker, StatusBadge } from '@/components/ui/Primitives';
 import { SpjReturnDialog } from '@/pages/modules/spj/SpjReturnDialog';
+import { toKuitansiActor, useKuitansiSpj } from '@/state/KuitansiSpjContext';
 
 export function VerifikatorDashboard({ session }: { session: SessionUser }) {
   const ta = session.activeTa;
-  const [spjList, setSpjList] = useState<SpjAntrean[]>(mockSpjAntrean);
-  const [returning, setReturning] = useState<SpjAntrean | null>(null);
-  const antrean = spjList.filter((s) => s.status === 'terkunci');
-  const menunggu = spjList.filter((s) => s.status === 'menunggu_bku');
-  const dibukukan = spjList.filter((s) => s.status === 'dibukukan');
+  const { rows, verifySpj, returnSpj } = useKuitansiSpj();
+  const actor = toKuitansiActor(session);
+  const [returning, setReturning] = useState<KuitansiRow | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const updateSpj = (id: string, patch: Partial<SpjAntrean>) => {
-    setSpjList((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const antrean = useMemo(() => rows.filter((r) => r.spjStatus === 'terkunci'), [rows]);
+  const menunggu = useMemo(() => rows.filter((r) => r.spjStatus === 'menunggu_bku'), [rows]);
+  const dibukukan = useMemo(() => rows.filter((r) => r.spjStatus === 'dibukukan'), [rows]);
+  const spjRows = useMemo(() => rows.filter((r) => r.spjStatus !== 'belum'), [rows]);
+
+  const handleApprove = (row: KuitansiRow) => {
+    setActionError(verifySpj(row.id, actor));
   };
 
-  const handleApprove = (spj: SpjAntrean) => updateSpj(spj.id, { status: 'menunggu_bku', catatanRevisi: undefined });
-
-  const handleReturn = (catatan: string) => {
-    if (!returning) return;
-    updateSpj(returning.id, { status: 'draft', catatanRevisi: catatan });
-    setReturning(null);
+  const handleReturn = (catatan: string): string | null => {
+    if (!returning) return null;
+    const error = returnSpj(returning.id, catatan, actor);
+    if (!error) setReturning(null);
+    return error;
   };
 
   return (
@@ -39,7 +44,7 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
           <StatCard label="Antrean Verifikasi" value={antrean.length} sublabel="SPJ Terkunci" accent="yellow" icon={Inbox} />
           <StatCard label="Menunggu BKU" value={menunggu.length} sublabel="disetujui" accent="teal" icon={Clock} />
           <StatCard label="Dibukukan" value={dibukukan.length} sublabel="realisasi" accent="green" icon={CheckCircle2} />
-          <StatCard label="Total SPJ" value={spjList.length} sublabel="seluruh seksi" accent="default" icon={ClipboardCheck} />
+          <StatCard label="Total SPJ" value={spjRows.length} sublabel="seluruh seksi" accent="default" icon={ClipboardCheck} />
         </Ticker>
       </div>
 
@@ -52,6 +57,9 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
             <span className="text-2xs text-ink-muted font-mono">32px • PRO</span>
           </div>
         </div>
+        {actionError && (
+          <div className="px-4 py-2 border-b border-border text-xs text-status-red">{actionError}</div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -68,29 +76,29 @@ export function VerifikatorDashboard({ session }: { session: SessionUser }) {
               </tr>
             </thead>
             <tbody>
-              {spjList.map((spj) => {
-                const isOwn = spj.diajukanOleh === session.displayName;
+              {spjRows.map((row) => {
+                const isOwn = row.pengajuId === actor.id;
                 return (
-                <tr key={spj.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors h-8">
-                  <td className="px-4 py-1 font-mono text-xs text-ink-secondary whitespace-nowrap">{spj.noRef}</td>
-                  <td className="px-4 py-1 text-xs text-ink-primary whitespace-nowrap">{spj.seksiName}</td>
-                  <td className="px-4 py-1 text-xs text-ink-primary max-w-[200px] truncate">{spj.uraian}</td>
-                  <td className="px-4 py-1 text-xs text-ink-secondary hidden md:table-cell whitespace-nowrap">{spj.jenisBelanja}</td>
-                  <td className="px-4 py-1 text-right font-mono tnum text-xs text-ink-primary whitespace-nowrap">{formatRupiah(spj.bruto)}</td>
-                  <td className="px-4 py-1 text-xs text-ink-secondary hidden lg:table-cell whitespace-nowrap">{formatDateID(spj.tanggalKwitansi)}</td>
-                  <td className="px-4 py-1 text-xs text-ink-secondary hidden lg:table-cell whitespace-nowrap">{spj.diajukanOleh}</td>
-                  <td className="px-4 py-1"><StatusBadge status={spj.status} type="spj" /></td>
+                <tr key={row.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors h-8">
+                  <td className="px-4 py-1 font-mono text-xs text-ink-secondary whitespace-nowrap">{row.verifikasi?.nomor ?? '—'}</td>
+                  <td className="px-4 py-1 text-xs text-ink-primary whitespace-nowrap">{row.seksiName}</td>
+                  <td className="px-4 py-1 text-xs text-ink-primary max-w-[200px] truncate">{row.uraian}</td>
+                  <td className="px-4 py-1 text-xs text-ink-secondary hidden md:table-cell whitespace-nowrap">{row.spjJenisBelanja ?? '—'}</td>
+                  <td className="px-4 py-1 text-right font-mono tnum text-xs text-ink-primary whitespace-nowrap">{formatRupiah(row.bruto)}</td>
+                  <td className="px-4 py-1 text-xs text-ink-secondary hidden lg:table-cell whitespace-nowrap">{formatDateID(row.tanggal)}</td>
+                  <td className="px-4 py-1 text-xs text-ink-secondary hidden lg:table-cell whitespace-nowrap">{row.pengajuName ?? '—'}</td>
+                  <td className="px-4 py-1"><StatusBadge status={row.spjStatus} type="spj" /></td>
                   <td className="px-4 py-1 text-right">
-                    {spj.status === 'terkunci' ? (
+                    {row.spjStatus === 'terkunci' ? (
                       isOwn ? (
                         <span className="text-2xs text-ink-muted" title="Verifikator tidak boleh memverifikasi SPJ yang ia ajukan">Milik sendiri</span>
                       ) : (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => handleApprove(spj)} className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-green" title="Setujui">
+                          <button onClick={() => handleApprove(row)} className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-green" title="Setujui">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Setujui
                           </button>
-                          <button onClick={() => setReturning(spj)} className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-red" title="Kembalikan">
+                          <button onClick={() => { setActionError(null); setReturning(row); }} className="btn-ghost text-2xs px-2 py-1 flex items-center gap-1 text-status-red" title="Kembalikan">
                             <RotateCcw className="h-3.5 w-3.5" />
                             Kembalikan
                           </button>

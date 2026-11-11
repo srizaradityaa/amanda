@@ -14,10 +14,14 @@ import { repo } from '@/data/repo';
 import { nowWita } from '@/lib/wita';
 import { getSession, touchActivity } from '@/lib/auth';
 import { auditEvents as seedAudit } from '@/data/sampleData';
+import { modeServer } from '@/lib/supabase';
+import { langgananData } from '@/data/store';
 import type { AuditEvent, AuditAksi } from '@/data/types';
 
-let store: AuditEvent[] = [...seedAudit];
+// Mode server: jejak audit dicatat oleh basis data (setiap RPC tulis), klien hanya membaca hasil muatan dari server.
+let store: AuditEvent[] = modeServer ? seedAudit : [...seedAudit];
 let listeners: (() => void)[] = [];
+if (modeServer) langgananData(() => { for (const l of listeners) l(); });
 
 function notify() {
   for (const l of listeners) l();
@@ -74,6 +78,7 @@ export interface AuditInput {
 
 export function recordAudit(input: AuditInput): AuditEvent {
   touchActivity();
+  if (modeServer) return { id: '', ta_id: input.ta_id, waktu: '', aktor_id: '', aktor_nama_snapshot: '', aktor_nip_snapshot: '', aktor_peran_snapshot: '', entitas: input.entitas, aksi: input.aksi, nilai_sebelum: null, nilai_sesudah: null, alasan: null, otomatis: false } as AuditEvent;
   const actor = actorSnapshot();
   const ev: AuditEvent = {
     id: nextId(),
@@ -101,6 +106,7 @@ export function recordAudit(input: AuditInput): AuditEvent {
 
 /** AUD-02 — Pembatalan kuitansi: hapus entri audit terkait kuitansi (+ SPJ/BKU terkait). */
 export function purgeAuditForKuitansi(kuitansi_id: string) {
+  if (modeServer) return; // server menghapus entri audit terkait di dalam RPC
   store = store.filter(
     (e) => e.kuitansi_id !== kuitansi_id,
   );
@@ -109,12 +115,14 @@ export function purgeAuditForKuitansi(kuitansi_id: string) {
 
 /** AUD-02 — Pembatalan SPJ Draft: hapus entri audit terkait SPJ. */
 export function purgeAuditForSPJ(spj_id: string) {
+  if (modeServer) return; // server menghapus entri audit terkait di dalam RPC
   store = store.filter((e) => e.spj_id !== spj_id);
   notify();
 }
 
 /** AUD-02 — Penghapusan TA retensi: hapus seluruh entri audit TA. */
 export function purgeAuditForTA(ta_id: string) {
+  if (modeServer) return; // server menghapus entri audit terkait di dalam RPC
   store = store.filter((e) => e.ta_id !== ta_id);
   notify();
 }

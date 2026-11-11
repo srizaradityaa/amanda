@@ -3,8 +3,10 @@
 
 import { repo } from '@/data/repo';
 import { recordAudit } from '@/lib/audit';
+import { modeServer } from '@/lib/supabase';
 
 export function evaluasiDelegasiJatuhTempo(): void {
+  if (modeServer) return; // server: pg_cron mengakhiri delegasi jatuh tempo (23:59 WITA) dan mencatat audit otomatis
   for (const d of repo.akhiriDelegasiJatuhTempo()) {
     recordAudit({
       ta_id: d.ta_id,

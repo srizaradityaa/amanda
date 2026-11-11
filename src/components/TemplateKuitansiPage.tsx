@@ -41,8 +41,8 @@ export function TemplateKuitansiPage() {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const simpan = () => {
-    const r = repo.simpanTemplateKuitansi(t);
+  const simpan = async () => {
+    const r = await repo.simpanTemplateKuitansi(t);
     if (!r.ok) { setErr(r.error ?? 'Gagal menyimpan.'); return; }
     setErr('');
     toast.notify('Tersimpan');

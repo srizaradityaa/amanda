@@ -39,13 +39,13 @@ export function TemplateVerifikasiPage() {
   const [, setTick] = useState(0);
 
   const ganti = (id: string) => { setTaId(id); setFmt(repo.formatNomorVerifikasi(id)); setErrFmt(null); };
-  const simpan = () => {
-    const r = repo.simpanTemplateVerifikasi(t, s);
+  const simpan = async () => {
+    const r = await repo.simpanTemplateVerifikasi(t, s);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     setErr(null); toast.notify('Tersimpan');
   };
-  const simpanFmt = () => {
-    const r = repo.simpanFormatNomor(taId, fmt, s);
+  const simpanFmt = async () => {
+    const r = await repo.simpanFormatNomor(taId, fmt, s);
     if (!r.ok) { setErrFmt(r.error ?? 'Gagal'); return; }
     setErrFmt(null); toast.notify('Tersimpan');
   };

@@ -5,6 +5,7 @@ import { repo } from '@/data/repo';
 import type { SessionPayload, Role, ActorType } from '@/data/types';
 import { nowWita, todayWita } from '@/lib/wita';
 import { supabase, modeServer, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
+import { resetData } from '@/data/store';
 import { verifikasiMasuk, bukaSesi, type Konteks } from '@/lib/masuk';
 
 const SESSION_KEY = 'amanda.session.v1';
@@ -83,6 +84,7 @@ export function logout() {
       try { await supabase.auth.signOut(); } catch { /* abaikan */ }
     })();
     pendingServer = null;
+    resetData();
   }
   destroySession();
 }

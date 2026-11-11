@@ -22,10 +22,10 @@ export function DirektoriRekeningPage() {
   const k = q.trim().toLowerCase();
   const tampil = list.filter((r) => !k || `${r.account_name} ${r.alias ?? ''} ${r.bank_name} ${r.account_number}`.toLowerCase().includes(k));
 
-  const konfirmasiGabung = () => {
+  const konfirmasiGabung = async () => {
     const sesi = getSession();
     if (!sesi || !gabung) return;
-    const r = repo.mergeRekeningBank(gabung.keepId, gabung.dropId, sesi);
+    const r = await repo.mergeRekeningBank(gabung.keepId, gabung.dropId, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); setGabung(null); return; }
     setErr(null); setGabung(null); setKeepId(''); setDropId('');
     refresh(); notify('Tersimpan');
@@ -114,10 +114,10 @@ function EditRekeningModal({ id, onClose, onSaved }: { id: string; onClose: () =
   const [alias, setAlias] = useState(ada?.alias ?? '');
   const [err, setErr] = useState<string | null>(null);
 
-  const simpan = () => {
+  const simpan = async () => {
     const sesi = getSession();
     if (!sesi) return;
-    const r = repo.koreksiRekeningBank(id, { account_name: nama, bank_name: bank, account_number: nomor, alias }, sesi);
+    const r = await repo.koreksiRekeningBank(id, { account_name: nama, bank_name: bank, account_number: nomor, alias }, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     onSaved(); onClose();
   };

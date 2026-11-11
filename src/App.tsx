@@ -1,7 +1,9 @@
 // AMANDA — App shell (Langkah 1, Tahap A).
 // Menghubungkan login -> seleksi konteks berjenjang -> dasbor per peran.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { langgananData, versiData, muatSemua } from '@/data/store';
+import { langgananGalat } from '@/lib/galat';
 import { LoginPage } from '@/components/LoginPage';
 import { ContextSelectPage } from '@/components/ContextSelectPage';
 import { DashboardShell, type NavItem } from '@/components/DashboardShell';
@@ -61,6 +63,20 @@ function AplikasiUtama() {
   const [view, setView] = useState<View>('login');
   const [session, setSession] = useState<SessionPayload | null>(getSession());
   const [activeNav, setActiveNav] = useState('dashboard');
+  // Mode server: tiap kali data dimuat ulang dari Supabase, seluruh layar dirender ulang.
+  useSyncExternalStore(langgananData, versiData);
+  const [dataStatus, setDataStatus] = useState<'belum' | 'memuat' | 'siap' | 'gagal'>(modeServer ? 'belum' : 'siap');
+  const [galat, setGalat] = useState<string | null>(null);
+  useEffect(() => langgananGalat((p) => setGalat(p)), []);
+  const adaSesiAktif = !!session && !isPending(session);
+  useEffect(() => {
+    if (!modeServer) return;
+    if (!adaSesiAktif) { setDataStatus('belum'); return; }
+    let batal = false;
+    setDataStatus('memuat');
+    muatSemua().then(() => { if (!batal) setDataStatus('siap'); }).catch(() => { if (!batal) setDataStatus('gagal'); });
+    return () => { batal = true; };
+  }, [adaSesiAktif, session?.active_ta_id, session?.active_role]);
 
   useEffect(() => {
     // Mode server: sesi yang tersimpan di browser harus masih sah di server (kalau tidak, kembali ke login).
@@ -111,7 +127,37 @@ function AplikasiUtama() {
     }} />;
   }
 
-  return <AppShell session={session} activeNav={activeNav} onNavigate={setActiveNav} />;
+  if (modeServer && dataStatus !== 'siap') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink p-6 text-mist">
+        <div className="max-w-sm text-center">
+          {dataStatus === 'gagal' ? (
+            <>
+              <p className="mb-3 text-sm">Data tidak dapat dimuat dari server. Periksa koneksi, lalu coba lagi atau masuk kembali.</p>
+              <div className="flex justify-center gap-2">
+                <button className="rounded-md border border-ink-edge px-3 py-1.5 text-sm hover:border-amber/40" onClick={() => { setDataStatus('memuat'); muatSemua().then(() => setDataStatus('siap')).catch(() => setDataStatus('gagal')); }}>Coba lagi</button>
+                <button className="rounded-md border border-ink-edge px-3 py-1.5 text-sm hover:border-amber/40" onClick={() => logout()}>Keluar</button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-mist-dim" role="status">Memuat data dari server…</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <AppShell session={session} activeNav={activeNav} onNavigate={setActiveNav} />
+      {galat && (
+        <div role="alert" className="fixed bottom-4 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-start gap-3 rounded-md border border-crit/50 bg-ink-surface px-4 py-3 text-sm text-mist shadow-lg">
+          <span className="flex-1">{galat}</span>
+          <button className="text-mist-dim hover:text-mist" onClick={() => setGalat(null)} aria-label="Tutup">×</button>
+        </div>
+      )}
+    </>
+  );
 }
 
 function AppShell({
@@ -134,7 +180,7 @@ function AppShell({
     <DashboardShell nav={nav} activeId={active?.id ?? 'dashboard'} onNavigate={onNavigate}>
       {modeServer && (
         <div role="status" className="mb-4 rounded-md border border-amber/40 bg-amber/10 px-3 py-2 text-2xs text-mist">
-          <strong>Tahap uji:</strong> masuk dan sesi sudah memakai Supabase. Data pada layar ini <strong>masih data contoh</strong> dan belum disimpan ke server; penyambungan layar dilakukan bertahap.
+          <strong>Tahap uji:</strong> data dibaca dari Supabase dan fitur Admin tersimpan di server. Fitur peran lain masih disambungkan bertahap.
         </div>
       )}
       {bannerTA && <GerbangBanner ta_id={bannerTA} />}

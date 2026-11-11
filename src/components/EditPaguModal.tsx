@@ -11,9 +11,9 @@ export function EditPaguModal({ taId, onClose, onSaved }: { taId: string; onClos
   const [pagu, setPagu] = useState(ta.pagu_induk);
   const [err, setErr] = useState('');
 
-  const save = () => {
+  const save = async () => {
     if (pagu <= 0) return setErr('Pagu Induk harus lebih dari 0.');
-    repo.editPaguInduk(taId, pagu);
+    await repo.editPaguInduk(taId, pagu);
     recordAudit({ ta_id: taId, entitas: `TA ${ta.tahun}`, aksi: 'aksi_administratif', nilai_sebelum: formatRupiah(ta.pagu_induk), nilai_sesudah: formatRupiah(pagu) });
     toast.notify('Tersimpan');
     onSaved();

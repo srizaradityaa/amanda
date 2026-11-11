@@ -43,8 +43,8 @@ export function FormBuilderPage() {
     setDraft({ ...draft, fields: f });
   };
 
-  const simpan = () => {
-    const r = repo.simpanVersiForm(draft.jenis, draft.fields.map((f, i) => ({ ...f, urutan: i + 1 })), draft.blok ? { ...draft.blok, fields: draft.blok.fields.map((f, i) => ({ ...f, urutan: i + 1 })) } : null);
+  const simpan = async () => {
+    const r = await repo.simpanVersiForm(draft.jenis, draft.fields.map((f, i) => ({ ...f, urutan: i + 1 })), draft.blok ? { ...draft.blok, fields: draft.blok.fields.map((f, i) => ({ ...f, urutan: i + 1 })) } : null);
     if (!r.ok) { setErr(r.error ?? 'Gagal menyimpan.'); return; }
     toast.notify('Tersimpan');
     setErr('');

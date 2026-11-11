@@ -135,25 +135,25 @@ function SOTKModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'ubah' | '
   const [arsipTgl, setArsipTgl] = useState(existing ? tambahHari(todayWita(), -1) : todayWita());
   const [err, setErr] = useState('');
 
-  const save = () => {
+  const save = async () => {
     if (!nama.trim()) return setErr('Nama unit wajib diisi.');
     if (mode === 'tambah') {
       if (!tmt || !dasar.trim()) return setErr('TMT dan dasar hukum wajib diisi.');
-      repo.tambahSOTK(nama.trim(), tmt, dasar.trim());
+      await repo.tambahSOTK(nama.trim(), tmt, dasar.trim());
       recordAudit({ ta_id: null, entitas: `Master SOTK: ${nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Unit baru ditambahkan' });
     } else if (mode === 'ubah' && id) {
       if (ubahMode === 'typo') {
         const lama = existing!.nama_unit;
-        repo.ubahSOTKTypo(id, nama.trim());
+        await repo.ubahSOTKTypo(id, nama.trim());
         recordAudit({ ta_id: null, entitas: `Master SOTK: ${nama}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: nama.trim() });
       } else {
         if (!tmt) return setErr('TMT baru wajib diisi.');
         const lama = existing!.nama_unit;
-        repo.ubahSOTKNomenklatur(id, nama.trim(), tmt);
+        await repo.ubahSOTKNomenklatur(id, nama.trim(), tmt);
         recordAudit({ ta_id: null, entitas: `Master SOTK: ${lama}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: `${nama.trim()} (TMT ${tmt}; lama diarsipkan H-1)` });
       }
     } else if (mode === 'arsip' && id) {
-      repo.arsipkanSOTK(id, arsipTgl);
+      await repo.arsipkanSOTK(id, arsipTgl);
       recordAudit({ ta_id: null, entitas: `Master SOTK: ${existing!.nama_unit}`, aksi: 'aksi_administratif', nilai_sesudah: `Diarsipkan efektif ${arsipTgl}` });
     }
     onSaved(); onClose();
@@ -298,7 +298,7 @@ function PersonelModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'
     f.pangkat !== ex.pangkat || f.gelar_depan !== ex.gelar_depan || f.gelar_belakang !== ex.gelar_belakang
   );
 
-  const save = () => {
+  const save = async () => {
     if (!f.nama.trim()) return setErr('Nama lengkap wajib diisi.');
     if (!f.pangkat.trim()) return setErr('Pangkat/golongan wajib diisi.');
     if (!f.tmt) return setErr('TMT wajib diisi.');
@@ -308,19 +308,19 @@ function PersonelModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'
     if (f.nik && !/^[0-9]+$/.test(f.nik)) return setErr('NIK hanya angka.');
     if (!f.nip.trim() && !f.nik.trim()) return setErr('NIP atau NIK wajib diisi.');
     if (mode === 'tambah') {
-      const r = repo.tambahPersonel(f);
+      const r = await repo.tambahPersonel(f);
       if (!r.ok) return setErr(r.error ?? 'Gagal menyimpan.');
       recordAudit({ ta_id: null, entitas: `Personel: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Personel baru' });
     } else if (id) {
       if (pangkatGelarBerubah && simpanPerubahanBaru) {
         // Tutup periode lama H-1, buat periode baru dengan TMT baru (Dokumen 04 §2.1)
-        repo.simpanPerubahanPangkat(id, f.pangkat, f.gelar_depan, f.gelar_belakang, f.tmt);
+        await repo.simpanPerubahanPangkat(id, f.pangkat, f.gelar_depan, f.gelar_belakang, f.tmt);
         // Simpan juga perubahan non-pangkat (nama, NIP, dll) via editPersonel
-        const r = repo.editPersonel(id, { nama: f.nama, nip: f.nip, nik: f.nik, no_whatsapp: f.no_whatsapp });
+        const r = await repo.editPersonel(id, { nama: f.nama, nip: f.nip, nik: f.nik, no_whatsapp: f.no_whatsapp });
         if (!r.ok) return setErr(r.error ?? 'Gagal menyimpan.');
         recordAudit({ ta_id: null, entitas: `Personel: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: `Perubahan baru: pangkat ${f.pangkat}, TMT ${f.tmt}; histori lama ditutup H-1` });
       } else {
-        const r = repo.editPersonel(id, f);
+        const r = await repo.editPersonel(id, f);
         if (!r.ok) return setErr(r.error ?? 'Gagal menyimpan.');
         recordAudit({ ta_id: null, entitas: `Personel: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Profil diperbarui' });
       }
@@ -371,27 +371,27 @@ function AkunModal({ personelId, onClose, onSaved }: { personelId: string; onClo
   const isSelf = SESSION?.user_id === acc?.id;
   const adminCount = repo.akunLogin().filter((a) => a.username === 'admin' && a.status === 'ACTIVE').length;
 
-  const buatAkun = () => {
+  const buatAkun = async () => {
     if (password.length < 6) return setErr('Password minimal 6 karakter.');
-    const r = repo.buatAkun(personelId, password);
+    const r = await repo.buatAkun(personelId, password);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Akun dibuat' });
     refresh();
   };
-  const reset = () => {
+  const reset = async () => {
     if (password.length < 6) return setErr('Password minimal 6 karakter.');
     if (!acc) return;
-    repo.resetPassword(acc.id, password);
+    await repo.resetPassword(acc.id, password);
     recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Password direset' });
     refresh();
   };
-  const toggleStatus = () => {
+  const toggleStatus = async () => {
     if (!acc) return;
     if (isSelf) return setErr('Tidak dapat menonaktifkan akun sendiri.');
     if (acc.username === 'admin' && adminCount <= 1 && acc.status === 'ACTIVE') return setErr('Tidak dapat menonaktifkan Admin ACTIVE terakhir.');
     if (!alasan.trim()) return setErr('Alasan wajib diisi untuk penonaktifan.');
     const baru = acc.status === 'ACTIVE' ? 'NON-ACTIVE' : 'ACTIVE';
-    repo.setAkunStatus(acc.id, baru as AccountStatus);
+    await repo.setAkunStatus(acc.id, baru as AccountStatus);
     recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'perubahan_status_akun', nilai_sebelum: acc.status, nilai_sesudah: baru, alasan: alasan.trim() });
     setAlasan(''); setDeactivateMode(false); refresh();
   };
@@ -466,9 +466,9 @@ function PangkatModal({ personelId, onClose, onSaved }: { personelId: string; on
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
   const refresh = () => { setEntries(repo.pangkatHistoryByPersonel(personelId)); onSaved(); };
 
-  const simpanBaru = () => {
+  const simpanBaru = async () => {
     if (!f.pangkat.trim() || !f.tmt) return;
-    repo.simpanPerubahanPangkat(personelId, f.pangkat, f.gelar_depan, f.gelar_belakang, f.tmt);
+    await repo.simpanPerubahanPangkat(personelId, f.pangkat, f.gelar_depan, f.gelar_belakang, f.tmt);
     recordAudit({ ta_id: null, entitas: `Pangkat: ${personel.nama}`, aksi: 'aksi_administratif', nilai_sesudah: `Perubahan baru TMT ${f.tmt}; histori lama ditutup H-1` });
     setMode('list'); refresh();
   };
@@ -584,10 +584,10 @@ function SubkegiatanModal({ mode, id, onClose }: { mode: 'tambah' | 'edit'; id?:
   const ex = id ? repo.masterSubkegiatan().find((s) => s.id === id) : undefined;
   const [f, setF] = useState({ kode: ex?.kode ?? '', nama: ex?.nama ?? '', rincian: ex?.rincian ?? '', status: ex?.status ?? 'Aktif' });
   const [err, setErr] = useState('');
-  const save = () => {
+  const save = async () => {
     if (!f.kode.trim() || !f.nama.trim()) return setErr('Kode dan nama wajib diisi.');
-    if (mode === 'tambah') { repo.tambahSubkegiatan(f.kode, f.nama, f.rincian); recordAudit({ ta_id: null, entitas: `Subkegiatan: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
-    else if (id) { repo.editSubkegiatan(id, f); recordAudit({ ta_id: null, entitas: `Subkegiatan: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
+    if (mode === 'tambah') { await repo.tambahSubkegiatan(f.kode, f.nama, f.rincian); recordAudit({ ta_id: null, entitas: `Subkegiatan: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
+    else if (id) { await repo.editSubkegiatan(id, f); recordAudit({ ta_id: null, entitas: `Subkegiatan: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
     onClose();
   };
   return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Subkegiatan' : 'Edit Subkegiatan'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>
@@ -603,10 +603,10 @@ function RekeningModal({ mode, id, onClose }: { mode: 'tambah' | 'edit'; id?: st
   const ex = id ? repo.masterRekeningBelanja().find((r) => r.id === id) : undefined;
   const [f, setF] = useState({ kode_rekening: ex?.kode_rekening ?? '', nama: ex?.nama ?? '', rincian: ex?.rincian ?? '', status: ex?.status ?? 'Aktif' });
   const [err, setErr] = useState('');
-  const save = () => {
+  const save = async () => {
     if (!f.kode_rekening.trim() || !f.nama.trim()) return setErr('Kode rekening dan nama wajib diisi.');
-    if (mode === 'tambah') { repo.tambahRekening(f.kode_rekening, f.nama, f.rincian); recordAudit({ ta_id: null, entitas: `Rekening: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
-    else if (id) { repo.editRekening(id, f); recordAudit({ ta_id: null, entitas: `Rekening: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
+    if (mode === 'tambah') { await repo.tambahRekening(f.kode_rekening, f.nama, f.rincian); recordAudit({ ta_id: null, entitas: `Rekening: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
+    else if (id) { await repo.editRekening(id, f); recordAudit({ ta_id: null, entitas: `Rekening: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
     onClose();
   };
   return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Rekening Belanja' : 'Edit Rekening Belanja'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>
@@ -623,8 +623,8 @@ export function PajakPage() {
   const [list, setList] = useState(repo.masterJenisPajak());
   const [modal, setModal] = useState<{ mode: 'tambah' | 'edit'; id?: string } | null>(null);
   const refresh = () => setList([...repo.masterJenisPajak()]);
-  const toggleStatus = (id: string) => {
-    const r = repo.toggleJenisPajakStatus(id);
+  const toggleStatus = async (id: string) => {
+    const r = await repo.toggleJenisPajakStatus(id);
     if (r.ok) {
       const j = repo.masterJenisPajak().find((x) => x.id === id);
       recordAudit({ ta_id: null, entitas: `Pajak: ${j?.nama_jenis_pajak}`, aksi: 'aksi_administratif', nilai_sesudah: r.status === 'Aktif' ? 'Diaktifkan' : 'Dinonaktifkan' });
@@ -669,11 +669,11 @@ function PajakModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'; i
   const ex = id ? repo.masterJenisPajak().find((j) => j.id === id) : undefined;
   const [f, setF] = useState({ kode: ex?.kode ?? '', nama: ex?.nama_jenis_pajak ?? '', status: ex?.status ?? 'Aktif' });
   const [err, setErr] = useState('');
-  const save = () => {
+  const save = async () => {
     if (!f.nama.trim()) return setErr('Nama jenis pajak wajib diisi.');
     const kode = f.kode.trim() || null;
-    if (mode === 'tambah') { repo.tambahJenisPajak(kode, f.nama); recordAudit({ ta_id: null, entitas: `Pajak: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
-    else if (id) { repo.editJenisPajak(id, { kode, nama_jenis_pajak: f.nama, status: f.status as 'Aktif' | 'Nonaktif' }); recordAudit({ ta_id: null, entitas: `Pajak: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
+    if (mode === 'tambah') { await repo.tambahJenisPajak(kode, f.nama); recordAudit({ ta_id: null, entitas: `Pajak: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
+    else if (id) { await repo.editJenisPajak(id, { kode, nama_jenis_pajak: f.nama, status: f.status as 'Aktif' | 'Nonaktif' }); recordAudit({ ta_id: null, entitas: `Pajak: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
     onSaved(); onClose();
   };
   return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Jenis Pajak' : 'Edit Jenis Pajak'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>
@@ -748,31 +748,31 @@ function PengawasModal({ mode, id, onClose, onSaved }: { mode: string; id?: stri
   const [err, setErr] = useState('');
   const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
 
-  const save = () => {
+  const save = async () => {
     if (mode === 'tambah') {
       if (!f.nama_lengkap.trim() || !f.email.trim() || !f.instansi_asal.trim()) return setErr('Nama, instansi, dan email wajib diisi.');
       if (!f.nomor_surat_tugas.trim()) return setErr('Nomor surat tugas wajib diisi.');
       if (f.password.length < 6) return setErr('Password minimal 6 karakter.');
-      const r = repo.tambahPengawas({ nama_lengkap: f.nama_lengkap, instansi_asal: f.instansi_asal, nomor_surat_tugas: f.nomor_surat_tugas, tanggal_surat_tugas: f.tanggal_surat_tugas, email: f.email, tanggal_akhir_akses: f.tanggal_akhir_akses, password: f.password });
+      const r = await repo.tambahPengawas({ nama_lengkap: f.nama_lengkap, instansi_asal: f.instansi_asal, nomor_surat_tugas: f.nomor_surat_tugas, tanggal_surat_tugas: f.tanggal_surat_tugas, email: f.email, tanggal_akhir_akses: f.tanggal_akhir_akses, password: f.password });
       if (!r.ok) return setErr(r.error ?? 'Gagal.');
       recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${f.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: 'Akun dibuat' });
     } else if (mode === 'edit' && id) {
-      repo.editPengawas(id, { nama_lengkap: f.nama_lengkap, instansi_asal: f.instansi_asal, nomor_surat_tugas: f.nomor_surat_tugas, tanggal_surat_tugas: f.tanggal_surat_tugas, email: f.email });
+      await repo.editPengawas(id, { nama_lengkap: f.nama_lengkap, instansi_asal: f.instansi_asal, nomor_surat_tugas: f.nomor_surat_tugas, tanggal_surat_tugas: f.tanggal_surat_tugas, email: f.email });
       recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${f.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: 'Profil diperbarui' });
     } else if (mode === 'reset' && id) {
       if (f.password.length < 6) return setErr('Password minimal 6 karakter.');
-      const r = repo.resetPengawasPassword(id, f.password);
+      const r = await repo.resetPengawasPassword(id, f.password);
       if (!r.ok) return setErr(r.error ?? 'Gagal.');
       recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${ex?.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: 'Password direset' });
     } else if (mode === 'tanggal' && id) {
       if (!alasan.trim()) return setErr('Alasan ubah tanggal akhir akses wajib diisi.');
       const lama = ex?.tanggal_akhir_akses ?? '';
-      repo.editPengawas(id, { tanggal_akhir_akses: f.tanggal_akhir_akses });
+      await repo.editPengawas(id, { tanggal_akhir_akses: f.tanggal_akhir_akses });
       recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${ex?.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: f.tanggal_akhir_akses, alasan: alasan.trim() });
     } else if (mode === 'nonaktif' && id) {
       if (!alasan.trim()) return setErr('Alasan penonaktifan wajib diisi.');
       const baru = ex?.status === 'ACTIVE' ? 'NON-ACTIVE' : 'ACTIVE';
-      repo.editPengawas(id, { status: baru as AccountStatus });
+      await repo.editPengawas(id, { status: baru as AccountStatus });
       recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${ex?.nama_lengkap}`, aksi: 'perubahan_status_akun', nilai_sebelum: ex?.status, nilai_sesudah: baru, alasan: alasan.trim() });
     }
     onSaved(); onClose();
@@ -853,8 +853,8 @@ export function DirektoriPage() {
       {mergeModal && (
         <Modal open onClose={() => setMergeModal(null)} title="Konfirmasi Penggabungan"
           footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setMergeModal(null)}>Batal</Button>
-            <Button variant="danger" onClick={() => {
-              repo.mergeDirektori(mergeModal.keepId, mergeModal.dropId);
+            <Button variant="danger" onClick={async () => {
+              await repo.mergeDirektori(mergeModal.keepId, mergeModal.dropId);
               const keep = list.find((d) => d.id === mergeModal.keepId);
               const drop = list.find((d) => d.id === mergeModal.dropId);
               recordAudit({ ta_id: null, entitas: `Direktori: ${drop?.nama}`, aksi: 'aksi_administratif', nilai_sebelum: drop?.nip_nik, nilai_sesudah: `Digabung ke ${keep?.nama} (${keep?.nip_nik})` });
@@ -872,11 +872,11 @@ function DirektoriEditModal({ id, onClose, onSaved }: { id: string; onClose: () 
   const [nip_nik, setNip] = useState(ex.nip_nik);
   const [nama, setNama] = useState(ex.nama);
   const [err, setErr] = useState('');
-  const save = () => {
+  const save = async () => {
     if (!nip_nik.trim() || !nama.trim()) return setErr('NIP/NIK dan nama wajib diisi.');
     if (!/^[0-9]+$/.test(nip_nik)) return setErr('NIP/NIK hanya angka.');
     const lama = `${ex.nip_nik} / ${ex.nama}`;
-    repo.koreksiDirektori(id, nip_nik.trim(), nama.trim());
+    await repo.koreksiDirektori(id, nip_nik.trim(), nama.trim());
     recordAudit({ ta_id: null, entitas: `Direktori: ${ex.nama}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: `${nip_nik} / ${nama}` });
     onSaved(); onClose();
   };

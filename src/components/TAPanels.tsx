@@ -113,15 +113,15 @@ function CreateTAModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [err, setErr] = useState('');
   const taList = repo.tahunAnggaran();
 
-  const save = () => {
+  const save = async () => {
     if (!tahun.trim()) return setErr('Tahun wajib diisi.');
     if (!/^\d{4}$/.test(tahun.trim())) return setErr('Tahun harus 4 digit angka.');
     if (pagu <= 0) return setErr('Pagu Induk harus lebih dari 0.');
-    const r = repo.buatTA(tahun.trim(), pagu);
+    const r = await repo.buatTA(tahun.trim(), pagu);
     if (!r.ok || !r.ta) return setErr(r.error ?? 'Gagal.');
     recordAudit({ ta_id: r.ta.id, entitas: `TA ${tahun.trim()}`, aksi: 'aksi_administratif', nilai_sesudah: 'TA Draft dibuat' });
     if (salinDari) {
-      const sr = repo.salinStruktur(r.ta.id, salinDari);
+      const sr = await repo.salinStruktur(r.ta.id, salinDari);
       if (sr.ok) recordAudit({ ta_id: r.ta.id, entitas: `TA ${tahun.trim()}`, aksi: 'aksi_administratif', nilai_sesudah: `Salin struktur dari TA lain (${sr.count} seksi)` });
     }
     toast.notify('Tersimpan');
@@ -160,14 +160,14 @@ function StatusModal({ taId, onClose, onSaved }: { taId: string; onClose: () => 
     return [];
   })();
 
-  const save = () => {
+  const save = async () => {
     if (!target) return setErr('Pilih status target.');
     // TA-05: checklist kesiapan untuk aktivasi
     if (target === 'Aktif Penuh' && ta.status === 'Draft') {
       const ck = repo.checklistKesiapan(taId);
       if (!ck.lengkap) return setErr('Checklist kesiapan belum lengkap. Lengkapi dulu di halaman Detail TA.');
     }
-    const r = repo.ubahStatusTA(taId, target);
+    const r = await repo.ubahStatusTA(taId, target);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     recordAudit({ ta_id: taId, entitas: `TA ${ta.tahun}`, aksi: 'perubahan_status_ta', nilai_sebelum: ta.status, nilai_sesudah: target });
     onSaved(); onClose();
@@ -222,8 +222,8 @@ function ChecklistDisplay({ taId }: { taId: string }) {
 function DeleteTAModal({ taId, onClose, onSaved }: { taId: string; onClose: () => void; onSaved: () => void }) {
   const ta = repo.tahunAnggaranById(taId)!;
   const [err, setErr] = useState('');
-  const del = () => {
-    const r = repo.hapusTA(taId, getSession()!);
+  const del = async () => {
+    const r = await repo.hapusTA(taId, getSession()!);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     recordAudit({ ta_id: null, entitas: `TA ${ta.tahun}`, aksi: 'aksi_administratif', nilai_sesudah: 'TA Draft dihapus' });
     onSaved(); onClose();
@@ -241,8 +241,8 @@ function RetensiModal({ taId, onClose, onSaved }: { taId: string; onClose: () =>
   const ringkasan = repo.ringkasanHapusTA(taId);
   const [konfirmasi, setKonfirmasi] = useState('');
   const [err, setErr] = useState('');
-  const del = () => {
-    const r = repo.hapusTARetensi(taId, konfirmasi, getSession()!); // tanpa catatan audit: penghapusan total (D01 §1.3 poin 6)
+  const del = async () => {
+    const r = await repo.hapusTARetensi(taId, konfirmasi, getSession()!); // tanpa catatan audit: penghapusan total (D01 §1.3 poin 6)
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     onSaved(); onClose();
   };
@@ -389,7 +389,7 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
             {def && <button onClick={() => setSkModal({ penugasanId: def.id })} className={ikon} title="SK"><FileText size={14} /></button>}
             {def && !isArsip && <button onClick={() => setGantiModal({ penugasanId: def.id })} className={`${ikon} hover:text-amber`} title="Ganti Pejabat"><UserPlus size={14} /></button>}
             {del && !isArsip && <button onClick={() => setCabutModal({ delegasiId: del.id })} className={`${ikon} hover:text-crit`} title="Cabut Plh./Plt. dini"><XCircle size={14} /></button>}
-            {def && isDraft && <button onClick={() => { repo.hapusPenugasan(def.id); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus"><Trash2 size={14} /></button>}
+            {def && isDraft && <button onClick={async () => { await repo.hapusPenugasan(def.id); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus"><Trash2 size={14} /></button>}
           </div>
         </td>
       </tr>
@@ -422,7 +422,7 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
                   <td className="px-3 py-2"><span className="text-mist">{p?.nama_lengkap ?? '—'}</span> <span className="text-mist-dim">• {p?.instansi_asal ?? '—'}</span></td>
                   <td className="px-3 py-2"><StatusBadge kind="neutral" label="Ditugaskan" /></td>
                   <td className="px-3 py-2 mono whitespace-nowrap text-mist-dim">{formatTanggalPendek(t.tanggal_mulai)} — {formatTanggalPendek(t.tanggal_akhir)}</td>
-                  <td className="px-3 py-2">—</td><td className="px-3 py-2">{!isArsip && <button onClick={() => { repo.hapusPengawasTA(t.id); recordAudit({ ta_id: taId, entitas: `Penugasan Pengawas: ${p?.nama_lengkap ?? ''}`, aksi: 'aksi_administratif', nilai_sesudah: 'Penugasan dihapus' }); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus penugasan Pengawas"><Trash2 size={14} /></button>}</td>
+                  <td className="px-3 py-2">—</td><td className="px-3 py-2">{!isArsip && <button onClick={async () => { await repo.hapusPengawasTA(t.id); recordAudit({ ta_id: taId, entitas: `Penugasan Pengawas: ${p?.nama_lengkap ?? ''}`, aksi: 'aksi_administratif', nilai_sesudah: 'Penugasan dihapus' }); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus penugasan Pengawas"><Trash2 size={14} /></button>}</td>
                 </tr>
               );
             })}
@@ -475,7 +475,7 @@ function SeksiTab({ taId, isDraft, isArsip }: { taId: string; isDraft: boolean; 
                     <span className="text-sm text-mist">{s.nama_snapshot}</span>
                     <span className="ml-2 text-2xs text-mist-dim">(snapshot dari Master SOTK)</span>
                   </div>
-                  {isDraft && <button onClick={() => { repo.hapusSeksiTA(s.id); setRefresh((r) => r + 1); }} className="text-2xs text-crit hover:underline">Hapus</button>}
+                  {isDraft && <button onClick={async () => { await repo.hapusSeksiTA(s.id); setRefresh((r) => r + 1); }} className="text-2xs text-crit hover:underline">Hapus</button>}
                 </div>
                 {pems.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -484,7 +484,7 @@ function SeksiTab({ taId, isDraft, isArsip }: { taId: string; isDraft: boolean; 
                       <div key={p.id} className="flex items-center justify-between rounded border border-ink-edge bg-ink px-2 py-1 text-2xs">
                         <span className="mono text-mist">{p.kode_snapshot}</span>
                         <span className="text-mist-dim">{p.nama_snapshot}</span>
-                        {isDraft && <button onClick={() => { repo.hapusPemetaan(p.id); setRefresh((r) => r + 1); }} className="text-2xs text-crit hover:underline">Lepas</button>}
+                        {isDraft && <button onClick={async () => { await repo.hapusPemetaan(p.id); setRefresh((r) => r + 1); }} className="text-2xs text-crit hover:underline">Lepas</button>}
                       </div>
                     ))}
                   </div>
@@ -505,9 +505,9 @@ function AddSeksiModal({ taId, onClose, onSaved }: { taId: string; onClose: () =
   const [sotkaId, setSotkaId] = useState('');
   const [err, setErr] = useState('');
   const sotkaAktif = repo.masterSOTK().filter((s) => s.status_versi === 'Aktif');
-  const save = () => {
+  const save = async () => {
     if (!sotkaId) return setErr('Pilih unit SOTK.');
-    const r = repo.tambahSeksiTA(taId, sotkaId);
+    const r = await repo.tambahSeksiTA(taId, sotkaId);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     recordAudit({ ta_id: taId, entitas: `Seksi TA`, aksi: 'aksi_administratif', nilai_sesudah: r.seksi!.nama_snapshot });
     onSaved();
@@ -531,9 +531,9 @@ function AddPemetaanInline({ seksiId, taId, onAdded }: { seksiId: string; taId: 
   const [err, setErr] = useState('');
   const sudahDipetakan = repo.pemetaanByTA(taId).map((p) => p.subkegiatan_id);
   const subs = repo.masterSubkegiatan().filter((s) => s.status === 'Aktif' && !sudahDipetakan.includes(s.id));
-  const add = () => {
+  const add = async () => {
     if (!subId) return setErr('Pilih subkegiatan.');
-    const r = repo.tambahPemetaan(taId, seksiId, subId);
+    const r = await repo.tambahPemetaan(taId, seksiId, subId);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     setSubId(''); setErr('');
     onAdded();
@@ -593,10 +593,10 @@ function AddPenugasanModal({ taId, peran, seksiAwal, onClose, onSaved }: { taId:
   const seksiTA = repo.seksiTAByTA(taId);
   const needsSeksi = peran === 'pptk';
 
-  const save = () => {
+  const save = async () => {
     if (!personelId) return setErr('Pilih personel.');
     if (needsSeksi && !seksiId) return setErr('PPTK wajib memiliki seksi.');
-    const r = repo.tambahPenugasan(taId, peran, personelId, needsSeksi ? seksiId : null, tmt, provisional);
+    const r = await repo.tambahPenugasan(taId, peran, personelId, needsSeksi ? seksiId : null, tmt, provisional);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     const per = repo.personelById(personelId)!;
     recordAudit({ ta_id: taId, entitas: `Penugasan ${peranLabel(peran)}: ${per.nama}`, aksi: 'aksi_administratif', nilai_sesudah: `TMT ${tmt}${provisional ? ' (provisional)' : ''}` });
@@ -639,10 +639,10 @@ function GantiPejabatModal({ penugasanId, taId, onClose, onSaved }: { penugasanI
   const [err, setErr] = useState('');
   const personel = repo.masterPersonel();
 
-  const save = () => {
+  const save = async () => {
     if (!personelId) return setErr('Pilih personel pengganti.');
     if (!tmt) return setErr('TMT pengganti wajib diisi.');
-    const r = repo.gantiPejabatDefinitif(penugasanId, personelId, tmt);
+    const r = await repo.gantiPejabatDefinitif(penugasanId, personelId, tmt);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     const per = repo.personelById(personelId)!;
     recordAudit({ ta_id: penugasan?.ta_id ?? null, entitas: `Ganti Pejabat: ${per.nama}`, aksi: 'aksi_administratif', nilai_sesudah: `TMT ${tmt}; penugasan lama berakhir H-1` });
@@ -691,8 +691,8 @@ function SKModal({ penugasanId, onClose, onSaved }: { penugasanId: string; onClo
     setErr(''); setFile(f);
   };
 
-  const save = () => {
-    const r = repo.tambahSK(penugasanId, nomor, tanggal, file ? file.name : null, provisional, file ? file.size : null);
+  const save = async () => {
+    const r = await repo.tambahSK(penugasanId, nomor, tanggal, file ? file.name : null, provisional, file ? file.size : null, file);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     if (file && r.id) simpanBerkasSesi(r.id, file);
     recordAudit({ ta_id: null, entitas: `SK: ${nomor || '(belum ada nomor)'}`, aksi: 'aksi_administratif', nilai_sesudah: `Tanggal ${tanggal}${provisional ? ' (provisional)' : ' (final)'}${file ? `, berkas ${file.name}` : ''}` });
@@ -750,11 +750,11 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
     setErr(''); setFile(f); setHapusBerkas(false);
   };
 
-  const simpan = () => {
+  const simpan = async () => {
     const sesi = getSession();
     if (!sesi) return;
-    const berkas = file ? { nama: file.name, ukuran: file.size } : hapusBerkas ? ('hapus' as const) : null;
-    const r = repo.lengkapiSK(sk.id, { nomor_sk: nomor, tanggal_sk: tanggal, provisional, berkas }, sesi);
+    const berkas = file ? { nama: file.name, ukuran: file.size, file } : hapusBerkas ? ('hapus' as const) : null;
+    const r = await repo.lengkapiSK(sk.id, { nomor_sk: nomor, tanggal_sk: tanggal, provisional, berkas }, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal.'); return; }
     if (file) simpanBerkasSesi(sk.id, file);
     if (hapusBerkas) hapusBerkasSesi(sk.id);
@@ -821,10 +821,10 @@ function AddPengawasTAModal({ taId, onClose, onSaved }: { taId: string; onClose:
   const [akhir, setAkhir] = useState('');
   const [err, setErr] = useState('');
   const pengawas = repo.akunPengawas().filter((a) => a.status === 'ACTIVE');
-  const save = () => {
+  const save = async () => {
     if (!pengawasId) return setErr('Pilih akun Pengawas.');
     if (!mulai || !akhir) return setErr('Tanggal mulai dan akhir wajib diisi.');
-    const r = repo.tambahPengawasTA(taId, pengawasId, mulai, akhir);
+    const r = await repo.tambahPengawasTA(taId, pengawasId, mulai, akhir);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     const p = repo.pengawasById(pengawasId)!;
     recordAudit({ ta_id: taId, entitas: `Penugasan Pengawas: ${p.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: `Mulai ${mulai}, akhir ${akhir}` });
@@ -864,13 +864,13 @@ function AddDelegasiModal({ taId, onClose, onSaved }: { taId: string; onClose: (
   // Tentukan pejabat definitif berdasar peran+seksi
   const definitifOptions = tgs.filter((t) => t.peran === peran && (peran !== 'pptk' || t.seksi_ta_id === seksiId));
 
-  const save = () => {
+  const save = async () => {
     if (!personelId) return setErr('Pilih personel pengganti.');
     if (!mulai || !berakhir) return setErr('Tanggal mulai dan berakhir wajib diisi.');
     if (berakhir < mulai) return setErr('Tanggal berakhir tidak boleh mendahului tanggal mulai.');
     if (peran === 'pptk' && !seksiId) return setErr('PPTK wajib memiliki seksi.');
     if (!definitiveId) return setErr('Pilih pejabat definitif yang digantikan.');
-    const r = repo.tambahDelegasi(taId, personelId, peran, peran === 'pptk' ? seksiId : null, mulai, berakhir, definitiveId);
+    const r = await repo.tambahDelegasi(taId, personelId, peran, peran === 'pptk' ? seksiId : null, mulai, berakhir, definitiveId);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     const per = repo.personelById(personelId)!;
     recordAudit({ ta_id: taId, entitas: `Delegasi: ${per.nama} → Plh. ${peranLabel(peran)}`, aksi: 'delegasi_tetapkan', nilai_sesudah: `Status: Delegasi Aktif, berlaku ${mulai} — ${berakhir}`, definitive_officer_id: definitiveId, delegate_officer_id: personelId });
@@ -917,9 +917,9 @@ function AddDelegasiModal({ taId, onClose, onSaved }: { taId: string; onClose: (
 function CabutDelegasiModal({ delegasiId, taId, onClose, onSaved }: { delegasiId: string; taId: string; onClose: () => void; onSaved: () => void }) {
   const [alasan, setAlasan] = useState('');
   const [err, setErr] = useState('');
-  const save = () => {
+  const save = async () => {
     if (!alasan.trim()) return setErr('Alasan pencabutan dini wajib diisi.');
-    const r = repo.cabutDelegasi(delegasiId, alasan);
+    const r = await repo.cabutDelegasi(delegasiId, alasan);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     // find delegasi for audit fields
     const d = repo._allDelegasi(taId).find((x) => x.id === delegasiId);

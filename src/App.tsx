@@ -32,7 +32,7 @@ import { SPJPage } from '@/components/SPJPage';
 import { GerbangBanner } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
 import { DrilldownPage } from '@/components/DrilldownPage';
-import { getSession, isPending, subscribeSession, logout } from '@/lib/auth';
+import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
 import { BarChart3, BookOpen, LayoutDashboard, ScrollText, ShieldCheck, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
@@ -63,6 +63,8 @@ function AplikasiUtama() {
   const [activeNav, setActiveNav] = useState('dashboard');
 
   useEffect(() => {
+    // Mode server: sesi yang tersimpan di browser harus masih sah di server (kalau tidak, kembali ke login).
+    void validasiSesiServer();
     evaluasiDelegasiJatuhTempo();
     const unsub = subscribeSession(() => {
       const s = getSession();
@@ -130,6 +132,11 @@ function AppShell({
 
   return (
     <DashboardShell nav={nav} activeId={active?.id ?? 'dashboard'} onNavigate={onNavigate}>
+      {modeServer && (
+        <div role="status" className="mb-4 rounded-md border border-amber/40 bg-amber/10 px-3 py-2 text-2xs text-mist">
+          <strong>Tahap uji:</strong> masuk dan sesi sudah memakai Supabase. Data pada layar ini <strong>masih data contoh</strong> dan belum disimpan ke server; penyambungan layar dilakukan bertahap.
+        </div>
+      )}
       {bannerTA && <GerbangBanner ta_id={bannerTA} />}
       {active?.render()}
     </DashboardShell>

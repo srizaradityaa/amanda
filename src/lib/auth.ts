@@ -4,6 +4,8 @@
 import { repo } from '@/data/repo';
 import type { SessionPayload, Role, ActorType } from '@/data/types';
 import { nowWita, todayWita } from '@/lib/wita';
+import { supabase, modeServer, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
+import { verifikasiMasuk, bukaSesi, type Konteks } from '@/lib/masuk';
 
 const SESSION_KEY = 'amanda.session.v1';
 const ACTIVITY_KEY = 'amanda.lastActivity.v1';
@@ -54,8 +56,16 @@ export function getSession(): SessionPayload | null {
   return readSession();
 }
 
+let pingTerakhir = 0;
 export function touchActivity() {
-  if (readSession()) sessionStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+  const sesi = readSession();
+  if (!sesi) return;
+  sessionStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+  // Mode server: jaga agar batas idle 1 jam di server ikut bergeser (paling sering tiap 3 menit).
+  if (modeServer && supabase && !isPending(sesi) && Date.now() - pingTerakhir > 3 * 60 * 1000) {
+    pingTerakhir = Date.now();
+    void supabase.rpc('ping_sesi').then(({ data }) => { if (data === false) destroySession(); });
+  }
 }
 
 export function destroySession() {
@@ -66,6 +76,14 @@ export function destroySession() {
 }
 
 export function logout() {
+  if (modeServer && supabase) {
+    // Akhiri sesi di server lalu keluarkan dari Supabase Auth; tampilan langsung kembali ke login.
+    void (async () => {
+      try { await supabase.rpc('akhiri_sesi'); } catch { /* abaikan */ }
+      try { await supabase.auth.signOut(); } catch { /* abaikan */ }
+    })();
+    pendingServer = null;
+  }
   destroySession();
 }
 
@@ -285,3 +303,86 @@ export function isPending(s: SessionPayload | null): boolean {
 }
 
 export { nowWita };
+
+
+// ===================== MODE SERVER (Supabase) =====================
+// Tiket dan daftar konteks hanya disimpan di memori (tidak pernah di storage).
+interface PendingServer { tiket: string; tipe: 'internal' | 'auditor'; nama: string; konteks: Konteks[] }
+let pendingServer: PendingServer | null = null;
+
+export function konteksPending(): PendingServer | null {
+  return pendingServer;
+}
+
+function payloadKeSesi(p: Record<string, unknown>): SessionPayload {
+  return {
+    user_id: String(p.user_id ?? ''),
+    actor_type: (p.actor_type as ActorType) ?? 'internal',
+    active_ta_id: (p.active_ta_id as string | null) ?? null,
+    active_role: p.active_role as Role,
+    active_seksi_id: (p.active_seksi_id as string | null) ?? null,
+    nama_snapshot: String(p.nama_snapshot ?? ''),
+    nip_snapshot: String(p.nip_snapshot ?? '—'),
+    instansi_asal_snapshot: p.instansi_asal_snapshot as string | undefined,
+    nomor_surat_tugas_snapshot: p.nomor_surat_tugas_snapshot as string | undefined,
+  };
+}
+
+// Membuka sesi pada satu konteks. Tiket sekali pakai: bila gagal, pengguna harus masuk ulang.
+export async function pilihKonteksServer(k: Konteks): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!supabase || !pendingServer) return { ok: false, error: 'Sesi masuk berakhir. Silakan masuk kembali.' };
+  const hasil = await bukaSesi(SUPABASE_URL, SUPABASE_ANON_KEY, supabase, pendingServer.tiket, {
+    ta_id: k.ta_id, peran: k.peran, seksi_ta_id: k.seksi_ta_id,
+  });
+  if (!hasil.ok || !hasil.payload) {
+    pendingServer = null;
+    destroySession();
+    return { ok: false, error: hasil.error ?? 'Gagal membuka sesi. Silakan masuk kembali.' };
+  }
+  pendingServer = null;
+  writeSession(payloadKeSesi(hasil.payload));
+  return { ok: true };
+}
+
+export async function loginServer(identifier: string, password: string): Promise<LoginResult> {
+  if (!identifier.trim() || !password) return { ok: false, error: 'Lengkapi identitas dan kata sandi.' };
+  if (password.length < 6) return { ok: false, error: 'Kata sandi minimal 6 karakter.' };
+  const v = await verifikasiMasuk(SUPABASE_URL, SUPABASE_ANON_KEY, identifier.trim(), password);
+  if (!v.ok || !v.tiket) return { ok: false, error: v.error ?? GENERIC_ERROR };
+  const konteks = v.konteks ?? [];
+  if (konteks.length === 0) return { ok: false, error: 'Akun belum memiliki penugasan aktif. Hubungi Administrator Sistem.' };
+  const tipe: 'internal' | 'auditor' = isAuditorIdentifier(identifier) ? 'auditor' : 'internal';
+  pendingServer = { tiket: v.tiket, tipe, nama: v.nama ?? '', konteks };
+
+  // Satu konteks saja -> langsung masuk (P-119/P-120).
+  if (konteks.length === 1) {
+    const r = await pilihKonteksServer(konteks[0]);
+    if (!r.ok) return r;
+    return { ok: true, session: getSession()! };
+  }
+  // Banyak konteks -> sesi sementara "pending" untuk layar pilih.
+  const sementara: SessionPayload = {
+    user_id: '', actor_type: tipe, active_ta_id: null, active_role: 'pending' as Role,
+    active_seksi_id: null, nama_snapshot: v.nama ?? '', nip_snapshot: '—',
+  };
+  writeSession(sementara);
+  return { ok: true, session: sementara };
+}
+
+// Satu pintu untuk layar login: mode server memakai Supabase, mode demo memakai data contoh.
+export async function loginAsync(identifier: string, password: string): Promise<LoginResult> {
+  return modeServer ? loginServer(identifier, password) : login(identifier, password);
+}
+
+// Saat aplikasi dibuka ulang: pastikan sesi di browser masih sah di server.
+export async function validasiSesiServer(): Promise<void> {
+  if (!modeServer || !supabase) return;
+  const lokal = readSession();
+  if (!lokal) return;
+  if (isPending(lokal)) { if (!pendingServer) destroySession(); return; }
+  const { data, error } = await supabase.rpc('sesi_saya');
+  if (error || !data) { try { await supabase.auth.signOut(); } catch { /* abaikan */ } destroySession(); return; }
+  writeSession(payloadKeSesi(data as Record<string, unknown>));
+}
+
+export { modeServer };

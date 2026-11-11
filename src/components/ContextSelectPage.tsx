@@ -4,7 +4,8 @@
 
 import { useState } from 'react';
 import { repo } from '@/data/repo';
-import { selectContextForInternal, selectContextForAuditor, getSession, isPending } from '@/lib/auth';
+import { selectContextForInternal, selectContextForAuditor, getSession, isPending, modeServer, konteksPending, pilihKonteksServer, logout } from '@/lib/auth';
+import type { Konteks } from '@/lib/masuk';
 import { Card, Button } from '@/components/ui';
 import { ChevronRight, ShieldCheck, UserCircle2 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
@@ -28,10 +29,114 @@ export function ContextSelectPage({ onResolved }: { onResolved: () => void }) {
   const s = getSession();
   if (!s || !isPending(s)) return null;
 
+  if (modeServer) return <ServerSelect onResolved={onResolved} />;
+
   if (s.actor_type === 'auditor') {
     return <AuditorSelect onResolved={onResolved} />;
   }
   return <InternalSelect onResolved={onResolved} />;
+}
+
+// Mode server: daftar TA dan jabatan berasal dari Supabase (hasil verifikasi login), bukan data contoh.
+function ServerSelect({ onResolved }: { onResolved: () => void }) {
+  const p = konteksPending();
+  const [selectedTA, setSelectedTA] = useState<string | null>(null);
+  const [sibuk, setSibuk] = useState(false);
+  const [galat, setGalat] = useState<string | null>(null);
+
+  if (!p) {
+    return (
+      <Shell title="Sesi masuk berakhir" subtitle="Silakan masuk kembali.">
+        <Button onClick={() => logout()}>Kembali ke halaman masuk</Button>
+      </Shell>
+    );
+  }
+
+  const daftarTA = Array.from(new Map(p.konteks.map((k) => [k.ta_id ?? '', k])).values());
+
+  async function pilih(k: Konteks) {
+    setSibuk(true);
+    setGalat(null);
+    const r = await pilihKonteksServer(k);
+    setSibuk(false);
+    if (!r.ok) { setGalat(r.error); return; }
+    onResolved();
+  }
+
+  const infoGalat = galat && <p role="alert" className="mb-3 text-2xs text-crit">{galat}</p>;
+
+  if (p.tipe === 'auditor') {
+    return (
+      <Shell title="Pilih Tahun Anggaran Penugasan" subtitle={`${p.nama} — Pengawas/Auditor`}>
+        {infoGalat}
+        <div className="space-y-2">
+          {p.konteks.map((k, i) => (
+            <button key={i} disabled={sibuk} onClick={() => pilih(k)}
+              className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40 disabled:opacity-60">
+              <div className="flex items-center gap-3">
+                <ShieldCheck size={20} className="text-teal" />
+                <div className="mono text-sm font-semibold text-mist">TA {k.tahun ?? k.ta_id}</div>
+              </div>
+              <ChevronRight size={18} className="text-mist-dim" />
+            </button>
+          ))}
+        </div>
+      </Shell>
+    );
+  }
+
+  if (!selectedTA && daftarTA.length > 1) {
+    return (
+      <Shell title="Pilih Tahun Anggaran" subtitle={`${p.nama} — pilih TA penugasan`}>
+        <div className="space-y-2">
+          {daftarTA.map((k) => {
+            const jml = p.konteks.filter((x) => x.ta_id === k.ta_id).length;
+            return (
+              <button key={k.ta_id ?? 'x'} onClick={() => setSelectedTA(k.ta_id ?? '')}
+                className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40">
+                <div>
+                  <div className="mono text-sm font-semibold text-mist">TA {k.tahun ?? k.ta_id}</div>
+                  <div className="text-2xs text-mist-dim">{jml} jabatan aktif</div>
+                </div>
+                <ChevronRight size={18} className="text-mist-dim" />
+              </button>
+            );
+          })}
+        </div>
+      </Shell>
+    );
+  }
+
+  const taTerpilih = selectedTA ?? (daftarTA[0]?.ta_id ?? '');
+  const jabatan = p.konteks.filter((k) => (k.ta_id ?? '') === taTerpilih);
+  const tahun = jabatan[0]?.tahun ?? taTerpilih;
+  return (
+    <Shell
+      title={`Pilih Jabatan — TA ${tahun}`}
+      subtitle="Pilih jabatan aktif untuk sesi ini. Ganti TA atau jabatan wajib logout."
+      onBack={daftarTA.length > 1 ? () => setSelectedTA(null) : undefined}
+    >
+      {infoGalat}
+      <div className="space-y-2">
+        {jabatan.map((k, idx) => (
+          <button key={idx} disabled={sibuk} onClick={() => pilih(k)}
+            className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40 disabled:opacity-60">
+            <div className="flex items-center gap-3">
+              <UserCircle2 size={20} className="text-amber" />
+              <div>
+                <div className="text-sm font-semibold text-mist">
+                  {PERAN_LABEL[k.peran] ?? k.peran}
+                  {k.delegasi && <span className="ml-2 text-2xs text-teal">Plh./Plt.</span>}
+                </div>
+                <div className="text-2xs text-mist-dim">{k.seksi_nama ? `Seksi: ${k.seksi_nama}` : 'Tingkat instansi'}</div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-mist-dim" />
+          </button>
+        ))}
+      </div>
+    </Shell>
+  );
 }
 
 function InternalSelect({ onResolved }: { onResolved: () => void }) {

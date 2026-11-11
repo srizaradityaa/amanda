@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Eye, EyeOff, AlertCircle, ShieldCheck, Building2, ChevronRight, Lock,
 } from 'lucide-react';
-import { login, isAuditorIdentifier } from '@/lib/auth';
+import { loginAsync, isAuditorIdentifier, modeServer } from '@/lib/auth';
 import { Button, Field, Input } from '@/components/ui';
 import type { LoginResult } from '@/lib/auth';
 import { Logo } from '@/components/Logo';
@@ -26,21 +26,24 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   const auditorMode = isAuditorIdentifier(identifier);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    // simulasi pemeriksaan singkat agar tombol menampilkan "Memeriksa akun..."
-    setTimeout(() => {
-      const res: LoginResult = login(identifier, password);
+    try {
+      // Mode demo: jeda singkat agar tombol menampilkan "Memeriksa akun...".
+      if (!modeServer) await new Promise((r) => setTimeout(r, 350));
+      const res: LoginResult = await loginAsync(identifier, password);
       if (!res.ok) {
         setError(res.error);
-        setSubmitting(false);
         return;
       }
-      setSubmitting(false);
       onLogin();
-    }, 350);
+    } catch {
+      setError('Layanan tidak tersedia. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

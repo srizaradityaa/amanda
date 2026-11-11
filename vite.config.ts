@@ -4,6 +4,8 @@ import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Jalur relatif: berjalan di akar domain maupun subfolder (mis. GitHub Pages /amanda/). Rute memakai hash (#), jadi tanpa fallback server.
+  base: './',
   plugins: [react()],
   resolve: {
     alias: {

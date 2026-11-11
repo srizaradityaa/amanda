@@ -179,4 +179,22 @@ export const server = {
   // Delegasi jatuh tempo diakhiri otomatis oleh pg_cron di server (23:59 WITA); klien tidak perlu mengubah apa pun.
   async akhiriDelegasiJatuhTempo() { return [] as never[]; },
   tglOrNull,
+
+  // ------------------------- Tahap 3: anggaran, SPD, BKU -------------------------
+  aturJendela: (ta: string, tutup_wita: string, _a?: unknown) => jalankan(api.bend_jendela_atur({ p_ta: ta, p_tutup: tutup_wita })),
+  simpanAlokasiSubkegiatan: (ta: string, pagu: Record<string, number>, _a?: unknown) => jalankan(api.bend_alokasi_sub_simpan({ p_ta: ta, p_pagu: pagu })),
+  simpanAlokasiRekening: (ta: string, pemetaan: string, baris: { rekening_id: string; pagu: number }[], _a?: unknown) =>
+    jalankan(api.pptk_alokasi_rek_simpan({ p_ta: ta, p_pemetaan: pemetaan, p_baris: baris })),
+  sahkanAlokasi: (ta: string, _a?: unknown) => jalankan(api.bend_sahkan({ p_ta: ta })),
+  efisiensiSPD: (ar: string, nilai: number, ket: string, _a?: unknown) => jalankan(api.bend_spd_efisiensi({ p_ar: ar, p_nilai: nilai, p_ket: ket })),
+  naikkanSPD: (ar: string, nilai: number, alasan: string, _a?: unknown) => jalankan(api.bend_spd_naik({ p_ar: ar, p_nilai: nilai, p_alasan: alasan })),
+  aturSPDFinal: (ar: string, final: number, ket: string, _a?: unknown) => jalankan(api.bend_spd_final({ p_ar: ar, p_final: final, p_ket: ket })),
+  geserSPD: (ta: string, sumber: string, tujuan: string, nilai: number, alasan: string, _a?: unknown) =>
+    jalankan(api.bend_geser({ p_ta: ta, p_sumber: sumber, p_tujuan: tujuan, p_nilai: nilai, p_alasan: alasan })),
+  aktifkanApbdP: (ta: string, pagu: number, _a?: unknown) => jalankan(api.adm_apbdp_aktifkan({ p_ta: ta, p_pagu: pagu })),
+  koreksiPaguApbdP: (ta: string, pagu: number, _a?: unknown) => jalankan(api.adm_apbdp_koreksi({ p_ta: ta, p_pagu: pagu })),
+  catatBKU: (spj: string, nomor: string, tanggal: string, _s?: SessionPayload) => jalankan(api.bend_bku_catat({ p_spj: spj, p_nomor: nomor, p_tanggal: tanggal })),
+  koreksiBKU: (bku: string, patch: { nomor_bku: string; tanggal_bku: string }, _s?: SessionPayload) =>
+    jalankan(api.bend_bku_koreksi({ p_bku: bku, p_nomor: patch.nomor_bku, p_tanggal: patch.tanggal_bku })),
+  cabutBKU: (bku: string, _s?: SessionPayload) => jalankan(api.bend_bku_cabut({ p_bku: bku })),
 };

@@ -12,10 +12,10 @@ export function ApbdPModal({ taId, onClose, onSaved, koreksi = false }: { taId: 
   const [err, setErr] = useState<string | null>(null);
   if (!ta) return null;
 
-  const simpan = () => {
+  const simpan = async () => {
     const aktor = aktorSesi();
     if (!aktor) { setErr('Sesi tidak ditemukan. Silakan masuk kembali.'); return; }
-    const hasil = koreksi ? anggaran.koreksiPaguApbdP(taId, nilai, aktor) : anggaran.aktifkanApbdP(taId, nilai, aktor);
+    const hasil = koreksi ? await anggaran.koreksiPaguApbdP(taId, nilai, aktor) : await anggaran.aktifkanApbdP(taId, nilai, aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     toast.notify('Tersimpan');
     onSaved();

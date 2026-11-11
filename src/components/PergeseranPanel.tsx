@@ -42,8 +42,8 @@ export function PergeseranPanel({ ta_id, aktor, onChanged }: { ta_id: string; ak
     setErr(null);
     setOpen(true);
   };
-  const kirim = () => {
-    const hasil = anggaran.geserSPD(ta_id, sumber, tujuan, nilai, alasan, aktor);
+  const kirim = async () => {
+    const hasil = await anggaran.geserSPD(ta_id, sumber, tujuan, nilai, alasan, aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     setOpen(false);
     setErr(null);

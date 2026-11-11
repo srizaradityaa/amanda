@@ -59,9 +59,9 @@ function RekeningPanel({ ta_id, seksi_id, aktor, onChanged }: {
   const ubah = (pemetaan_id: string, fn: (rows: BarisDraft[]) => BarisDraft[]) =>
     setDraft((d) => ({ ...d, [pemetaan_id]: fn(d[pemetaan_id] ?? []) }));
 
-  const simpan = (pemetaan_id: string) => {
+  const simpan = async (pemetaan_id: string) => {
     const baris = (draft[pemetaan_id] ?? []).filter((b) => b.rekening_id);
-    const hasil = anggaran.simpanAlokasiRekening(ta_id, pemetaan_id, baris.map((b) => ({ rekening_id: b.rekening_id, pagu: b.pagu })), aktor);
+    const hasil = await anggaran.simpanAlokasiRekening(ta_id, pemetaan_id, baris.map((b) => ({ rekening_id: b.rekening_id, pagu: b.pagu })), aktor);
     if (!hasil.ok) { setErr((e) => ({ ...e, [pemetaan_id]: hasil.error ?? 'Gagal' })); return; }
     setErr((e) => ({ ...e, [pemetaan_id]: null }));
     notify('Tersimpan');

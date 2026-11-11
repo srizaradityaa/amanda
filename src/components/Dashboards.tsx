@@ -88,10 +88,10 @@ export function BendaharaDashboard() {
   const totalSisaSpd = rekAlokasi.reduce((s, r) => s + anggaran.sisaSpdBebas(r), 0);
   const serapan = totalPagu > 0 ? `${((totalRealisasi / totalPagu) * 100).toFixed(1)}%` : '—';
   const tutupJendela = anggaran.jendelaTutup(ta.id);
-  const sahkan = () => {
+  const sahkan = async () => {
     const aktor = aktorSesi();
     if (!aktor) return;
-    const hasil = anggaran.sahkanAlokasi(ta.id, aktor);
+    const hasil = await anggaran.sahkanAlokasi(ta.id, aktor);
     if (!hasil.ok) { setSahkanErr(hasil.error ?? 'Gagal'); return; }
     setSahkanErr(null);
     bump();

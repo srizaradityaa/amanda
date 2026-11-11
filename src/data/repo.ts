@@ -56,4 +56,8 @@ export const repo = {
   hapusPengawasTA: mut(repoDemo.hapusPengawasTA, server.hapusPengawasTA),
   tambahDelegasi: mut(repoDemo.tambahDelegasi, server.tambahDelegasi),
   cabutDelegasi: mut(repoDemo.cabutDelegasi, server.cabutDelegasi),
+  // --- Tahap 3: BKU ---
+  catatBKU: mut(repoDemo.catatBKU, server.catatBKU),
+  koreksiBKU: mut(repoDemo.koreksiBKU, server.koreksiBKU),
+  cabutBKU: mut(repoDemo.cabutBKU, server.cabutBKU),
 };

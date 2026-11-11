@@ -39,8 +39,8 @@ function JendelaPanel({ ta_id, aktor, onChanged }: { ta_id: string; aktor: NonNu
   const [err, setErr] = useState<string | null>(null);
   const tutup = anggaran.jendelaTutup(ta_id);
   const terbuka = anggaran.jendelaTerbuka(ta_id);
-  const atur = () => {
-    const hasil = anggaran.aturJendela(ta_id, nilai.replace('T', ' '), aktor);
+  const atur = async () => {
+    const hasil = await anggaran.aturJendela(ta_id, nilai.replace('T', ' '), aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     setErr(null);
     setNilai('');
@@ -115,10 +115,10 @@ function AlokasiSubkegiatanPanel({ ta_id, aktor, onChanged }: { ta_id: string; a
   const terkunci = anggaran.sudahDisahkan(ta_id) || !anggaran.jendelaTerbuka(ta_id);
   const [buka, setBuka] = useState<Record<string, boolean>>({});
   const melebihi = selisih < 0;
-  const simpan = () => {
+  const simpan = async () => {
     if (melebihi) { setErr(`Total pagu subkegiatan melebihi Pagu Induk (selisih -${formatRupiah(-selisih)}). Kurangi dulu sebelum menyimpan.`); return; }
     const payload = Object.fromEntries(pemetaan.map((p) => [p.id, draft[p.id] ?? 0]));
-    const hasil = anggaran.simpanAlokasiSubkegiatan(ta_id, payload, aktor);
+    const hasil = await anggaran.simpanAlokasiSubkegiatan(ta_id, payload, aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     setErr(null);
     toast.notify('Tersimpan');
@@ -201,8 +201,8 @@ function SahkanPanel({ ta_id, aktor, onChanged }: { ta_id: string; aktor: NonNul
   const toast = useToast();
   const g = anggaran.gerbangStatus(ta_id);
   const ta = repo.tahunAnggaranById(ta_id);
-  const sahkan = () => {
-    const hasil = anggaran.sahkanAlokasi(ta_id, aktor);
+  const sahkan = async () => {
+    const hasil = await anggaran.sahkanAlokasi(ta_id, aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     setErr(null);
     toast.notify('Tersimpan');
@@ -242,9 +242,9 @@ function SpdPanel({ ta_id, aktor, onChanged }: { ta_id: string; aktor: NonNullab
   };
   const tutup = () => { setModal(null); setErr(null); };
   const selisih = baris ? final - baris.spd_aktif : 0;
-  const kirim = () => {
+  const kirim = async () => {
     if (!baris) return;
-    const hasil = anggaran.aturSPDFinal(baris.id, final, alasan, aktor);
+    const hasil = await anggaran.aturSPDFinal(baris.id, final, alasan, aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     setModal(null); setErr(null);
     toast.notify('Tersimpan');

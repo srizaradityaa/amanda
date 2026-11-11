@@ -9,7 +9,7 @@ import { formatTanggalPendek, todayWita } from '@/lib/wita';
 import type { BKU, SPJ } from '@/data/types';
 import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 
-export function BKUPage() {
+export async function BKUPage() {
   const s = getSession()!;
   const ta_id = s.active_ta_id!;
   const ta = repo.tahunAnggaranById(ta_id)!;
@@ -134,14 +134,14 @@ export function BKUPage() {
 
 function FormBKU({ judul, awal, catatan, onClose, simpan, onSaved }: {
   judul: string; awal: { nomor: string; tanggal: string }; catatan?: string;
-  onClose: () => void; simpan: (nomor: string, tanggal: string) => { ok: boolean; error?: string }; onSaved: () => void;
+  onClose: () => void; simpan: (nomor: string, tanggal: string) => Promise<{ ok: boolean; error?: string }>; onSaved: () => void;
 }) {
   const toast = useToast();
   const [nomor, setNomor] = useState(awal.nomor);
   const [tanggal, setTanggal] = useState(awal.tanggal);
   const [err, setErr] = useState<string | null>(null);
-  const kirim = () => {
-    const r = simpan(nomor, tanggal);
+  const kirim = async () => {
+    const r = await simpan(nomor, tanggal);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     toast.notify('Tersimpan');
     onSaved();
@@ -164,8 +164,8 @@ function KonfirmasiCabut({ bku, onClose, onDone }: { bku: BKU; onClose: () => vo
   const s = getSession()!;
   const toast = useToast();
   const [err, setErr] = useState<string | null>(null);
-  const jalankan = () => {
-    const r = repo.cabutBKU(bku.id, s);
+  const jalankan = async () => {
+    const r = await repo.cabutBKU(bku.id, s);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     toast.notify('BKU dicabut');
     onDone();

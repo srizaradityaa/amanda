@@ -7,6 +7,8 @@ import type { AlokasiRekening, FaseAlokasi, LedgerSPD, RincianVersiAlokasi, Tahu
 import { recordAudit } from '@/lib/audit';
 import { formatRupiah } from '@/lib/format';
 import { nowWita } from '@/lib/wita';
+import { mut } from '@/data/mut';
+import { server } from '@/data/server';
 
 export interface AktorAnggaran {
   id: string;
@@ -142,7 +144,7 @@ export function jendelaTerbuka(ta_id: string): boolean {
   return tutup !== null && tutup > nowWita();
 }
 
-export function aturJendela(ta_id: string, tutup_wita: string, aktor: AktorAnggaran): Hasil {
+export function aturJendelaDemo(ta_id: string, tutup_wita: string, aktor: AktorAnggaran): Hasil {
   if (aktor.peran !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang mengatur jendela waktu.' };
   if (!taById(ta_id)) return { ok: false, error: 'TA tidak ditemukan.' };
   if (!JENDELA_FORMAT.test(tutup_wita)) return { ok: false, error: 'Format waktu tutup harus tanggal dan jam WITA.' };
@@ -184,7 +186,7 @@ function catatVersi(ta_id: string, aktor: AktorAnggaran, keterangan: string, fas
 
 // ===== Alokasi subkegiatan oleh Bendahara (ALK-01) =====
 
-export function simpanAlokasiSubkegiatan(ta_id: string, pagu_per_pemetaan: Record<string, number>, aktor: AktorAnggaran): Hasil {
+export function simpanAlokasiSubkegiatanDemo(ta_id: string, pagu_per_pemetaan: Record<string, number>, aktor: AktorAnggaran): Hasil {
   const ta = taById(ta_id);
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
   if (aktor.peran !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat mengalokasikan pagu subkegiatan.' };
@@ -220,7 +222,7 @@ export function simpanAlokasiSubkegiatan(ta_id: string, pagu_per_pemetaan: Recor
 
 // ===== Alokasi rekening oleh PPTK (ALK-03) =====
 
-export function simpanAlokasiRekening(
+export function simpanAlokasiRekeningDemo(
   ta_id: string,
   pemetaan_id: string,
   baris: { rekening_id: string; pagu: number }[],
@@ -283,7 +285,7 @@ export function rekeningPemetaan(pemetaan_id: string): AlokasiRekening[] {
 
 // ===== Sahkan dan penerbitan SPD (ALK-05, ALK-06, SPD-04) =====
 
-export function sahkanAlokasi(ta_id: string, aktor: AktorAnggaran): Hasil {
+export function sahkanAlokasiDemo(ta_id: string, aktor: AktorAnggaran): Hasil {
   const ta = taById(ta_id);
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
   if (aktor.peran !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat menekan Sahkan.' };
@@ -386,17 +388,17 @@ function ubahSPD(
   return { ok: true };
 }
 
-export function efisiensiSPD(alokasi_rekening_id: string, nilai: number, keterangan: string, aktor: AktorAnggaran): Hasil {
+export function efisiensiSPDDemo(alokasi_rekening_id: string, nilai: number, keterangan: string, aktor: AktorAnggaran): Hasil {
   return ubahSPD(alokasi_rekening_id, nilai, 'efisiensi', keterangan, aktor);
 }
 
-export function naikkanSPD(alokasi_rekening_id: string, nilai: number, alasan: string, aktor: AktorAnggaran): Hasil {
+export function naikkanSPDDemo(alokasi_rekening_id: string, nilai: number, alasan: string, aktor: AktorAnggaran): Hasil {
   return ubahSPD(alokasi_rekening_id, nilai, 'kenaikan', alasan, aktor);
 }
 
 // Bendahara mengisi SPD final yang diperlukan; selisih terhadap SPD aktif dicatat otomatis
 // sebagai Efisiensi (turun) atau Kenaikan (naik) dengan aturan yang sama (SPD-02, SPD-03).
-export function aturSPDFinal(alokasi_rekening_id: string, spd_final: number, keterangan: string, aktor: AktorAnggaran): Hasil {
+export function aturSPDFinalDemo(alokasi_rekening_id: string, spd_final: number, keterangan: string, aktor: AktorAnggaran): Hasil {
   const a = data.alokasiRekening.find((x) => x.id === alokasi_rekening_id);
   if (!a) return { ok: false, error: 'Rekening tidak ditemukan.' };
   if (!Number.isInteger(spd_final) || spd_final < 0) return { ok: false, error: 'SPD final harus bilangan bulat rupiah tanpa sen, dan tidak boleh negatif.' };
@@ -414,7 +416,7 @@ export function nomorPergeseranBerikutnya(ta_id: string): string {
   return `Pergeseran/${String(urut + 1).padStart(3, '0')}/${taById(ta_id)?.tahun}`;
 }
 
-export function geserSPD(
+export function geserSPDDemo(
   ta_id: string,
   sumber_id: string,
   tujuan_id: string,
@@ -483,7 +485,7 @@ export function geserSPD(
 
 // ===== APBD-P (TA-09) dan pembanding pagu murni (SPD-04) =====
 
-export function aktifkanApbdP(ta_id: string, pagu_perubahan: number, aktor: AktorAnggaran): Hasil {
+export function aktifkanApbdPDemo(ta_id: string, pagu_perubahan: number, aktor: AktorAnggaran): Hasil {
   const ta = taById(ta_id);
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
   if (aktor.peran !== 'admin') return { ok: false, error: 'Hanya Admin yang dapat mengaktifkan APBD-P.' };
@@ -509,7 +511,7 @@ export function aktifkanApbdP(ta_id: string, pagu_perubahan: number, aktor: Akto
 }
 
 // Koreksi Pagu Induk perubahan oleh Admin: hanya selama APBD-P belum disahkan ulang (keputusan pemilik).
-export function koreksiPaguApbdP(ta_id: string, pagu_baru: number, aktor: AktorAnggaran): Hasil {
+export function koreksiPaguApbdPDemo(ta_id: string, pagu_baru: number, aktor: AktorAnggaran): Hasil {
   const ta = taById(ta_id);
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
   if (aktor.peran !== 'admin') return { ok: false, error: 'Hanya Admin yang dapat mengoreksi Pagu Induk APBD-P.' };
@@ -548,3 +550,16 @@ export function ledgerByTA(ta_id: string): LedgerSPD[] {
 export function alokasiRekeningByTA(ta_id: string): AlokasiRekening[] {
   return data.alokasiRekening.filter((x) => x.ta_id === ta_id);
 }
+
+
+// ===== Operasi tulis: mode demo memakai logika lokal di atas; mode server memanggil RPC Supabase (server.ts) =====
+export const aturJendela = mut(aturJendelaDemo, server.aturJendela);
+export const simpanAlokasiSubkegiatan = mut(simpanAlokasiSubkegiatanDemo, server.simpanAlokasiSubkegiatan);
+export const simpanAlokasiRekening = mut(simpanAlokasiRekeningDemo, server.simpanAlokasiRekening);
+export const sahkanAlokasi = mut(sahkanAlokasiDemo, server.sahkanAlokasi);
+export const efisiensiSPD = mut(efisiensiSPDDemo, server.efisiensiSPD);
+export const naikkanSPD = mut(naikkanSPDDemo, server.naikkanSPD);
+export const aturSPDFinal = mut(aturSPDFinalDemo, server.aturSPDFinal);
+export const geserSPD = mut(geserSPDDemo, server.geserSPD);
+export const aktifkanApbdP = mut(aktifkanApbdPDemo, server.aktifkanApbdP);
+export const koreksiPaguApbdP = mut(koreksiPaguApbdPDemo, server.koreksiPaguApbdP);

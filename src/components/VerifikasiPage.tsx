@@ -8,7 +8,7 @@ import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
 import { formatRupiah } from '@/lib/format';
 import { formatTanggalPendek } from '@/lib/wita';
-import { adaBerkasSesi, bukaBerkasSesi } from '@/lib/berkas';
+import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
 import type { SPJ } from '@/data/types';
 import { Check, Printer, ScrollText, Undo2 } from 'lucide-react';
 
@@ -112,14 +112,14 @@ function DetailVerifikasi({ spj, onClose }: { spj: SPJ; onClose: () => void }) {
   const jenisPajak = repo.masterJenisPajak();
   const bku = repo.bkuByTA(spj.ta_id).find((b) => b.spj_id === spj.id && b.status === 'Aktif');
 
-  const setujui = () => {
-    const r = repo.setujuiSPJ(spj.id, sesi);
+  const setujui = async () => {
+    const r = await repo.setujuiSPJ(spj.id, sesi);
     setKonfirmSetuju(false);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     setErr(null); toast.notify(`Disetujui • ${r.nomor}`); setTick((n) => n + 1);
   };
-  const kembalikan = () => {
-    const r = repo.kembalikanSPJ(spj.id, catatan, sesi);
+  const kembalikan = async () => {
+    const r = await repo.kembalikanSPJ(spj.id, catatan, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     setErr(null); setKembali(false); setCatatan(''); toast.notify('SPJ dikembalikan ke seksi (Draft)'); onClose();
   };
@@ -194,7 +194,7 @@ function DetailVerifikasi({ spj, onClose }: { spj: SPJ; onClose: () => void }) {
             {spj.lampiran_nama_asli ? (
               <div className="flex items-center gap-2">
                 <span className="text-mist">{spj.lampiran_nama_asli}</span>
-                {adaBerkasSesi(spj.id) ? <button className="text-teal hover:underline" onClick={() => bukaBerkasSesi(spj.id)}>Buka</button> : <span>(isi berkas hanya tersedia pada sesi unggah; penyimpanan permanen menunggu backend)</span>}
+                {bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli) ? <button className="text-teal hover:underline" onClick={() => { void bukaLampiranSPJ(spj.id); }}>Buka</button> : <span>(isi berkas hanya tersedia pada sesi unggah; penyimpanan permanen menunggu backend)</span>}
               </div>
             ) : <p>Belum ada lampiran.</p>}
           </div>

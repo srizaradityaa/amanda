@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { buatApi, type Hasil } from '@/lib/api';
 import { segarkan } from '@/data/store';
 import { tampilkanGalat } from '@/lib/galat';
-import { unggah, hapus as hapusBerkas, BUCKET_SK, BUCKET_LAMPIRAN } from '@/lib/storage';
+import { unggah, hapus as hapusBerkas, kunciLampiran, BUCKET_SK, BUCKET_LAMPIRAN } from '@/lib/storage';
 import type {
   MasterPersonel, AkunPengawas, MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, TAStatus, AccountStatus,
   PeranPenugasan, FieldFormDinamis, BlokBerulangFormDinamis, TemplateKuitansi, TemplateVerifikasi, FormatNomorVerifikasi, SessionPayload,
@@ -197,4 +197,46 @@ export const server = {
   koreksiBKU: (bku: string, patch: { nomor_bku: string; tanggal_bku: string }, _s?: SessionPayload) =>
     jalankan(api.bend_bku_koreksi({ p_bku: bku, p_nomor: patch.nomor_bku, p_tanggal: patch.tanggal_bku })),
   cabutBKU: (bku: string, _s?: SessionPayload) => jalankan(api.bend_bku_cabut({ p_bku: bku })),
+
+  // ------------------------- Tahap 4: kuitansi, SPJ, verifikasi -------------------------
+  async buatKuitansi(i: { ta_id: string; seksi_ta_id: string; pemetaan_subkegiatan_id: string; rekening_id: string; penerima: string; bruto: number; uraian: string; tanggal_kuitansi: string }, _s?: SessionPayload) {
+    const r = await jalankan(api.pptk_kuitansi_buat({ p_ta: i.ta_id, p_seksi: i.seksi_ta_id, p_pemetaan: i.pemetaan_subkegiatan_id, p_rekening: i.rekening_id, p_penerima: i.penerima, p_bruto: Math.round(i.bruto), p_uraian: i.uraian, p_tanggal: i.tanggal_kuitansi }));
+    const id = (r as { id?: string }).id;
+    return { ok: r.ok, error: r.error, kuitansi: id ? data.kuitansi.find((k) => k.id === id) : undefined };
+  },
+  ubahKuitansi: (id: string, p: { penerima?: string; bruto?: number; uraian?: string; tanggal_kuitansi?: string }, _s?: SessionPayload) =>
+    jalankan(api.pptk_kuitansi_ubah({ p_id: id, p_patch: p })),
+  batalkanKuitansi: (id: string, _s?: SessionPayload) => jalankan(api.pptk_kuitansi_batalkan({ p_id: id })),
+  async buatSPJ(i: { ta_id: string; kuitansi_id: string; jenis_belanja: string }, _s?: SessionPayload) {
+    const r = await jalankan(api.pptk_spj_buat({ p_ta: i.ta_id, p_kuitansi: i.kuitansi_id, p_jenis: i.jenis_belanja }));
+    const id = (r as { id?: string }).id;
+    return { ok: r.ok, error: r.error, spj: id ? data.spj.find((x) => x.id === id) : undefined };
+  },
+  simpanJawabanSPJ: (id: string, j: unknown, _s?: SessionPayload) => jalankan(api.pptk_spj_jawaban({ p_spj: id, p_jawaban: j })),
+  simpanRekeningSPJ: (id: string, baris: unknown, _s?: SessionPayload) => jalankan(api.pptk_spj_rekening({ p_spj: id, p_baris: baris })),
+  simpanEntriPajakSPJ: (id: string, entri: unknown, _s?: SessionPayload) => jalankan(api.pptk_spj_pajak({ p_spj: id, p_entri: entri })),
+  /** Unggah PDF ke bucket `lampiran-spj` lalu catat metadatanya. Tanpa File (tidak mungkin di mode server) ditolak. */
+  async simpanLampiranSPJ(id: string, berkas: { nama: string; ukuran: number; file?: File; ukuranFinal?: number; statusOptimasi?: string }, _s?: SessionPayload) {
+    if (!berkas.file) return { ok: false, error: 'Berkas tidak tersedia untuk diunggah.' };
+    const kunci = kunciLampiran(id, berkas.nama);
+    const u = await unggah(supabase as never, BUCKET_LAMPIRAN, kunci, berkas.file);
+    if (!u.ok) return { ok: false, error: u.error ?? 'Gagal mengunggah berkas.' };
+    const r = await jalankan(api.pptk_spj_lampiran({ p_spj: id, p_key: kunci, p_nama: berkas.nama, p_ukuran_asal: Math.round(berkas.ukuran), p_ukuran_final: berkas.ukuranFinal == null ? undefined : Math.round(berkas.ukuranFinal), p_status_optimasi: berkas.statusOptimasi }));
+    if (!r.ok) await hapusBerkas(supabase as never, BUCKET_LAMPIRAN, [kunci]).catch(() => {});   // jangan tinggalkan objek yatim
+    return r;
+  },
+  async hapusLampiranSPJ(id: string, _s?: SessionPayload) {
+    const r = await jalankan(api.pptk_spj_lampiran_hapus({ p_spj: id }));
+    const key = (r as { hapus_key?: string }).hapus_key;
+    if (r.ok && key) await hapusBerkas(supabase as never, BUCKET_LAMPIRAN, [key]).catch(() => {});
+    return r;
+  },
+  ajukanSPJ: (id: string, _s?: SessionPayload) => jalankan(api.pptk_spj_ajukan({ p_spj: id })),
+  lepasSPJ: (id: string, _s?: SessionPayload) => jalankan(api.pptk_spj_lepas({ p_spj: id })),
+  batalkanSPJ: (id: string, _s?: SessionPayload) => jalankan(api.pptk_spj_lepas({ p_spj: id })),
+  async setujuiSPJ(id: string, _s?: SessionPayload) {
+    const r = await jalankan(api.ver_spj_setujui({ p_spj: id }));
+    return { ok: r.ok, error: r.error, nomor: (r as { nomor?: string }).nomor };
+  },
+  kembalikanSPJ: (id: string, catatan: string, _s?: SessionPayload) => jalankan(api.ver_spj_kembalikan({ p_spj: id, p_catatan: catatan })),
 };

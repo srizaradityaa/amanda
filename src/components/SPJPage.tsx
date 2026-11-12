@@ -13,7 +13,9 @@ import { aktorSesi, ErrorLine, Panel, SectionTitle } from '@/components/Anggaran
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
 import { PajakSPJModal } from '@/components/PajakSPJModal';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
-import { simpanBerkasSesi, hapusBerkasSesi, adaBerkasSesi, bukaBerkasSesi, formatUkuran } from '@/lib/berkas';
+import { simpanBerkasSesi, hapusBerkasSesi, formatUkuran } from '@/lib/berkas';
+import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
+import { modeServer } from '@/lib/supabase';
 import { RekeningPenerimaPanel, barisDariSPJ, type BarisRekening } from '@/components/RekeningPenerimaPanel';
 import type { SPJ, Kuitansi, SessionPayload, FormDinamis, FieldFormDinamis } from '@/data/types';
 import { FileText, ScrollText, Plus, Trash2, Send, Clock as Unlock, Lock, Eye, Pencil, Printer, Circle as XCircle } from 'lucide-react';
@@ -129,16 +131,16 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                           </button>
                           {s.status === 'Draft' && (
                             <>
-                              <button onClick={() => {
-                                const r = repo.lepasSPJ(s.id, sesi);
+                              <button onClick={async () => {
+                                const r = await repo.lepasSPJ(s.id, sesi);
                                 if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
                                 notify('Tersimpan'); onChanged();
                               }} className="rounded p-1 text-mist-dim hover:text-teal" title="Lepas SPJ (kuitansi kembali Aktif)">
                                 <Unlock size={14} />
                               </button>
-                              <button onClick={() => {
+                              <button onClick={async () => {
                                 if (confirm('Batalkan SPJ ini? Data akan dihapus tanpa jejak.')) {
-                                  const r = repo.batalkanSPJ(s.id, sesi);
+                                  const r = await repo.batalkanSPJ(s.id, sesi);
                                   if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
                                   notify('Tersimpan'); onChanged();
                                 }
@@ -201,11 +203,11 @@ function BuatSPJModal({ sesi, ta_id, kuitansiOptions, jenisBelanjaList, onClose,
   const [jenis, setJenis] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
-  const simpan = () => {
+  const simpan = async () => {
     setErr(null);
     if (!kuitansiId) { setErr('Pilih kuitansi.'); return; }
     if (!jenis) { setErr('Pilih jenis belanja.'); return; }
-    const r = repo.buatSPJ({ ta_id, kuitansi_id: kuitansiId, jenis_belanja: jenis }, sesi);
+    const r = await repo.buatSPJ({ ta_id, kuitansi_id: kuitansiId, jenis_belanja: jenis }, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     onCreated();
   };
@@ -249,10 +251,12 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
 
   // SPJ-06: urutan status UI "Menyiapkan dokumen..." lalu "Mengunggah dokumen..."; sukses setelah lapisan data menerima.
   // Kompresi PDF sungguhan di peramban dan server menunggu backend (Tahap B).
-  const pilihLampiran = (f: File) => {
+  const pilihLampiran = async (f: File) => {
     setErr(null);
-    const cek = repo.simpanLampiranSPJ(spj.id, { nama: f.name, ukuran: f.size }, sesi);
+    setUnggahStatus(modeServer ? 'Mengunggah dokumen...' : null);
+    const cek = await repo.simpanLampiranSPJ(spj.id, { nama: f.name, ukuran: f.size, file: f }, sesi);
     if (!cek.ok) { setUnggahStatus(null); setErr(cek.error ?? 'Gagal'); return; }
+    if (modeServer) { setUnggahStatus('Berhasil'); notify('Tersimpan'); onSaved(); return; }
     setUnggahStatus('Menyiapkan dokumen...');
     window.setTimeout(() => {
       setUnggahStatus('Mengunggah dokumen...');
@@ -264,9 +268,9 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
       }, 400);
     }, 400);
   };
-  const hapusLampiran = () => {
+  const hapusLampiran = async () => {
     setErr(null);
-    const r = repo.hapusLampiranSPJ(spj.id, sesi);
+    const r = await repo.hapusLampiranSPJ(spj.id, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     hapusBerkasSesi(spj.id);
     setUnggahStatus(null);
@@ -289,39 +293,39 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
     return init;
   });
 
-  const simpanJawaban = () => {
+  const simpanJawaban = async () => {
     setErr(null);
     // BNT-04: catat direktori dari field bertag [SYS_PERSONNEL_ID] / [SYS_PERSONNEL_NAME]
     if (form) {
       _catatDirektoriFromJawaban(form, jawaban, spj.id);
     }
     // REK-02: simpan rincian penerima (auto-capture ke Direktori Rekening Bank) bersama draft
-    const rRek = repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
+    const rRek = await repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
     if (!rRek.ok) { setErr(rRek.error ?? 'Gagal'); setTab('rekening'); return; }
-    const r = repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
+    const r = await repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     onSaved();
     setShowPajak(true);
   };
 
-  const ajukan = () => {
+  const ajukan = async () => {
     setErr(null);
     // Simpan dulu
     if (form) _catatDirektoriFromJawaban(form, jawaban, spj.id);
-    const rRek = repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
+    const rRek = await repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
     if (!rRek.ok) { setErr(rRek.error ?? 'Gagal'); setTab('rekening'); return; }
-    const rSave = repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
+    const rSave = await repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
     if (!rSave.ok) { setErr(rSave.error ?? 'Gagal'); return; }
     // Ajukan
-    const r = repo.ajukanSPJ(spj.id, sesi);
+    const r = await repo.ajukanSPJ(spj.id, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     notify('Tersimpan');
     onClose();
   };
 
-  const lepas = () => {
+  const lepas = async () => {
     if (!confirm('Lepas SPJ ini? Kuitansi akan kembali Aktif. Data SPJ dihapus tanpa jejak.')) return;
-    const r = repo.lepasSPJ(spj.id, sesi);
+    const r = await repo.lepasSPJ(spj.id, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     notify('Tersimpan');
     onClose();
@@ -382,7 +386,7 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
               label={spj.lampiran_nama_asli ? 'Ganti PDF' : 'Pilih PDF'}
               status={statusLampiran(spj, unggahStatus)}
               onPilih={pilihLampiran} onHapus={hapusLampiran}
-              onBuka={() => bukaBerkasSesi(spj.id)} bisaBuka={adaBerkasSesi(spj.id)} />
+              onBuka={async () => { const r = await bukaLampiranSPJ(spj.id); if (!r.ok) setErr(r.error ?? 'Gagal'); }} bisaBuka={bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli)} />
           </div>
           {isDraft && <Button variant="secondary" onClick={() => setShowPajak(true)}>Kelola Pajak</Button>}
         </div>

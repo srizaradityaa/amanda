@@ -146,9 +146,9 @@ function KuitansiContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                             </button>
                           )}
                           {bisaBatal && (
-                            <button onClick={() => {
+                            <button onClick={async () => {
                               if (confirm('Batalkan kuitansi ini? Data akan dihapus tanpa jejak.')) {
-                                const r = repo.batalkanKuitansi(k.id, sesi);
+                                const r = await repo.batalkanKuitansi(k.id, sesi);
                                 if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
                                 notify('Tersimpan');
                                 onChanged();
@@ -215,16 +215,16 @@ function KuitansiFormModal({ sesi, ta_id, seksi_id, existing, pemetaanSeksi, rek
   // Saat edit, kuitansi sendiri termasuk dalam komitmen, jadi tampilkan sisa + bruto lama
   const sisaUntukEdit = selectedAlokasi && existing ? anggaran.sisaSpdBebas(selectedAlokasi) + existing.bruto : sisaSpd;
 
-  const simpan = () => {
+  const simpan = async () => {
     setErr(null);
     if (!pemetaanId) { setErr('Pilih subkegiatan.'); return; }
     if (!rekeningId) { setErr('Pilih rekening belanja.'); return; }
     if (existing) {
-      const r = repo.ubahKuitansi(existing.id, { penerima, bruto, uraian, tanggal_kuitansi: tanggal }, sesi);
+      const r = await repo.ubahKuitansi(existing.id, { penerima, bruto, uraian, tanggal_kuitansi: tanggal }, sesi);
       if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
       onSaved();
     } else {
-      const r = repo.buatKuitansi({ ta_id, seksi_ta_id: seksi_id, pemetaan_subkegiatan_id: pemetaanId, rekening_id: rekeningId, penerima, bruto, uraian, tanggal_kuitansi: tanggal }, sesi);
+      const r = await repo.buatKuitansi({ ta_id, seksi_ta_id: seksi_id, pemetaan_subkegiatan_id: pemetaanId, rekening_id: rekeningId, penerima, bruto, uraian, tanggal_kuitansi: tanggal }, sesi);
       if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
       onSaved();
     }

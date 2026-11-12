@@ -32,9 +32,9 @@ export function RekeningPenerimaPanel({ sesi, spj, isDraft, baris, setBaris }: {
     setBaris((b) => b.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const hapusBaris = (key: number) => setBaris((b) => b.filter((r) => r.key !== key));
 
-  const simpan = () => {
+  const simpan = async () => {
     setErr(null);
-    const r = repo.simpanRekeningSPJ(spj.id, baris, sesi);
+    const r = await repo.simpanRekeningSPJ(spj.id, baris, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     notify('Tersimpan');
   };

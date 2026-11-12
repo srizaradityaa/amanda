@@ -1261,7 +1261,7 @@ export const repoDemo = {
   // SPJ-06 — Lampiran PDF SPJ (D03 §12, D01 §13). Tahap A: tanpa server. Hanya .pdf; > 30 MB ditolak;
   // <= 5 MB dikirim langsung (BYPASSED); > 5 MB sampai 30 MB memerlukan optimasi. Kompresi sungguhan (peramban
   // dan server) baru ada setelah backend; ukuran akhir dicatat setelah server mengonfirmasi, sehingga di sini null.
-  simpanLampiranSPJ: (spj_id: string, berkas: { nama: string; ukuran: number }, session: SessionPayload): { ok: boolean; error?: string } => {
+  simpanLampiranSPJ: (spj_id: string, berkas: { nama: string; ukuran: number; file?: File; ukuranFinal?: number; statusOptimasi?: string }, session: SessionPayload): { ok: boolean; error?: string } => {
     const spj = data.spj.find((s) => s.id === spj_id);
     if (!spj) return { ok: false, error: 'SPJ tidak ditemukan.' };
     if (session.active_role !== 'pptk') return { ok: false, error: 'Hanya PPTK yang dapat mengunggah lampiran SPJ.' };

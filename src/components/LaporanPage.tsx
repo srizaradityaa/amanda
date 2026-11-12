@@ -6,7 +6,7 @@ import { LaporanCetakModal, TabelLaporan, unduhLaporanExcel } from '@/components
 import { buatLaporan, catatUnduhanPengawas, DAFTAR_LAPORAN, laporanBolehUntuk, type FilterLaporan, type LaporanId } from '@/data/laporan';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
-import { unduhBerkasSesi, adaBerkasSesi } from '@/lib/berkas';
+import { bisaBukaLampiran, unduhLampiranSPJ } from '@/lib/lampiran';
 import { formatRupiah } from '@/lib/format';
 import { FileDown, Paperclip } from 'lucide-react';
 
@@ -118,10 +118,11 @@ function LampiranSPJPanel({ ta_id }: { ta_id: string }) {
     const k = kuitansi.find((q) => q.id === x.kuitansi_id);
     return s.active_role !== 'pptk' || k?.seksi_ta_id === s.active_seksi_id;
   });
-  const unduh = (spj_id: string) => {
+  const unduh = async (spj_id: string) => {
     const r = repo.unduhLampiranSPJ(spj_id, s);
     if (!r.ok) { toast.notify(r.error ?? 'Gagal'); return; }
-    if (!unduhBerkasSesi(spj_id, r.nama!)) toast.notify('Isi berkas hanya tersedia pada sesi unggah. Penyimpanan permanen menunggu backend.');
+    const u = await unduhLampiranSPJ(spj_id, r.nama!);
+    if (!u.ok) toast.notify(u.error ?? 'Gagal');
   };
   return (
     <Card>
@@ -137,7 +138,7 @@ function LampiranSPJPanel({ ta_id }: { ta_id: string }) {
                   <td className="px-4 py-2 text-mist-dim">{k ? repo.seksiTAById(k.seksi_ta_id)?.nama_snapshot : '—'}</td>
                   <td className="px-4 py-2 text-mist">{k?.uraian} <span className="text-mist-dim">({formatRupiah(k?.bruto ?? 0)})</span></td>
                   <td className="px-4 py-2"><StatusBadge kind="neutral" label={x.status} /></td>
-                  <td className="px-4 py-2 text-mist-dim">{x.lampiran_nama_asli}{adaBerkasSesi(x.id) ? '' : ' (isi tidak tersedia pada sesi ini)'}</td>
+                  <td className="px-4 py-2 text-mist-dim">{x.lampiran_nama_asli}{bisaBukaLampiran(x.id, true) ? '' : ' (isi tidak tersedia pada sesi ini)'}</td>
                   <td className="px-4 py-2"><Button variant="secondary" onClick={() => unduh(x.id)}>Unduh</Button></td>
                 </tr>
               );

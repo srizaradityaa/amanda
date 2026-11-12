@@ -32,10 +32,10 @@ export function PajakSPJModal({ sesi, spj, onClose, onSaved }: {
     setBaris((b) => b.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const hapusBaris = (key: number) => setBaris((b) => b.filter((r) => r.key !== key));
 
-  const simpan = () => {
+  const simpan = async () => {
     setErr(null);
     if (baris.some((r) => !r.jenis_pajak_id)) { setErr('Pilih jenis pajak pada setiap entri.'); return; }
-    const r = repo.simpanEntriPajakSPJ(spj.id, baris.map((x) => ({ jenis_pajak_id: x.jenis_pajak_id, nominal: x.nominal })), sesi);
+    const r = await repo.simpanEntriPajakSPJ(spj.id, baris.map((x) => ({ jenis_pajak_id: x.jenis_pajak_id, nominal: x.nominal })), sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     notify('Tersimpan');
     onSaved();

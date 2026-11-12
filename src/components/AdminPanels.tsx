@@ -348,7 +348,7 @@ function PersonelModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'
             <input type="checkbox" checked={simpanPerubahanBaru} onChange={(e) => setSimpanPerubahanBaru(e.target.checked)} className="mt-0.5" />
             <span>
               <span className="font-semibold">Simpan sebagai perubahan baru</span> — pangkat/golongan atau gelar berubah.
-              Periode lama ditutup H-1 dan periode baru dibuat dengan TMT baru. Histori tetap utuh tanpa aksi terpisah.
+              Periode lama ditutup H-1 dan periode baru dibuat dengan TMT baru. Histori tetap utuh tanpa aksi terpisah. Biarkan TIDAK dicentang bila ini hanya koreksi salah ketik: data yang ada diperbaiki di tempat tanpa riwayat baru.
             </span>
           </label>
         </div>

@@ -77,7 +77,6 @@ export interface MasterSubkegiatan {
   id: string;
   kode: string; // teks
   nama: string;
-  rincian: string;
   status: 'Aktif' | 'Nonaktif';
 }
 
@@ -85,8 +84,16 @@ export interface MasterRekeningBelanja {
   id: string;
   kode_rekening: string; // teks
   nama: string;
-  rincian: string;
   status: 'Aktif' | 'Nonaktif';
+}
+
+export interface MasterDokumen {
+  id: string;
+  jenis: 'subkegiatan' | 'rekening';
+  nama_berkas: string;
+  berkas_key: string;
+  ukuran: number;
+  diunggah_pada: string;
 }
 
 export interface MasterJenisPajak {

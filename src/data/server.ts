@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { buatApi, type Hasil } from '@/lib/api';
 import { segarkan } from '@/data/store';
 import { tampilkanGalat } from '@/lib/galat';
-import { unggah, hapus as hapusBerkas, kunciLampiran, BUCKET_SK, BUCKET_LAMPIRAN } from '@/lib/storage';
+import { unggah, hapus as hapusBerkas, kunciLampiran, BUCKET_SK, BUCKET_LAMPIRAN, BUCKET_MASTER } from '@/lib/storage';
 import type {
   MasterPersonel, AkunPengawas, MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, TAStatus, AccountStatus,
   PeranPenugasan, FieldFormDinamis, BlokBerulangFormDinamis, TemplateKuitansi, TemplateVerifikasi, FormatNomorVerifikasi, SessionPayload,
@@ -16,12 +16,12 @@ export const api = buatApi(supabase as never);
 const GALAT_UMUM = 'Layanan tidak tersedia. Periksa koneksi lalu coba lagi.';
 
 /** Jalankan RPC; bila ok, segarkan data. Galat jaringan dijadikan hasil { ok:false }. */
-export async function jalankan<T extends Hasil>(p: Promise<T>, opsi?: { toast?: boolean; tanpaSegar?: boolean }): Promise<T> {
+export async function jalankan<T extends Hasil>(p: Promise<T>, opsi?: { toast?: boolean; tanpaSegar?: boolean } /* galat selalu ditampilkan kecuali toast:false */): Promise<T> {
   let r: T;
   try { r = await p; } catch { r = { ok: false, error: GALAT_UMUM } as T; }
   if (!r || typeof r !== 'object') r = { ok: false, error: GALAT_UMUM } as T;
   if (r.ok) { if (!opsi?.tanpaSegar) { try { await segarkan(); } catch { /* data lama tetap tampil */ } } }
-  else if (opsi?.toast) tampilkanGalat(r.error ?? GALAT_UMUM);
+  else if (opsi?.toast !== false) tampilkanGalat(r.error ?? GALAT_UMUM);
   return r;
 }
 
@@ -73,29 +73,41 @@ export const server = {
   resetPengawasPassword: (id: string, sandi: string) => jalankan(api.adm_pengawas_reset_sandi({ p_id: id, p_sandi: sandi })),
 
   // ------------------------- Master -------------------------
-  async tambahSubkegiatan(kode: string, nama: string, rincian: string) {
-    await jalankan(api.adm_subkegiatan_simpan({ p_id: '', p_kode: kode, p_nama: nama, p_rincian: rincian }), { toast: true });
-  },
+  tambahSubkegiatan: (kode: string, nama: string) => jalankan(api.adm_subkegiatan_simpan({ p_id: '', p_kode: kode, p_nama: nama }), { toast: true }),
   async editSubkegiatan(id: string, p: Partial<MasterSubkegiatan>) {
-    const lama = data.masterSubkegiatan.find((x) => x.id === id); if (!lama) return;
+    const lama = data.masterSubkegiatan.find((x) => x.id === id);
+    if (!lama) return { ok: false, error: 'Subkegiatan tidak ditemukan. Muat ulang halaman.' };
     const b = { ...lama, ...p };
-    await jalankan(api.adm_subkegiatan_simpan({ p_id: id, p_kode: b.kode, p_nama: b.nama, p_rincian: b.rincian ?? '', p_status: b.status }), { toast: true });
+    return jalankan(api.adm_subkegiatan_simpan({ p_id: id, p_kode: b.kode, p_nama: b.nama, p_status: b.status }), { toast: true });
   },
-  async tambahRekening(kode: string, nama: string, rincian: string) {
-    await jalankan(api.adm_rekening_simpan({ p_id: '', p_kode: kode, p_nama: nama, p_rincian: rincian }), { toast: true });
-  },
+  tambahRekening: (kode: string, nama: string) => jalankan(api.adm_rekening_simpan({ p_id: '', p_kode: kode, p_nama: nama }), { toast: true }),
   async editRekening(id: string, p: Partial<MasterRekeningBelanja>) {
-    const lama = data.masterRekeningBelanja.find((x) => x.id === id); if (!lama) return;
+    const lama = data.masterRekeningBelanja.find((x) => x.id === id);
+    if (!lama) return { ok: false, error: 'Rekening tidak ditemukan. Muat ulang halaman.' };
     const b = { ...lama, ...p };
-    await jalankan(api.adm_rekening_simpan({ p_id: id, p_kode: b.kode_rekening, p_nama: b.nama, p_rincian: b.rincian ?? '', p_status: b.status }), { toast: true });
+    return jalankan(api.adm_rekening_simpan({ p_id: id, p_kode: b.kode_rekening, p_nama: b.nama, p_status: b.status }), { toast: true });
   },
-  async tambahJenisPajak(kode: string | null, nama: string) {
-    await jalankan(api.adm_jenis_pajak_simpan({ p_id: '', p_kode: kode ?? '', p_nama: nama }), { toast: true });
+  imporSubkegiatan: (baris: { kode: string; nama: string }[]) => jalankan(api.adm_subkegiatan_impor({ p_baris: baris })),
+  imporRekening: (baris: { kode: string; nama: string }[]) => jalankan(api.adm_rekening_impor({ p_baris: baris })),
+  async unggahDokumenMaster(jenis: 'subkegiatan' | 'rekening', file: File) {
+    const kunci = `${jenis}/${Date.now()}-${kunciLampiran('x', file.name).slice(2)}`;
+    const u = await unggah(supabase as never, BUCKET_MASTER, kunci, file);
+    if (!u.ok) { tampilkanGalat(u.error ?? 'Unggah gagal.'); return { ok: false, error: u.error }; }
+    const r = await jalankan(api.adm_master_dokumen_catat({ p_jenis: jenis, p_nama: file.name, p_key: kunci, p_ukuran: file.size }), { toast: true });
+    if (!r.ok) await hapusBerkas(supabase as never, BUCKET_MASTER, [kunci]);
+    return r;
   },
+  async hapusDokumenMaster(id: string) {
+    const r = await jalankan(api.adm_master_dokumen_hapus({ p_id: id }), { toast: true });
+    if (r.ok && typeof r.berkas_key === 'string') await hapusBerkas(supabase as never, BUCKET_MASTER, [r.berkas_key]);
+    return r;
+  },
+  tambahJenisPajak: (kode: string | null, nama: string) => jalankan(api.adm_jenis_pajak_simpan({ p_id: '', p_kode: kode ?? '', p_nama: nama }), { toast: true }),
   async editJenisPajak(id: string, p: Partial<MasterJenisPajak>) {
-    const lama = data.masterJenisPajak.find((x) => x.id === id); if (!lama) return;
+    const lama = data.masterJenisPajak.find((x) => x.id === id);
+    if (!lama) return { ok: false, error: 'Jenis pajak tidak ditemukan. Muat ulang halaman.' };
     const b = { ...lama, ...p };
-    await jalankan(api.adm_jenis_pajak_simpan({ p_id: id, p_kode: b.kode ?? '', p_nama: b.nama_jenis_pajak, p_status: b.status }), { toast: true });
+    return jalankan(api.adm_jenis_pajak_simpan({ p_id: id, p_kode: b.kode ?? '', p_nama: b.nama_jenis_pajak, p_status: b.status }), { toast: true });
   },
   toggleJenisPajakStatus: (id: string) => jalankan(api.adm_jenis_pajak_toggle({ p_id: id })),
 

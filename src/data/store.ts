@@ -53,7 +53,7 @@ function ganti<T>(arr: T[], baris: T[]) { arr.splice(0, arr.length, ...baris); }
 export function kosongkanDataContoh(): void {
   for (const arr of [
     data.masterSOTK, data.masterPersonel, data.pangkatHistory, data.akunLogin, data.akunPengawas, data.masterSubkegiatan,
-    data.masterRekeningBelanja, data.masterJenisPajak, data.formDinamis, data.tahunAnggaran, data.seksiTA, data.pemetaanSubkegiatanTA,
+    data.masterRekeningBelanja, data.masterDokumen, data.masterJenisPajak, data.formDinamis, data.tahunAnggaran, data.seksiTA, data.pemetaanSubkegiatanTA,
     data.penugasanTA, data.penugasanDelegasi, data.penugasanPengawasTA, data.registerSK, data.versiAlokasiAnggaran, data.jendelaAlokasi,
     data.ledgerSPD, data.alokasiSubkegiatan, data.alokasiRekening, data.kuitansi, data.spj, data.bku, data.tokenVerifikasi,
     data.formatNomorVerifikasi, data.direktoriTransaksional, data.rekeningBankDirektori, data.auditEvents,
@@ -71,15 +71,15 @@ export function muatSemua(): Promise<void> {
   berjalan = (async () => {
     const [
       sotk, personel, pangkat, akun, pengawas, sub, rek, pajak, form, ta, seksi, pemetaan, tugas, delegasi, tugasPengawas, sk,
-      versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, token, fmt, dir, dirRef, rekBank, audit, konf,
+      versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, token, fmt, dir, dirRef, rekBank, audit, konf, mdok,
     ] = await Promise.all([
       ambil('sotk', 'id,nama_unit,tmt_mulai,tmt_selesai,dasar_hukum,pengganti_dari_id,status_versi', ['id']),
       ambil('personel', 'id,gelar_depan,nama,gelar_belakang,nip,nik,pangkat,tmt,no_whatsapp', ['id']),
       ambil('riwayat_pangkat', 'id,personel_id,pangkat,gelar_depan,gelar_belakang,tmt_mulai,tmt_selesai', ['tmt_mulai', 'id']),
       ambil('akun_login', 'id,personel_id,username,status,failed_attempts,locked', ['id']),
       ambil('akun_pengawas', 'id,nama_lengkap,instansi_asal,nomor_surat_tugas,tanggal_surat_tugas,email,tanggal_akhir_akses,status,failed_attempts,locked', ['id']),
-      ambil('subkegiatan', 'id,kode,nama,rincian,status', ['kode']),
-      ambil('rekening_belanja', 'id,kode_rekening,nama,rincian,status', ['kode_rekening']),
+      ambil('subkegiatan', 'id,kode,nama,status', ['kode']),
+      ambil('rekening_belanja', 'id,kode_rekening,nama,status', ['kode_rekening']),
       ambil('jenis_pajak', 'id,kode,nama_jenis_pajak,status', ['id']),
       ambil('form_dinamis', 'id,jenis_belanja,versi,fields,blok_berulang,tanggal_dibuat', ['jenis_belanja', 'tanggal_dibuat', 'id']),
       ambil('v_tahun_anggaran', 'id,tahun,pagu_induk,status,mode_apbd_p,pagu_induk_perubahan,tanggal_arsip_terakhir,pernah_transaksi', ['tahun']),
@@ -107,6 +107,7 @@ export function muatSemua(): Promise<void> {
       ambil('direktori_rekening_bank', 'id,account_name,bank_name,account_number,alias,created_at,updated_at', ['account_name', 'id']),
       ambil('audit_event', 'id,ta_id,waktu,aktor_id,aktor_nama_snapshot,aktor_nip_snapshot,aktor_peran_snapshot,entitas,aksi,nilai_sebelum,nilai_sesudah,alasan,otomatis,definitive_officer_id,delegate_officer_id,kuitansi_id,spj_id', ['waktu', 'id']),
       ambil('konfigurasi', 'kunci,nilai', ['kunci']),
+      ambil('master_dokumen', 'id,jenis,nama_berkas,berkas_key,ukuran,diunggah_pada', ['diunggah_pada', 'id']),
     ]);
 
     // Tahun anggaran wajib terbaca: bila tidak, sesi tidak sah atau jaringan bermasalah.
@@ -121,6 +122,7 @@ export function muatSemua(): Promise<void> {
     ganti(data.masterSubkegiatan, a(sub));
     ganti(data.masterRekeningBelanja, a(rek));
     ganti(data.masterJenisPajak, a(pajak));
+    ganti(data.masterDokumen, a(mdok));
     ganti(data.formDinamis, a(form));
     ganti(data.tahunAnggaran, a<Baris>(ta).map((r) => ({ ...r, pagu_induk: Number(r.pagu_induk ?? 0), pagu_induk_perubahan: r.pagu_induk_perubahan ?? null }) as TahunAnggaran));
     ganti(data.seksiTA, a<SeksiTA>(seksi));

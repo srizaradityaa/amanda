@@ -10,3 +10,10 @@
 
 ## 12 November 2026 — Format nama
 - Gelar belakang dipisah koma: "Adit, S.Sos" (migrasi 0013).
+
+## Master Subkegiatan & Rekening Belanja (13 Nov 2026)
+- Kolom/isian "Rincian" dihapus dari daftar dan form (kolom basis data dibiarkan, tidak dipakai).
+- Impor massal Excel (.xlsx) atau CSV: subkegiatan = kode + nama; rekening belanja = kode rekening + nama. Semua baris harus sah, kalau tidak, tidak ada yang disimpan. Kode yang sudah ada hanya diperbarui namanya.
+- PDF daftar subkegiatan/rekening disimpan sebagai arsip rujukan (bucket `master-dokumen`, hanya Admin). PDF tidak dibaca otomatis.
+- Perbaikan galat "Rekening/Subkegiatan tidak ditemukan": tombol Tambah mengirim ID kosong sehingga dianggap ubah. Kode ganda kini ditolak dengan pesan jelas.
+- Semua galat operasi tulis kini selalu ditampilkan (sebelumnya ada yang diam-diam gagal).

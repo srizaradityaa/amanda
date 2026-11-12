@@ -4,7 +4,7 @@
 
 import type {
   MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin, AkunPengawas,
-  MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak,
+  MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
   PenugasanPengawasTA, RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
   Kuitansi, SPJ, BKU, TokenVerifikasiSPJ, FormatNomorVerifikasi, TemplateVerifikasi, AuditEvent, VersiAlokasiAnggaran, DirektoriTransaksionalSPJ, DirektoriRekeningBank,
@@ -72,20 +72,22 @@ export const akunPengawas: AkunPengawas[] = [
 
 // ===== Master Subkegiatan & Rekening Belanja (kamus global) — D04 §2.1 =====
 export const masterSubkegiatan: MasterSubkegiatan[] = [
-  { id: 'sub-1', kode: '2.01.2.06.01.01', nama: 'Perencanaan, Penganggaran, dan Evaluasi Kinerja', rincian: 'Dukungan manajemen', status: 'Aktif' },
-  { id: 'sub-2', kode: '2.01.2.06.02.01', nama: 'Administrasi Keuangan', rincian: 'Dukungan manajemen', status: 'Aktif' },
-  { id: 'sub-3', kode: '2.01.2.06.03.01', nama: 'Penatausahaan dan Pertanggungjawaban', rincian: 'Dukungan manajemen', status: 'Aktif' },
-  { id: 'sub-4', kode: '2.02.2.01.01.01', nama: 'Pengadaan Barang dan Jasa', rincian: 'Pelayanan publik', status: 'Aktif' },
-  { id: 'sub-5', kode: '2.03.2.04.01.01', nama: 'Pelayanan Administrasi Umum', rincian: 'Pelayanan publik', status: 'Aktif' },
+  { id: 'sub-1', kode: '2.01.2.06.01.01', nama: 'Perencanaan, Penganggaran, dan Evaluasi Kinerja', status: 'Aktif' },
+  { id: 'sub-2', kode: '2.01.2.06.02.01', nama: 'Administrasi Keuangan', status: 'Aktif' },
+  { id: 'sub-3', kode: '2.01.2.06.03.01', nama: 'Penatausahaan dan Pertanggungjawaban', status: 'Aktif' },
+  { id: 'sub-4', kode: '2.02.2.01.01.01', nama: 'Pengadaan Barang dan Jasa', status: 'Aktif' },
+  { id: 'sub-5', kode: '2.03.2.04.01.01', nama: 'Pelayanan Administrasi Umum', status: 'Aktif' },
 ];
 
+export const masterDokumen: MasterDokumen[] = [];
+
 export const masterRekeningBelanja: MasterRekeningBelanja[] = [
-  { id: 'rek-1', kode_rekening: '5.1.02.02.6.2.01.01', nama: 'Belanja honorarium', rincian: '', status: 'Aktif' },
-  { id: 'rek-2', kode_rekening: '5.1.02.02.6.2.01.02', nama: 'Belanja kegiatan', rincian: '', status: 'Aktif' },
-  { id: 'rek-3', kode_rekening: '5.1.02.01.6.1.01.01', nama: 'Belanja pegawai', rincian: '', status: 'Aktif' },
-  { id: 'rek-4', kode_rekening: '5.2.12.01.6.1.01.01', nama: 'Belanja perjalanan dinas', rincian: '', status: 'Aktif' },
-  { id: 'rek-5', kode_rekening: '5.2.02.01.6.1.06.01', nama: 'Belanja barang habis pakai', rincian: '', status: 'Aktif' },
-  { id: 'rek-6', kode_rekening: '5.2.12.02.6.1.02.01', nama: 'Belanja jasa konsultan', rincian: '', status: 'Aktif' },
+  { id: 'rek-1', kode_rekening: '5.1.02.02.6.2.01.01', nama: 'Belanja honorarium', status: 'Aktif' },
+  { id: 'rek-2', kode_rekening: '5.1.02.02.6.2.01.02', nama: 'Belanja kegiatan', status: 'Aktif' },
+  { id: 'rek-3', kode_rekening: '5.1.02.01.6.1.01.01', nama: 'Belanja pegawai', status: 'Aktif' },
+  { id: 'rek-4', kode_rekening: '5.2.12.01.6.1.01.01', nama: 'Belanja perjalanan dinas', status: 'Aktif' },
+  { id: 'rek-5', kode_rekening: '5.2.02.01.6.1.06.01', nama: 'Belanja barang habis pakai', status: 'Aktif' },
+  { id: 'rek-6', kode_rekening: '5.2.12.02.6.1.02.01', nama: 'Belanja jasa konsultan', status: 'Aktif' },
 ];
 
 export const masterJenisPajak: MasterJenisPajak[] = [

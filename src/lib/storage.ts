@@ -4,6 +4,7 @@
 export const BUCKET_LAMPIRAN = 'lampiran-spj';
 export const BUCKET_SK = 'sk';
 export const BUCKET_ASET = 'aset-template';
+export const BUCKET_MASTER = 'master-dokumen';
 
 export interface KlienStorage {
   storage: { from(bucket: string): {

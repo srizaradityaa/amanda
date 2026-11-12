@@ -3,19 +3,23 @@
 // MST-05 Subkegiatan/Rekening, MST-06 Pajak, AKN-01/02 Akun, AKN-04 Pengawas,
 // BNT-01 Direktori, DSB-01 Dasbor, UIX-07/08.
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { namaLengkap } from '@/lib/nama';
 import {
   Card, StatusBadge, Button, Field, Input, Select, EmptyState,
-  Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice,
+  Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager,
 } from '@/components/ui';
 import { repo } from '@/data/repo';
+import { bacaKodeNama } from '@/lib/xlsxBaca';
+import { unduhXlsx } from '@/lib/xlsx';
+import { bukaDokumenMaster } from '@/lib/masterDok';
+import { formatUkuran } from '@/lib/berkas';
 import { recordAudit } from '@/lib/audit';
 import { getSession } from '@/lib/auth';
 import { formatTanggal, formatTanggalPendek, todayWita, tambahHari } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
 import type { AccountStatus, DirektoriTransaksionalSPJ } from '@/data/types';
-import { Plus, Pencil, Archive, KeyRound, Building2, Users, TriangleAlert as AlertTriangle, Lock, ShieldCheck, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
+import { Download, Upload, FileText, Plus, Pencil, Archive, KeyRound, Building2, Users, TriangleAlert as AlertTriangle, Lock, ShieldCheck, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
 
 const SESSION = getSession();
 
@@ -140,21 +144,21 @@ function SOTKModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'ubah' | '
     if (!nama.trim()) return setErr('Nama unit wajib diisi.');
     if (mode === 'tambah') {
       if (!tmt || !dasar.trim()) return setErr('TMT dan dasar hukum wajib diisi.');
-      await repo.tambahSOTK(nama.trim(), tmt, dasar.trim());
+      if (gagal(await repo.tambahSOTK(nama.trim(), tmt, dasar.trim()))) return setErr('Gagal menyimpan. Periksa isian lalu coba lagi.');
       recordAudit({ ta_id: null, entitas: `Master SOTK: ${nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Unit baru ditambahkan' });
     } else if (mode === 'ubah' && id) {
       if (ubahMode === 'typo') {
         const lama = existing!.nama_unit;
-        await repo.ubahSOTKTypo(id, nama.trim());
+        if (gagal(await repo.ubahSOTKTypo(id, nama.trim()))) return setErr('Gagal menyimpan. Periksa isian lalu coba lagi.');
         recordAudit({ ta_id: null, entitas: `Master SOTK: ${nama}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: nama.trim() });
       } else {
         if (!tmt) return setErr('TMT baru wajib diisi.');
         const lama = existing!.nama_unit;
-        await repo.ubahSOTKNomenklatur(id, nama.trim(), tmt);
+        if (gagal(await repo.ubahSOTKNomenklatur(id, nama.trim(), tmt))) return setErr('Gagal menyimpan. Periksa isian lalu coba lagi.');
         recordAudit({ ta_id: null, entitas: `Master SOTK: ${lama}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: `${nama.trim()} (TMT ${tmt}; lama diarsipkan H-1)` });
       }
     } else if (mode === 'arsip' && id) {
-      await repo.arsipkanSOTK(id, arsipTgl);
+      if (gagal(await repo.arsipkanSOTK(id, arsipTgl))) return setErr('Gagal mengarsipkan. Periksa tanggal lalu coba lagi.');
       recordAudit({ ta_id: null, entitas: `Master SOTK: ${existing!.nama_unit}`, aksi: 'aksi_administratif', nilai_sesudah: `Diarsipkan efektif ${arsipTgl}` });
     }
     onSaved(); onClose();
@@ -383,7 +387,7 @@ function AkunModal({ personelId, onClose, onSaved }: { personelId: string; onClo
   const reset = async () => {
     if (password.length < 6) return setErr('Password minimal 6 karakter.');
     if (!acc) return;
-    await repo.resetPassword(acc.id, password);
+    if (gagal(await repo.resetPassword(acc.id, password))) return;
     recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Password direset' });
     refresh();
   };
@@ -393,7 +397,7 @@ function AkunModal({ personelId, onClose, onSaved }: { personelId: string; onClo
     if (acc.username === 'admin' && adminCount <= 1 && acc.status === 'ACTIVE') return setErr('Tidak dapat menonaktifkan Admin ACTIVE terakhir.');
     if (!alasan.trim()) return setErr('Alasan wajib diisi untuk penonaktifan.');
     const baru = acc.status === 'ACTIVE' ? 'NON-ACTIVE' : 'ACTIVE';
-    await repo.setAkunStatus(acc.id, baru as AccountStatus);
+    if (gagal(await repo.setAkunStatus(acc.id, baru as AccountStatus))) return;
     recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'perubahan_status_akun', nilai_sebelum: acc.status, nilai_sesudah: baru, alasan: alasan.trim() });
     setAlasan(''); setDeactivateMode(false); refresh();
   };
@@ -512,110 +516,243 @@ function PangkatModal({ personelId, onClose, onSaved }: { personelId: string; on
 }
 
 // ============ MST-05 — Subkegiatan & Rekening Belanja ============
+/** Hasil operasi tulis menyatakan gagal ({ ok:false })? Mode demo kadang tidak mengembalikan apa pun (dianggap berhasil). */
+const gagal = (r: unknown): boolean => !!r && typeof r === 'object' && (r as { ok?: boolean }).ok === false;
+
 export function KamusPage() {
   const [tab, setTab] = useState<'sub' | 'rek'>('sub');
-  const [subList] = useState(repo.masterSubkegiatan());
-  const [rekList] = useState(repo.masterRekeningBelanja());
+  const [, setTick] = useState(0);
+  const segar = () => setTick((n) => n + 1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [subModal, setSubModal] = useState<{ mode: 'tambah' | 'edit'; id?: string } | null>(null);
   const [rekModal, setRekModal] = useState<{ mode: 'tambah' | 'edit'; id?: string } | null>(null);
+  const [impor, setImpor] = useState<{ baris: { kode: string; nama: string }[]; nomorAsli: number[] } | null>(null);
+  const [pesan, setPesan] = useState('');
+  const berkasRef = useRef<HTMLInputElement>(null);
+  const subList = repo.masterSubkegiatan();
+  const rekList = repo.masterRekeningBelanja();
+  const jenis = tab === 'sub' ? 'subkegiatan' : 'rekening';
 
-  const filterFn = <T extends { nama: string; kode?: string; kode_rekening?: string; status: string }>(item: T) => {
+  const filterFn = (item: { nama: string; kode?: string; kode_rekening?: string; status: string }) => {
     if (statusFilter && item.status !== statusFilter) return false;
     if (!search) return true;
     const kode = (item.kode_rekening ?? item.kode ?? '').toLowerCase();
     return kode.includes(search.toLowerCase()) || item.nama.toLowerCase().includes(search.toLowerCase());
   };
+  const subTampil = subList.filter(filterFn);
+  const rekTampil = rekList.filter(filterFn);
+  const pgS = usePaging(subTampil);
+  const pgR = usePaging(rekTampil);
+
+  const pilihExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    setPesan('');
+    try {
+      const h = await bacaKodeNama(f);
+      if (h.baris.length === 0) setPesan('Berkas tidak berisi baris data. Kolom A = kode, kolom B = nama.');
+      else setImpor(h);
+    } catch (err) { setPesan(err instanceof Error ? err.message : 'Berkas tidak dapat dibaca.'); }
+  };
+  const unduhTemplat = () => unduhXlsx(tab === 'sub' ? 'templat-subkegiatan.xlsx' : 'templat-rekening-belanja.xlsx', [{
+    nama: 'Data',
+    baris: [tab === 'sub' ? ['Kode Subkegiatan', 'Nama Subkegiatan'] : ['Kode Rekening Belanja', 'Nama Rekening Belanja'], ['', '']],
+    tebal: [0],
+  }]);
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Master Subkegiatan & Rekening Belanja" desc="Kamus global tanpa pagu. Kode disimpan sebagai teks. Satu rekening dapat dipakai di subkegiatan mana pun." />
+      <PageHeader title="Master Subkegiatan & Rekening Belanja" desc="Kamus global tanpa pagu. Kode disimpan sebagai teks. Satu rekening dapat dipakai di subkegiatan mana pun. Isi satu per satu, impor massal dari Excel, atau simpan PDF daftar resmi sebagai arsip." />
       <div className="flex gap-2">
-        <button onClick={() => setTab('sub')} className={`rounded-md border px-3 py-1.5 text-sm ${tab === 'sub' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-ink-edge text-mist-dim'}`}>Subkegiatan</button>
-        <button onClick={() => setTab('rek')} className={`rounded-md border px-3 py-1.5 text-sm ${tab === 'rek' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-ink-edge text-mist-dim'}`}>Rekening Belanja</button>
+        <button onClick={() => setTab('sub')} className={`rounded-md border px-3 py-1.5 text-sm ${tab === 'sub' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-ink-edge text-mist-dim'}`}>Subkegiatan ({subList.length})</button>
+        <button onClick={() => setTab('rek')} className={`rounded-md border px-3 py-1.5 text-sm ${tab === 'rek' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-ink-edge text-mist-dim'}`}>Rekening Belanja ({rekList.length})</button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <SearchBox value={search} onChange={setSearch} placeholder="Cari kode, nama..." />
         <FilterSelect value={statusFilter} onChange={setStatusFilter} label="Status" options={[{ value: 'Aktif', label: 'Aktif' }, { value: 'Nonaktif', label: 'Nonaktif' }]} />
         <Button variant="ghost" onClick={() => { setSearch(''); setStatusFilter(''); }}>Reset</Button>
-        {tab === 'sub'
-          ? <Button className="ml-auto" onClick={() => setSubModal({ mode: 'tambah' })}><Plus size={16} /> Tambah</Button>
-          : <Button className="ml-auto" onClick={() => setRekModal({ mode: 'tambah' })}><Plus size={16} /> Tambah</Button>}
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={unduhTemplat}><Download size={16} /> Templat Excel</Button>
+          <Button variant="ghost" onClick={() => berkasRef.current?.click()}><Upload size={16} /> Impor Excel</Button>
+          <input ref={berkasRef} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={pilihExcel} />
+          <Button onClick={() => (tab === 'sub' ? setSubModal({ mode: 'tambah' }) : setRekModal({ mode: 'tambah' }))}><Plus size={16} /> Tambah</Button>
+        </div>
       </div>
+      {pesan && <div className="rounded-md border border-crit/40 bg-crit/10 px-3 py-2 text-2xs text-crit">{pesan}</div>}
+      <p className="text-2xs text-mist-dim">Format impor: kolom A = {tab === 'sub' ? 'kode subkegiatan' : 'kode rekening belanja'}, kolom B = {tab === 'sub' ? 'nama subkegiatan' : 'nama rekening belanja'}. Kode yang sudah ada hanya diperbarui namanya; kode baru ditambahkan.</p>
       <Card>
         {tab === 'sub' ? (
+          subTampil.length === 0 ? <EmptyState title="Belum ada subkegiatan" desc="Tambahkan satu per satu atau impor dari Excel." /> : (
           <table className="w-full text-2xs">
-            <TableHead columns={['Kode', 'Nama', 'Rincian', 'Status', 'Aksi']} />
+            <TableHead columns={['Kode', 'Nama', 'Status', 'Aksi']} />
             <tbody>
-              {subList.filter((s) => filterFn(s)).map((s, i) => (
+              {pgS.baris.map((s, i) => (
                 <tr key={s.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
                   <td className="std-row px-4 mono text-mist">{s.kode}</td>
                   <td className="std-row px-4 text-mist">{s.nama}</td>
-                  <td className="std-row px-4 text-mist-dim">{s.rincian}</td>
                   <td className="std-row px-4">{s.status === 'Aktif' ? <StatusBadge kind="ok" label="Aktif" /> : <StatusBadge kind="neutral" label="Nonaktif" />}</td>
                   <td className="std-row px-4"><button onClick={() => setSubModal({ mode: 'edit', id: s.id })} className="rounded p-1 text-mist-dim hover:text-mist"><Pencil size={14} /></button></td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table>)
         ) : (
+          rekTampil.length === 0 ? <EmptyState title="Belum ada rekening belanja" desc="Tambahkan satu per satu atau impor dari Excel." /> : (
           <table className="w-full text-2xs">
-            <TableHead columns={['Kode Rekening', 'Nama', 'Rincian', 'Status', 'Aksi']} />
+            <TableHead columns={['Kode Rekening', 'Nama', 'Status', 'Aksi']} />
             <tbody>
-              {rekList.filter((r) => filterFn(r)).map((r, i) => (
+              {pgR.baris.map((r, i) => (
                 <tr key={r.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
                   <td className="std-row px-4 mono text-mist">{r.kode_rekening}</td>
                   <td className="std-row px-4 text-mist">{r.nama}</td>
-                  <td className="std-row px-4 text-mist-dim">{r.rincian}</td>
                   <td className="std-row px-4">{r.status === 'Aktif' ? <StatusBadge kind="ok" label="Aktif" /> : <StatusBadge kind="neutral" label="Nonaktif" />}</td>
                   <td className="std-row px-4"><button onClick={() => setRekModal({ mode: 'edit', id: r.id })} className="rounded p-1 text-mist-dim hover:text-mist"><Pencil size={14} /></button></td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table>)
         )}
       </Card>
-      {subModal && <SubkegiatanModal mode={subModal.mode} id={subModal.id} onClose={() => setSubModal(null)} />}
-      {rekModal && <RekeningModal mode={rekModal.mode} id={rekModal.id} onClose={() => setRekModal(null)} />}
+      {tab === 'sub' ? <Pager {...pgS} /> : <Pager {...pgR} />}
+      <DokumenDaftar jenis={jenis} onUbah={segar} />
+      {subModal && <SubkegiatanModal mode={subModal.mode} id={subModal.id} onClose={() => { setSubModal(null); segar(); }} />}
+      {rekModal && <RekeningModal mode={rekModal.mode} id={rekModal.id} onClose={() => { setRekModal(null); segar(); }} />}
+      {impor && <ImporModal jenis={jenis} data={impor} onClose={() => { setImpor(null); segar(); }} />}
     </div>
+  );
+}
+
+function DokumenDaftar({ jenis, onUbah }: { jenis: 'subkegiatan' | 'rekening'; onUbah: () => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [galat, setGalat] = useState('');
+  const [sibuk, setSibuk] = useState(false);
+  const daftar = repo.masterDokumen().filter((d) => d.jenis === jenis);
+  const label = jenis === 'subkegiatan' ? 'subkegiatan' : 'rekening belanja';
+  const pilih = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') return setGalat('Berkas harus PDF.');
+    if (f.size > 30 * 1024 * 1024) return setGalat('Ukuran PDF maksimal 30 MB.');
+    setGalat(''); setSibuk(true);
+    const r = await repo.unggahDokumenMaster(jenis, f);
+    setSibuk(false);
+    if (!r.ok) setGalat(r.error ?? 'Unggah gagal.');
+    onUbah();
+  };
+  const buka = async (key: string) => { const r = await bukaDokumenMaster(key); if (!r.ok) setGalat(r.error ?? 'Berkas tidak dapat dibuka.'); };
+  const hapusDok = async (id: string, nama: string) => {
+    if (!window.confirm(`Hapus arsip "${nama}"?`)) return;
+    const r = await repo.hapusDokumenMaster(id);
+    if (!r.ok) setGalat(r.error ?? 'Hapus gagal.');
+    onUbah();
+  };
+  return (
+    <Card>
+      <div className="flex items-center justify-between border-b border-ink-edge px-4 py-3">
+        <div>
+          <div className="text-sm text-mist">Arsip PDF daftar {label}</div>
+          <div className="text-2xs text-mist-dim">Simpan daftar resmi (mis. DPA) sebagai rujukan. PDF tidak dibaca otomatis; untuk mengisi data gunakan Impor Excel.</div>
+        </div>
+        <Button variant="ghost" onClick={() => ref.current?.click()} disabled={sibuk}><Upload size={16} /> {sibuk ? 'Mengunggah…' : 'Unggah PDF'}</Button>
+        <input ref={ref} type="file" accept="application/pdf,.pdf" className="hidden" onChange={pilih} />
+      </div>
+      {galat && <div className="px-4 pt-3 text-2xs text-crit">{galat}</div>}
+      {daftar.length === 0 ? <div className="px-4 py-4 text-2xs text-mist-dim">Belum ada PDF.</div> : (
+        <ul className="divide-y divide-ink-edge">
+          {daftar.map((d) => (
+            <li key={d.id} className="flex items-center gap-3 px-4 py-2 text-2xs">
+              <FileText size={14} className="text-mist-dim" />
+              <span className="text-mist">{d.nama_berkas}</span>
+              <span className="text-mist-dim">{formatUkuran(d.ukuran)} · {formatTanggalPendek(d.diunggah_pada.slice(0, 10))}</span>
+              <span className="ml-auto flex gap-1.5">
+                {d.berkas_key && <button onClick={() => buka(d.berkas_key)} className="rounded px-2 py-1 text-mist-dim hover:text-mist">Buka</button>}
+                <button onClick={() => hapusDok(d.id, d.nama_berkas)} className="rounded px-2 py-1 text-mist-dim hover:text-crit">Hapus</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function ImporModal({ jenis, data, onClose }: { jenis: 'subkegiatan' | 'rekening'; data: { baris: { kode: string; nama: string }[]; nomorAsli: number[] }; onClose: () => void }) {
+  const [sibuk, setSibuk] = useState(false);
+  const [hasil, setHasil] = useState<{ ok: boolean; error?: string; ditambah?: number; diperbarui?: number; tidak_berubah?: number; galat?: { baris: number; pesan: string }[] } | null>(null);
+  const label = jenis === 'subkegiatan' ? 'Subkegiatan' : 'Rekening Belanja';
+  const jalan = async () => {
+    setSibuk(true);
+    const r = jenis === 'subkegiatan' ? await repo.imporSubkegiatan(data.baris) : await repo.imporRekening(data.baris);
+    setSibuk(false); setHasil(r);
+  };
+  const sukses = hasil?.ok === true;
+  return (
+    <Modal open onClose={onClose} title={`Impor ${label} dari Excel`}
+      footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>{sukses ? 'Tutup' : 'Batal'}</Button>{!sukses && <Button onClick={jalan} disabled={sibuk}>{sibuk ? 'Mengimpor…' : `Impor ${data.baris.length} baris`}</Button>}</div>}>
+      <div className="space-y-3 text-2xs">
+        {sukses ? (
+          <div className="rounded-md border border-teal/40 bg-teal/10 px-3 py-2 text-teal">Impor selesai: {hasil?.ditambah ?? 0} ditambahkan, {hasil?.diperbarui ?? 0} diperbarui, {hasil?.tidak_berubah ?? 0} tidak berubah.</div>
+        ) : (
+          <>
+            <p className="text-mist-dim">{data.baris.length} baris terbaca. Semua baris harus sah; bila ada yang bermasalah, tidak ada data yang disimpan.</p>
+            <table className="w-full"><TableHead columns={['Kode', 'Nama']} /><tbody>
+              {data.baris.slice(0, 5).map((b, i) => <tr key={i}><td className="std-row px-3 mono text-mist">{b.kode}</td><td className="std-row px-3 text-mist">{b.nama}</td></tr>)}
+            </tbody></table>
+            {data.baris.length > 5 && <p className="text-mist-dim">… dan {data.baris.length - 5} baris lain.</p>}
+          </>
+        )}
+        {hasil && !hasil.ok && (
+          <div className="rounded-md border border-crit/40 bg-crit/10 px-3 py-2 text-crit">
+            <div>{hasil.error}</div>
+            {hasil.galat && <ul className="mt-1 list-disc pl-4">{hasil.galat.slice(0, 20).map((g, i) => <li key={i}>Baris {data.nomorAsli[g.baris - 1] ?? g.baris}: {g.pesan}</li>)}</ul>}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 
 function SubkegiatanModal({ mode, id, onClose }: { mode: 'tambah' | 'edit'; id?: string; onClose: () => void }) {
   const ex = id ? repo.masterSubkegiatan().find((s) => s.id === id) : undefined;
-  const [f, setF] = useState({ kode: ex?.kode ?? '', nama: ex?.nama ?? '', rincian: ex?.rincian ?? '', status: ex?.status ?? 'Aktif' });
+  const [f, setF] = useState({ kode: ex?.kode ?? '', nama: ex?.nama ?? '', status: ex?.status ?? 'Aktif' });
   const [err, setErr] = useState('');
+  const [sibuk, setSibuk] = useState(false);
   const save = async () => {
     if (!f.kode.trim() || !f.nama.trim()) return setErr('Kode dan nama wajib diisi.');
-    if (mode === 'tambah') { await repo.tambahSubkegiatan(f.kode, f.nama, f.rincian); recordAudit({ ta_id: null, entitas: `Subkegiatan: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
-    else if (id) { await repo.editSubkegiatan(id, f); recordAudit({ ta_id: null, entitas: `Subkegiatan: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
+    setSibuk(true); setErr('');
+    const r = mode === 'tambah' ? await repo.tambahSubkegiatan(f.kode, f.nama) : id ? await repo.editSubkegiatan(id, f) : { ok: false, error: 'Data tidak ditemukan.' };
+    setSibuk(false);
+    if (!r.ok) return setErr(r.error ?? 'Gagal menyimpan.');
     onClose();
   };
-  return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Subkegiatan' : 'Edit Subkegiatan'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>
+  return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Subkegiatan' : 'Edit Subkegiatan'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save} disabled={sibuk}>Simpan</Button></div>}>
     <div className="space-y-4">
       <Field label="Kode" required><Input className="mono" value={f.kode} onChange={(e) => setF({ ...f, kode: e.target.value })} /></Field>
       <Field label="Nama" required><Input value={f.nama} onChange={(e) => setF({ ...f, nama: e.target.value })} /></Field>
-      <Field label="Rincian"><Input value={f.rincian} onChange={(e) => setF({ ...f, rincian: e.target.value })} /></Field>
+      {mode === 'edit' && <Field label="Status"><Select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as 'Aktif' | 'Nonaktif' })}><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></Select></Field>}
     </div>
   </Modal>;
 }
 
 function RekeningModal({ mode, id, onClose }: { mode: 'tambah' | 'edit'; id?: string; onClose: () => void }) {
   const ex = id ? repo.masterRekeningBelanja().find((r) => r.id === id) : undefined;
-  const [f, setF] = useState({ kode_rekening: ex?.kode_rekening ?? '', nama: ex?.nama ?? '', rincian: ex?.rincian ?? '', status: ex?.status ?? 'Aktif' });
+  const [f, setF] = useState({ kode_rekening: ex?.kode_rekening ?? '', nama: ex?.nama ?? '', status: ex?.status ?? 'Aktif' });
   const [err, setErr] = useState('');
+  const [sibuk, setSibuk] = useState(false);
   const save = async () => {
     if (!f.kode_rekening.trim() || !f.nama.trim()) return setErr('Kode rekening dan nama wajib diisi.');
-    if (mode === 'tambah') { await repo.tambahRekening(f.kode_rekening, f.nama, f.rincian); recordAudit({ ta_id: null, entitas: `Rekening: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
-    else if (id) { await repo.editRekening(id, f); recordAudit({ ta_id: null, entitas: `Rekening: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
+    setSibuk(true); setErr('');
+    const r = mode === 'tambah' ? await repo.tambahRekening(f.kode_rekening, f.nama) : id ? await repo.editRekening(id, f) : { ok: false, error: 'Data tidak ditemukan.' };
+    setSibuk(false);
+    if (!r.ok) return setErr(r.error ?? 'Gagal menyimpan.');
     onClose();
   };
-  return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Rekening Belanja' : 'Edit Rekening Belanja'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>
+  return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Rekening Belanja' : 'Edit Rekening Belanja'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save} disabled={sibuk}>Simpan</Button></div>}>
     <div className="space-y-4">
       <Field label="Kode Rekening" required hint="Disimpan sebagai teks agar nol awal terjaga"><Input className="mono" value={f.kode_rekening} onChange={(e) => setF({ ...f, kode_rekening: e.target.value })} /></Field>
       <Field label="Nama" required><Input value={f.nama} onChange={(e) => setF({ ...f, nama: e.target.value })} /></Field>
-      <Field label="Rincian"><Input value={f.rincian} onChange={(e) => setF({ ...f, rincian: e.target.value })} /></Field>
+      {mode === 'edit' && <Field label="Status"><Select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as 'Aktif' | 'Nonaktif' })}><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></Select></Field>}
     </div>
   </Modal>;
 }
@@ -674,8 +811,9 @@ function PajakModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'; i
   const save = async () => {
     if (!f.nama.trim()) return setErr('Nama jenis pajak wajib diisi.');
     const kode = f.kode.trim() || null;
-    if (mode === 'tambah') { await repo.tambahJenisPajak(kode, f.nama); recordAudit({ ta_id: null, entitas: `Pajak: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Ditambahkan' }); }
-    else if (id) { await repo.editJenisPajak(id, { kode, nama_jenis_pajak: f.nama, status: f.status as 'Aktif' | 'Nonaktif' }); recordAudit({ ta_id: null, entitas: `Pajak: ${f.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Diperbarui' }); }
+    setErr('');
+    const r = mode === 'tambah' ? await repo.tambahJenisPajak(kode, f.nama) : id ? await repo.editJenisPajak(id, { kode, nama_jenis_pajak: f.nama, status: f.status as 'Aktif' | 'Nonaktif' }) : { ok: false, error: 'Data tidak ditemukan.' };
+    if (!r.ok) return setErr(r.error ?? 'Gagal menyimpan.');
     onSaved(); onClose();
   };
   return <Modal open onClose={onClose} title={mode === 'tambah' ? 'Tambah Jenis Pajak' : 'Edit Jenis Pajak'} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>

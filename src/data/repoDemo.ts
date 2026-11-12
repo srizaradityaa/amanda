@@ -6,7 +6,7 @@ import * as data from '@/data/sampleData';
 import { namaLengkap } from '@/lib/nama';
 import type {
   MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin, AkunPengawas,
-  MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak,
+  MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
   PenugasanPengawasTA, RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
   Kuitansi, SPJ, BKU, AuditEvent, PeranPenugasan,
@@ -582,25 +582,66 @@ export const repoDemo = {
   },
 
   // ===== Master Subkegiatan & Rekening (MST-05) =====
-  tambahSubkegiatan: (kode: string, nama: string, rincian: string): void => {
-    data.masterSubkegiatan.push({ id: `sub-${Date.now()}`, kode, nama, rincian, status: 'Aktif' });
+  tambahSubkegiatan: (kode: string, nama: string): { ok: boolean; error?: string } => {
+    if (data.masterSubkegiatan.some((x) => x.kode.trim() === kode.trim())) return { ok: false, error: 'Kode subkegiatan sudah ada.' };
+    data.masterSubkegiatan.push({ id: `sub-${Date.now()}`, kode: kode.trim(), nama: nama.trim(), status: 'Aktif' });
+    return { ok: true };
   },
-  editSubkegiatan: (id: string, p: Partial<MasterSubkegiatan>): void => {
-    const s = data.masterSubkegiatan.find((x) => x.id === id); if (s) Object.assign(s, p);
+  editSubkegiatan: (id: string, p: Partial<MasterSubkegiatan>): { ok: boolean; error?: string } => {
+    const s = data.masterSubkegiatan.find((x) => x.id === id); if (!s) return { ok: false, error: 'Subkegiatan tidak ditemukan.' };
+    Object.assign(s, p); return { ok: true };
   },
-  tambahRekening: (kode_rekening: string, nama: string, rincian: string): void => {
-    data.masterRekeningBelanja.push({ id: `rek-${Date.now()}`, kode_rekening, nama, rincian, status: 'Aktif' });
+  tambahRekening: (kode_rekening: string, nama: string): { ok: boolean; error?: string } => {
+    if (data.masterRekeningBelanja.some((x) => x.kode_rekening.trim() === kode_rekening.trim())) return { ok: false, error: 'Kode rekening sudah ada.' };
+    data.masterRekeningBelanja.push({ id: `rek-${Date.now()}`, kode_rekening: kode_rekening.trim(), nama: nama.trim(), status: 'Aktif' });
+    return { ok: true };
   },
-  editRekening: (id: string, p: Partial<MasterRekeningBelanja>): void => {
-    const r = data.masterRekeningBelanja.find((x) => x.id === id); if (r) Object.assign(r, p);
+  editRekening: (id: string, p: Partial<MasterRekeningBelanja>): { ok: boolean; error?: string } => {
+    const r = data.masterRekeningBelanja.find((x) => x.id === id); if (!r) return { ok: false, error: 'Rekening tidak ditemukan.' };
+    Object.assign(r, p); return { ok: true };
+  },
+  imporSubkegiatan: (baris: { kode: string; nama: string }[]): { ok: boolean; error?: string; ditambah?: number; diperbarui?: number; tidak_berubah?: number; galat?: { baris: number; pesan: string }[] } => {
+    const galat: { baris: number; pesan: string }[] = []; const lihat = new Set<string>();
+    baris.forEach((b, i) => { const k = b.kode.trim(); if (!k || !b.nama.trim()) galat.push({ baris: i + 1, pesan: 'Kode dan nama wajib diisi.' }); else if (lihat.has(k)) galat.push({ baris: i + 1, pesan: `Kode ${k} muncul lebih dari sekali dalam berkas.` }); else lihat.add(k); });
+    if (galat.length) return { ok: false, error: `Impor dibatalkan: ${galat.length} baris bermasalah. Tidak ada data yang disimpan.`, galat };
+    let ditambah = 0, diperbarui = 0, tidak_berubah = 0;
+    for (const b of baris) {
+      const ada = data.masterSubkegiatan.find((x) => x.kode.trim() === b.kode.trim());
+      if (!ada) { data.masterSubkegiatan.push({ id: `sub-${Date.now()}-${ditambah}`, kode: b.kode.trim(), nama: b.nama.trim(), status: 'Aktif' }); ditambah++; }
+      else if (ada.nama !== b.nama.trim()) { ada.nama = b.nama.trim(); diperbarui++; } else tidak_berubah++;
+    }
+    return { ok: true, ditambah, diperbarui, tidak_berubah };
+  },
+  imporRekening: (baris: { kode: string; nama: string }[]): { ok: boolean; error?: string; ditambah?: number; diperbarui?: number; tidak_berubah?: number; galat?: { baris: number; pesan: string }[] } => {
+    const galat: { baris: number; pesan: string }[] = []; const lihat = new Set<string>();
+    baris.forEach((b, i) => { const k = b.kode.trim(); if (!k || !b.nama.trim()) galat.push({ baris: i + 1, pesan: 'Kode rekening dan nama wajib diisi.' }); else if (lihat.has(k)) galat.push({ baris: i + 1, pesan: `Kode ${k} muncul lebih dari sekali dalam berkas.` }); else lihat.add(k); });
+    if (galat.length) return { ok: false, error: `Impor dibatalkan: ${galat.length} baris bermasalah. Tidak ada data yang disimpan.`, galat };
+    let ditambah = 0, diperbarui = 0, tidak_berubah = 0;
+    for (const b of baris) {
+      const ada = data.masterRekeningBelanja.find((x) => x.kode_rekening.trim() === b.kode.trim());
+      if (!ada) { data.masterRekeningBelanja.push({ id: `rek-${Date.now()}-${ditambah}`, kode_rekening: b.kode.trim(), nama: b.nama.trim(), status: 'Aktif' }); ditambah++; }
+      else if (ada.nama !== b.nama.trim()) { ada.nama = b.nama.trim(); diperbarui++; } else tidak_berubah++;
+    }
+    return { ok: true, ditambah, diperbarui, tidak_berubah };
+  },
+  masterDokumen: (): MasterDokumen[] => data.masterDokumen,
+  unggahDokumenMaster: (jenis: 'subkegiatan' | 'rekening', file: File): { ok: boolean; error?: string } => {
+    data.masterDokumen.push({ id: `mdok-${Date.now()}`, jenis, nama_berkas: file.name, berkas_key: '', ukuran: file.size, diunggah_pada: new Date().toISOString() });
+    return { ok: true };
+  },
+  hapusDokumenMaster: (id: string): { ok: boolean; error?: string } => {
+    const i = data.masterDokumen.findIndex((x) => x.id === id); if (i < 0) return { ok: false, error: 'Dokumen tidak ditemukan.' };
+    data.masterDokumen.splice(i, 1); return { ok: true };
   },
 
   // ===== Master Jenis Pajak (MST-06) =====
-  tambahJenisPajak: (kode: string | null, nama_jenis_pajak: string): void => {
+  tambahJenisPajak: (kode: string | null, nama_jenis_pajak: string): { ok: boolean; error?: string } => {
     data.masterJenisPajak.push({ id: `pjk-${Date.now()}`, kode, nama_jenis_pajak, status: 'Aktif' });
+    return { ok: true };
   },
-  editJenisPajak: (id: string, p: Partial<MasterJenisPajak>): void => {
-    const j = data.masterJenisPajak.find((x) => x.id === id); if (j) Object.assign(j, p);
+  editJenisPajak: (id: string, p: Partial<MasterJenisPajak>): { ok: boolean; error?: string } => {
+    const j = data.masterJenisPajak.find((x) => x.id === id); if (!j) return { ok: false, error: 'Jenis pajak tidak ditemukan.' };
+    Object.assign(j, p); return { ok: true };
   },
   toggleJenisPajakStatus: (id: string): { ok: boolean; error?: string; status?: 'Aktif' | 'Nonaktif' } => {
     const j = data.masterJenisPajak.find((x) => x.id === id);

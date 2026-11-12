@@ -13,7 +13,8 @@ import { PengawasPage } from '@/components/AdminPanels';
 import * as anggaran from '@/data/anggaran';
 import { recordAudit } from '@/lib/audit';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
-import { simpanBerkasSesi, hapusBerkasSesi, adaBerkasSesi, bukaBerkasSesi, unduhBerkasSesi } from '@/lib/berkas';
+import { simpanBerkasSesi, hapusBerkasSesi } from '@/lib/berkas';
+import { bisaBukaSK, bukaSK, unduhSK } from '@/lib/lampiran';
 import { getSession } from '@/lib/auth';
 import { formatTanggal, formatTanggalPendek, todayWita } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
@@ -773,11 +774,11 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
           {sk.berkas ? (
             <>
               <span className="max-w-[12rem] truncate text-mist-dim">{sk.berkas}</span>
-              {adaBerkasSesi(sk.id)
+              {bisaBukaSK(sk.id, sk.berkas_key)
                 ? (
                   <>
-                    <button onClick={() => bukaBerkasSesi(sk.id)} className="text-teal hover:underline">Buka SK</button>
-                    <button onClick={() => unduhBerkasSesi(sk.id, sk.berkas ?? 'SK')} className="text-teal hover:underline">Unduh</button>
+                    <button onClick={() => { void bukaSK(sk.id, sk.berkas_key); }} className="text-teal hover:underline">Buka SK</button>
+                    <button onClick={() => { void unduhSK(sk.id, sk.berkas_key, sk.berkas ?? 'SK'); }} className="text-teal hover:underline">Unduh</button>
                   </>
                 )
                 : <span className="text-mist-dim">Berkas hanya terbuka pada sesi unggah</span>}
@@ -796,7 +797,7 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
             <UnggahBerkas nama={namaTampil} accept=".pdf,.jpg,.jpeg,.png" label="Pilih berkas"
               onPilih={pilihFile}
               onHapus={() => { setFile(null); setHapusBerkas(true); }}
-              onBuka={() => bukaBerkasSesi(sk.id)} bisaBuka={!file && !hapusBerkas && adaBerkasSesi(sk.id)} />
+              onBuka={() => { void bukaSK(sk.id, sk.berkas_key); }} bisaBuka={!file && !hapusBerkas && bisaBukaSK(sk.id, sk.berkas_key)} />
           </Field>
           <label className="flex items-center gap-2 text-mist-dim">
             <input type="checkbox" checked={provisional} onChange={(e) => setProvisional(e.target.checked)} />

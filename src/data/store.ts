@@ -87,7 +87,7 @@ export function muatSemua(): Promise<void> {
       ambil('penugasan_ta', 'id,ta_id,peran,personel_id,seksi_ta_id,tmt_mulai,tmt_selesai,provisional,nama_snapshot,nip_snapshot', ['tmt_mulai', 'id']),
       ambil('penugasan_delegasi', 'id,ta_id,personel_pengganti_id,peran_digantikan,seksi_ta_id,tanggal_mulai,tanggal_berakhir,status,alasan_pencabutan,definitive_officer_id,nama_snapshot,nip_snapshot', ['tanggal_mulai', 'id']),
       ambil('penugasan_pengawas_ta', 'id,ta_id,pengawas_id,tanggal_mulai,tanggal_akhir', ['id']),
-      ambil('register_sk', 'id,penugasan_id,nomor_sk,tanggal_sk,berkas_nama,berkas_ukuran,provisional', ['tanggal_sk', 'id']),
+      ambil('register_sk', 'id,penugasan_id,nomor_sk,tanggal_sk,berkas_key,berkas_nama,berkas_ukuran,provisional', ['tanggal_sk', 'id']),
       ambil('versi_alokasi', 'id,ta_id,fase,tanggal_efektif,aktor_id,aktor_nama_snapshot,aktor_peran_snapshot,keterangan', ['tanggal_efektif', 'id']),
       ambil('versi_alokasi_rincian', 'versi_id,pemetaan_subkegiatan_id,rekening_id,pagu', ['versi_id', 'pemetaan_subkegiatan_id']),
       ambil('jendela_alokasi', 'ta_id,tutup_at', ['ta_id']),

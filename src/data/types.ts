@@ -251,6 +251,7 @@ export interface RegisterSK {
   tanggal_sk: string;
   berkas: string | null; // nama berkas SK (PDF atau gambar)
   berkas_ukuran?: number | null; // ukuran dalam byte
+  berkas_key?: string | null; // kunci objek Storage (mode server)
   provisional: boolean;
 }
 

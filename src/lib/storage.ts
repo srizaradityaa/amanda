@@ -3,6 +3,7 @@
 // Alur hapus: panggil RPC pptk_spj_lampiran_hapus / pptk_spj_lepas / adm_ta_hapus_retensi; hasilnya memuat kunci objek untuk dihapus dari Storage.
 export const BUCKET_LAMPIRAN = 'lampiran-spj';
 export const BUCKET_SK = 'sk';
+export const BUCKET_ASET = 'aset-template';
 
 export interface KlienStorage {
   storage: { from(bucket: string): {

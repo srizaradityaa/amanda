@@ -2,6 +2,7 @@
 // Setiap baris dibatasi RLS per peran, jadi hanya data yang berhak dilihat sesi ini yang masuk.
 // Perubahan data selalu lewat RPC (server.ts), lalu segarkan() memuat ulang dan memberi tahu layar.
 import * as data from '@/data/sampleData';
+import { muatAset } from '@/lib/aset';
 import { supabase, modeServer } from '@/lib/supabase';
 import type {
   TahunAnggaran, VersiAlokasiAnggaran, SPJ, DirektoriTransaksionalSPJ, RegisterSK, JendelaAlokasi, FormatNomorVerifikasi,
@@ -157,6 +158,7 @@ export function muatSemua(): Promise<void> {
       if (k.kunci === 'template_kuitansi') Object.assign(data.templateKuitansi, k.nilai);
       if (k.kunci === 'template_verifikasi') Object.assign(data.templateVerifikasi, k.nilai);
     }
+    await muatAset();
     beritahu();
   })().finally(() => { berjalan = null; });
   return berjalan;

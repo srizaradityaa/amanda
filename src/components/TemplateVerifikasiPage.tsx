@@ -1,13 +1,14 @@
 // TPL-04 — Admin: template Hasil Verifikasi SPJ (tata letak/label/teks/logo/stempel) dan format nomor verifikasi per TA.
 // Editor hanya mengatur teks konfigurasi; data sistem pada cetakan tidak dapat diubah dari sini.
 import { useState } from 'react';
+import { simpanAset, hapusAset } from '@/lib/aset';
 import { Button, Card, Field, Input, Select, useToast } from '@/components/ui';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
 import { ErrorLine } from '@/components/AnggaranShared';
 import { LembarVerifikasi, urlKeaslian, KUNCI_LOGO, KUNCI_STEMPEL } from '@/components/CetakVerifikasi';
 import { repo, type DataCetakVerifikasi } from '@/data/repo';
 import { getSession } from '@/lib/auth';
-import { simpanBerkasSesi, hapusBerkasSesi, MB, ekstensiBerkas } from '@/lib/berkas';
+import { MB, ekstensiBerkas } from '@/lib/berkas';
 import type { FormatNomorVerifikasi, TemplateVerifikasi } from '@/data/types';
 
 const CONTOH: DataCetakVerifikasi = {
@@ -49,16 +50,17 @@ export function TemplateVerifikasiPage() {
     if (!r.ok) { setErrFmt(r.error ?? 'Gagal'); return; }
     setErrFmt(null); toast.notify('Tersimpan');
   };
-  const pilihGambar = (kunci: string, kolom: 'logo_berkas' | 'stempel_berkas', f: File) => {
+  const pilihGambar = async (kunci: string, kolom: 'logo_berkas' | 'stempel_berkas', f: File) => {
     const ext = ekstensiBerkas(f.name);
     if (!['png', 'jpg', 'jpeg'].includes(ext)) { setErrBerkas('Format gambar harus PNG atau JPG.'); return; }
     if (f.size > 2 * MB) { setErrBerkas('Ukuran gambar paling besar 2 MB.'); return; }
     setErrBerkas(null);
-    simpanBerkasSesi(kunci, f);
+    const u = await simpanAset(kunci, f);
+    if (!u.ok) { setErrBerkas(u.error ?? 'Gagal mengunggah gambar.'); return; }
     setT({ ...t, [kolom]: f.name });
   };
   const hapusGambar = (kunci: string, kolom: 'logo_berkas' | 'stempel_berkas') => {
-    hapusBerkasSesi(kunci);
+    void hapusAset(kunci);
     setT({ ...t, [kolom]: null });
     setTick((n) => n + 1);
   };

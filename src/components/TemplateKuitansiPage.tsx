@@ -1,12 +1,13 @@
 // TPL-01 — Visual Live Editor template kuitansi (Admin). Mengatur teks template, bukan data transaksi.
 // D02 §2.3: opsi unggah .doc/.docx sebagai alternatif. Editor mengatur template, bukan data transaksi.
 import { useState, useRef } from 'react';
+import { simpanAset, hapusAset } from '@/lib/aset';
 import { Card, Button, Field, Input, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
 import type { TemplateKuitansi } from '@/data/types';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
 import { LembarKuitansi, KUNCI_LOGO_KUITANSI } from '@/components/LembarKuitansi';
-import { simpanBerkasSesi, hapusBerkasSesi, urlBerkasSesi, MB, ekstensiBerkas } from '@/lib/berkas';
+import { urlBerkasSesi, MB, ekstensiBerkas } from '@/lib/berkas';
 import { Upload, FileText, X } from 'lucide-react';
 
 const CONTOH = {
@@ -65,14 +66,15 @@ export function TemplateKuitansiPage() {
     setT({ ...t, berkas_doc: berkas.name });
   };
 
-  const pilihLogo = (f: File) => {
+  const pilihLogo = async (f: File) => {
     if (!['png', 'jpg', 'jpeg'].includes(ekstensiBerkas(f.name))) { setErrUpload('Format logo harus PNG atau JPG.'); return; }
     if (f.size > 2 * MB) { setErrUpload('Ukuran logo paling besar 2 MB.'); return; }
     setErrUpload('');
-    simpanBerkasSesi(KUNCI_LOGO_KUITANSI, f);
+    const u = await simpanAset(KUNCI_LOGO_KUITANSI, f);
+    if (!u.ok) { setErrUpload(u.error ?? 'Gagal mengunggah logo.'); return; }
     setT({ ...t, logo_berkas: f.name });
   };
-  const hapusLogo = () => { hapusBerkasSesi(KUNCI_LOGO_KUITANSI); setT({ ...t, logo_berkas: null }); };
+  const hapusLogo = () => { void hapusAset(KUNCI_LOGO_KUITANSI); setT({ ...t, logo_berkas: null }); };
 
   const hapusBerkas = () => {
     setT({ ...t, berkas_doc: null });
@@ -87,7 +89,7 @@ export function TemplateKuitansiPage() {
         <Field label="Judul dokumen" required><Input value={t.judul_dokumen} onChange={(e) => setT({ ...t, judul_dokumen: e.target.value })} /></Field>
         <Field label="Tempat (blok penerima)"><Input value={t.tempat_penerima} onChange={(e) => setT({ ...t, tempat_penerima: e.target.value })} /></Field>
         <Field label="Teks 'Sudah terima dari'" hint="Sama untuk semua kuitansi, mis. BENDAHARA SKPD KECAMATAN BATUMANDI."><Input value={t.terima_dari} onChange={(e) => setT({ ...t, terima_dari: e.target.value })} /></Field>
-        <Field label="Logo instansi" hint="PNG atau JPG, maksimal 2 MB. Pada Tahap A hanya tersimpan selama sesi.">
+        <Field label="Logo instansi" hint="PNG atau JPG, maksimal 2 MB. Tersimpan permanen di server.">
           <UnggahBerkas nama={t.logo_berkas} accept=".png,.jpg,.jpeg" label="Pilih logo" onPilih={pilihLogo} onHapus={hapusLogo} />
         </Field>
 

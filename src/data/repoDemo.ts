@@ -388,6 +388,7 @@ export const repoDemo = {
     data.kuitansi.filter((k) => k.ta_id === ta_id),
   kuitansiBySeksi: (seksi_ta_id: string): Kuitansi[] =>
     data.kuitansi.filter((k) => k.seksi_ta_id === seksi_ta_id),
+  cekWajibSPJ: (form: FormDinamis, jawaban: Record<string, string | string[] | Record<string, string>[]>): string | null => _cekWajib(form, jawaban),
   spjByTA: (ta_id: string): SPJ[] => data.spj.filter((s) => s.ta_id === ta_id),
   spjByKuitansi: (kuitansi_id: string): SPJ | undefined =>
     data.spj.find((s) => s.kuitansi_id === kuitansi_id),
@@ -1332,6 +1333,9 @@ export const repoDemo = {
     if (!k || session.active_seksi_id !== k.seksi_ta_id) return { ok: false, error: 'SPJ bukan milik seksi ini.' };
     if (!repoDemo.canAksiSPJ(spj.ta_id)) return { ok: false, error: 'Pengajuan SPJ tidak diizinkan pada status TA saat ini.' };
     if (spj.status !== 'Draft') return { ok: false, error: 'Hanya SPJ Draft yang dapat diajukan.' };
+    // Keputusan pemilik: data harus lengkap (rekening penerima minimal satu dan lampiran PDF) sebelum diajukan.
+    if ((spj.rekening_penerima ?? []).length === 0) return { ok: false, error: 'Data belum lengkap: rekening penerima belum diisi.' };
+    if (!spj.lampiran_nama_asli) return { ok: false, error: 'Data belum lengkap: lampiran PDF belum diunggah.' };
     // SPJ-04: field wajib harus terisi
     const form = _getFormByVersion(spj.jenis_belanja, spj.versi_form);
     if (form) {

@@ -11,7 +11,7 @@ import { formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
 import { ErrorLine, Panel, SectionTitle } from '@/components/AnggaranShared';
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
-import { PajakSPJModal } from '@/components/PajakSPJModal';
+import { PajakSPJPanel, barisPajakDariSPJ, type BarisPajak } from '@/components/PajakSPJModal';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
 import { simpanBerkasSesi, hapusBerkasSesi, formatUkuran } from '@/lib/berkas';
 import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
@@ -236,17 +236,23 @@ function BuatSPJModal({ sesi, ta_id, kuitansiOptions, jenisBelanjaList, onClose,
   );
 }
 
-// ===== SPJ-04 + BNT-04 — Edit SPJ: isi Form Dinamis, auto-fill nama, ajukan =====
-function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
+// ===== SPJ-04 + BNT-04 — Pop-up berlangkah: Isian Form → Rekening Penerima → Pajak → Lampiran & Ajukan =====
+// Data tersimpan di setiap langkah (draft). SPJ baru dapat diajukan ke Verifikator bila semua data lengkap.
+const NAMA_LANGKAH = ['Isian Form', 'Rekening Penerima', 'Pajak', 'Lampiran & Ajukan'] as const;
+
+function EditSPJModal({ sesi, spj: spjAwal, kuitansi, onClose, onSaved }: {
   sesi: SessionPayload; spj: SPJ; kuitansi: Kuitansi | null;
   onClose: () => void; onSaved: () => void;
 }) {
   const { notify } = useToast();
+  // Data hasil muat ulang dari server menggantikan objek lama; ambil versi terbaru pada tiap render.
+  const spj = repo.spjById(spjAwal.id) ?? spjAwal;
   const [err, setErr] = useState<string | null>(null);
-  const [tab, setTab] = useState<'form' | 'rekening' | 'detail'>('form');
-  const [showPajak, setShowPajak] = useState(false);
+  const [langkah, setLangkah] = useState(0);
+  const [sibuk, setSibuk] = useState(false);
   const [cetakVer, setCetakVer] = useState(false);
   const [rekBaris, setRekBaris] = useState<BarisRekening[]>(() => barisDariSPJ(spj));
+  const [pajakBaris, setPajakBaris] = useState<BarisPajak[]>(() => barisPajakDariSPJ(spj));
   const [unggahStatus, setUnggahStatus] = useState<string | null>(null);
 
   // SPJ-06: urutan status UI "Menyiapkan dokumen..." lalu "Mengunggah dokumen..."; sukses setelah lapisan data menerima.
@@ -293,35 +299,68 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
     return init;
   });
 
-  const simpanJawaban = async () => {
+  // Kelengkapan: dasar tombol Ajukan. Pajak opsional ("SPJ tanpa pajak tetap dapat diterima").
+  const rekLengkap = rekBaris.length > 0 && rekBaris.every((r) => r.account_name.trim() && r.bank_name.trim() && r.account_number.trim());
+  const errWajib = form ? repo.cekWajibSPJ(form, jawaban) : null;
+  const ada = {
+    form: !errWajib,
+    rekening: rekLengkap,
+    lampiran: !!spj.lampiran_nama_asli,
+  };
+  const lengkap = ada.form && ada.rekening && ada.lampiran;
+
+  /** Simpan data satu langkah sebagai draft. Mengembalikan false (dan menampilkan galat) bila ditolak. */
+  const simpanLangkah = async (n: number): Promise<boolean> => {
+    if (!isDraft) return true;
     setErr(null);
-    // BNT-04: catat direktori dari field bertag [SYS_PERSONNEL_ID] / [SYS_PERSONNEL_NAME]
-    if (form) {
+    if (n === 0 && form) {
+      // BNT-04: catat direktori dari field bertag [SYS_PERSONNEL_ID] / [SYS_PERSONNEL_NAME]
       _catatDirektoriFromJawaban(form, jawaban, spj.id);
+      const r = await repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
+      if (!r.ok) { setLangkah(0); setErr(r.error ?? 'Gagal'); return false; }
     }
-    // REK-02: simpan rincian penerima (auto-capture ke Direktori Rekening Bank) bersama draft
-    const rRek = await repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
-    if (!rRek.ok) { setErr(rRek.error ?? 'Gagal'); setTab('rekening'); return; }
-    const r = await repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
-    if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
-    onSaved();
-    setShowPajak(true);
+    if (n === 1) {
+      // REK-02: rincian penerima (auto-capture ke Direktori Rekening Bank)
+      const r = await repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
+      if (!r.ok) { setLangkah(1); setErr(r.error ?? 'Gagal'); return false; }
+    }
+    if (n === 2) {
+      if (pajakBaris.some((x) => !x.jenis_pajak_id)) { setLangkah(2); setErr('Pilih jenis pajak pada setiap entri.'); return false; }
+      const r = await repo.simpanEntriPajakSPJ(spj.id, pajakBaris.map((x) => ({ jenis_pajak_id: x.jenis_pajak_id, nominal: x.nominal })), sesi);
+      if (!r.ok) { setLangkah(2); setErr(r.error ?? 'Gagal'); return false; }
+    }
+    return true;
   };
 
-  const ajukan = async () => {
+  const bungkus = async (fn: () => Promise<void>) => {
+    if (sibuk) return;
+    setSibuk(true);
+    try { await fn(); } finally { setSibuk(false); }
+  };
+
+  const lanjut = () => bungkus(async () => {
+    if (!(await simpanLangkah(langkah))) return;
+    onSaved();
+    setLangkah((l) => Math.min(l + 1, NAMA_LANGKAH.length - 1));
+  });
+  const kembali = () => { setErr(null); setLangkah((l) => Math.max(l - 1, 0)); };
+  const pindahKe = (n: number) => { if (n <= langkah) { setErr(null); setLangkah(n); } };
+
+  const simpanTutup = () => bungkus(async () => {
+    if (!(await simpanLangkah(langkah))) return;
+    notify('Tersimpan');
+    onClose();
+  });
+
+  const ajukan = () => bungkus(async () => {
     setErr(null);
-    // Simpan dulu
-    if (form) _catatDirektoriFromJawaban(form, jawaban, spj.id);
-    const rRek = await repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
-    if (!rRek.ok) { setErr(rRek.error ?? 'Gagal'); setTab('rekening'); return; }
-    const rSave = await repo.simpanJawabanSPJ(spj.id, jawaban, sesi);
-    if (!rSave.ok) { setErr(rSave.error ?? 'Gagal'); return; }
-    // Ajukan
+    if (!lengkap) { setErr('Data belum lengkap. Lengkapi semua bagian yang bertanda ✗ sebelum diajukan.'); return; }
+    for (const n of [0, 1, 2]) if (!(await simpanLangkah(n))) return;
     const r = await repo.ajukanSPJ(spj.id, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
     notify('Tersimpan');
     onClose();
-  };
+  });
 
   const lepas = async () => {
     if (!confirm('Lepas SPJ ini? Kuitansi akan kembali Aktif. Data SPJ dihapus tanpa jejak.')) return;
@@ -331,20 +370,30 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
     onClose();
   };
 
+  const terakhir = langkah === NAMA_LANGKAH.length - 1;
+  const centang = (ok: boolean, label: string, hint?: string) => (
+    <li key={label} className="flex items-start gap-2 text-2xs">
+      <span className={ok ? 'text-ok' : 'text-crit'}>{ok ? '✓' : '✗'}</span>
+      <span className={ok ? 'text-mist' : 'text-crit'}>{label}{!ok && hint ? ` — ${hint}` : ''}</span>
+    </li>
+  );
+
   return (
     <>
     <Modal open={true} onClose={onClose} title={`SPJ — ${spj.jenis_belanja} (${spj.versi_form})`} wider
       footer={
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <ErrorLine msg={err} />
-          <div className="flex gap-2">
-            {isDraft && <Button variant="danger" onClick={lepas}><Unlock size={14} /> Lepas SPJ</Button>}
-            {isDraft && <Button variant="secondary" onClick={simpanJawaban}><Pencil size={14} /> Simpan Draft</Button>}
-            {isDraft && <Button variant="primary" onClick={ajukan}><Send size={14} /> Ajukan ke Verifikator</Button>}
+          <div className="ml-auto flex flex-wrap justify-end gap-2">
+            {isDraft && <Button variant="danger" onClick={lepas} disabled={sibuk}><Unlock size={14} /> Lepas SPJ</Button>}
+            {langkah > 0 && <Button variant="ghost" onClick={kembali} disabled={sibuk}>Kembali</Button>}
+            {isDraft && <Button variant="secondary" onClick={simpanTutup} disabled={sibuk}><Pencil size={14} /> Simpan &amp; Tutup</Button>}
+            {!terakhir && <Button variant="primary" onClick={lanjut} disabled={sibuk}>{isDraft ? 'Simpan & Lanjut' : 'Lanjut'}</Button>}
+            {terakhir && isDraft && <Button variant="primary" onClick={ajukan} disabled={sibuk || !lengkap}><Send size={14} /> Ajukan ke Verifikator</Button>}
             {(spj.status === 'Menunggu BKU' || spj.status === 'Dibukukan') && (
               <Button variant="secondary" onClick={() => setCetakVer(true)}><Printer size={14} /> Cetak Hasil Verifikasi</Button>
             )}
-            {!isDraft && <span className="text-2xs text-mist-dim">SPJ {spj.status} — tidak dapat diubah</span>}
+            {!isDraft && <span className="self-center text-2xs text-mist-dim">SPJ {spj.status} — tidak dapat diubah</span>}
           </div>
         </div>
       }
@@ -359,28 +408,34 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
         </div>
       )}
 
-      {/* Tab */}
-      <div className="mb-4 flex gap-1 border-b border-ink-edge">
-        <button onClick={() => setTab('form')} className={`px-3 py-1.5 text-sm ${tab === 'form' ? 'border-b-2 border-amber text-amber' : 'text-mist-dim'}`}>Form Dinamis</button>
-        <button onClick={() => setTab('rekening')} className={`px-3 py-1.5 text-sm ${tab === 'rekening' ? 'border-b-2 border-amber text-amber' : 'text-mist-dim'}`}>Rekening Penerima</button>
-        <button onClick={() => setTab('detail')} className={`px-3 py-1.5 text-sm ${tab === 'detail' ? 'border-b-2 border-amber text-amber' : 'text-mist-dim'}`}>Detail</button>
-      </div>
+      {/* Indikator langkah */}
+      <ol className="mb-4 grid grid-cols-4 gap-1" aria-label="Langkah SPJ">
+        {NAMA_LANGKAH.map((nm, i) => {
+          const aktif = i === langkah, selesai = i < langkah;
+          return (
+            <li key={nm}>
+              <button type="button" onClick={() => pindahKe(i)} disabled={i > langkah}
+                aria-current={aktif ? 'step' : undefined}
+                className={`w-full rounded-md border px-2 py-1.5 text-left text-2xs ${aktif ? 'border-amber text-amber' : selesai ? 'border-ink-edge text-mist hover:border-amber/40' : 'border-ink-edge text-mist-dim opacity-60'}`}>
+                <span className="mono mr-1">{i + 1}.</span>{nm}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
 
-      {tab === 'rekening' ? (
-        <RekeningPenerimaPanel sesi={sesi} spj={spj} isDraft={isDraft} baris={rekBaris} setBaris={setRekBaris} />
-      ) : tab === 'form' && form ? (
-        <FormDinamisEditor form={form} jawaban={jawaban} setJawaban={setJawaban} isDraft={isDraft} spjId={spj.id} />
-      ) : tab === 'form' && !form ? (
-        <p className="text-sm text-mist-dim">Form tidak ditemukan untuk versi {spj.versi_form}.</p>
-      ) : (
-        <div className="space-y-2 text-2xs text-mist-dim">
-          <div>Jenis Belanja: <span className="text-mist">{spj.jenis_belanja}</span></div>
-          <div>Versi Form: <span className="text-mist mono">{spj.versi_form}</span></div>
-          <div>Status: <span className="text-mist">{spj.status}</span></div>
-          <div>Total Pajak: <span className="text-mist mono tnum">{formatRupiah(repo.ringkasanPajakSPJ(spj.id)?.total ?? 0)}</span></div>
-          <div>Jumlah dibayarkan: <span className="text-mist mono tnum">{formatRupiah(repo.ringkasanPajakSPJ(spj.id)?.dibayarkan ?? 0)}</span></div>
-          <div className="space-y-1.5">
-            <div>Lampiran PDF:</div>
+      {langkah === 0 && (form
+        ? <FormDinamisEditor form={form} jawaban={jawaban} setJawaban={setJawaban} isDraft={isDraft} />
+        : <p className="text-sm text-mist-dim">Form tidak ditemukan untuk versi {spj.versi_form}.</p>)}
+
+      {langkah === 1 && <RekeningPenerimaPanel sesi={sesi} spj={spj} isDraft={isDraft} baris={rekBaris} setBaris={setRekBaris} />}
+
+      {langkah === 2 && <PajakSPJPanel spj={spj} isDraft={isDraft} baris={pajakBaris} setBaris={setPajakBaris} />}
+
+      {langkah === 3 && (
+        <div className="space-y-4">
+          <div className="space-y-1.5 text-2xs text-mist-dim">
+            <div>Lampiran PDF <span className="text-crit">*</span></div>
             <UnggahBerkas
               nama={spj.lampiran_nama_asli} accept=".pdf,application/pdf" disabled={!isDraft}
               label={spj.lampiran_nama_asli ? 'Ganti PDF' : 'Pilih PDF'}
@@ -388,14 +443,21 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
               onPilih={pilihLampiran} onHapus={hapusLampiran}
               onBuka={async () => { const r = await bukaLampiranSPJ(spj.id); if (!r.ok) setErr(r.error ?? 'Gagal'); }} bisaBuka={bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli)} />
           </div>
-          {isDraft && <Button variant="secondary" onClick={() => setShowPajak(true)}>Kelola Pajak</Button>}
+          <div className="rounded-md border border-ink-edge bg-ink p-3">
+            <p className="mb-2 text-2xs font-semibold text-mist">Kelengkapan data</p>
+            <ul className="space-y-1">
+              {centang(ada.form, 'Isian Form Dinamis', errWajib ?? undefined)}
+              {centang(ada.rekening, 'Rekening penerima (minimal satu, terisi lengkap)', 'langkah 2')}
+              {centang(ada.lampiran, 'Lampiran PDF', 'unggah di atas')}
+              <li className="flex items-start gap-2 text-2xs"><span className="text-mist-dim">•</span><span className="text-mist-dim">Pajak: {pajakBaris.length === 0 ? 'tanpa pajak' : `${pajakBaris.length} entri`} (opsional)</span></li>
+            </ul>
+            {isDraft && !lengkap && <p className="mt-2 text-2xs text-warn">SPJ belum dapat diajukan ke Verifikator sebelum semua bagian bertanda ✓.</p>}
+            {isDraft && lengkap && <p className="mt-2 text-2xs text-ok">Semua data lengkap. SPJ siap diajukan ke Verifikator.</p>}
+          </div>
         </div>
       )}
     </Modal>
     {cetakVer && <CetakVerifikasiModal spj_id={spj.id} onClose={() => setCetakVer(false)} />}
-    {showPajak && (
-      <PajakSPJModal sesi={sesi} spj={spj} onClose={() => setShowPajak(false)} onSaved={() => setShowPajak(false)} />
-    )}
     </>
   );
 }
@@ -406,7 +468,6 @@ function FormDinamisEditor({ form, jawaban, setJawaban, isDraft }: {
   jawaban: Record<string, string | string[] | Record<string, string>[]>;
   setJawaban: (j: Record<string, string | string[] | Record<string, string>[]>) => void;
   isDraft: boolean;
-  spjId: string;
 }) {
   const setField = (id: string, val: string) => {
     setJawaban({ ...jawaban, [id]: val });

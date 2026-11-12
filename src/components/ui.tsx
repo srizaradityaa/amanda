@@ -1,7 +1,7 @@
 // UIX-05 — Komponen UI dasar tema Treasury (D03 §1).
 // Status wajib ikon/teks, bukan hanya warna. Kontras WCAG AA. Cincin fokus amber.
 
-import { type ReactNode, type InputHTMLAttributes, forwardRef, useEffect, useState, createContext, useContext, useCallback } from 'react';
+import { type ReactNode, type InputHTMLAttributes, forwardRef, useEffect, useState, createContext, useContext, useCallback, useMemo } from 'react';
 import { TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Info, Circle as XCircle, Lock, ShieldCheck, X, Search, CircleCheck } from 'lucide-react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -305,5 +305,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         ))}
       </div>
     </ToastContext.Provider>
+  );
+}
+
+// ---- Pembagian halaman sederhana untuk daftar panjang ----
+export function usePaging<T>(daftar: T[], ukuran = 25) {
+  const [hal, setHal] = useState(1);
+  const total = Math.max(1, Math.ceil(daftar.length / ukuran));
+  const aktif = Math.min(hal, total);
+  const baris = useMemo(() => daftar.slice((aktif - 1) * ukuran, aktif * ukuran), [daftar, aktif, ukuran]);
+  return { baris, hal: aktif, total, jumlah: daftar.length, ukuran, setHal };
+}
+
+export function Pager({ hal, total, jumlah, ukuran, setHal }: { hal: number; total: number; jumlah: number; ukuran: number; setHal: (n: number) => void }) {
+  if (jumlah <= ukuran) return null;
+  const dari = (hal - 1) * ukuran + 1, sampai = Math.min(jumlah, hal * ukuran);
+  const tbl = 'rounded-md border border-ink-edge px-3 py-1 text-2xs text-mist-dim hover:text-mist disabled:opacity-40';
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-ink-edge px-4 py-2 text-2xs text-mist-dim">
+      <span>{dari}–{sampai} dari {jumlah}</span>
+      <div className="flex items-center gap-2">
+        <button className={tbl} disabled={hal <= 1} onClick={() => setHal(hal - 1)}>Sebelumnya</button>
+        <span>Hal. {hal}/{total}</span>
+        <button className={tbl} disabled={hal >= total} onClick={() => setHal(hal + 1)}>Berikutnya</button>
+      </div>
+    </div>
   );
 }

@@ -7,7 +7,7 @@ import {
 } from '@/data/repo';
 import {
   Card, StatusBadge, EmptyState, Button,
-} from '@/components/ui';
+  usePaging, Pager } from '@/components/ui';
 import { formatRupiah, formatPersen } from '@/lib/format';
 import { formatTanggal, formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
@@ -485,6 +485,7 @@ export function AuditTrail({ events }: { events: AuditEvent[] }) {
     const t = `${e.aktor_nama_snapshot} ${e.entitas} ${e.aksi} ${e.nilai_sebelum ?? ''} ${e.nilai_sesudah ?? ''}`.toLowerCase();
     return t.includes(q.toLowerCase());
   });
+  const pgA = usePaging(filtered, 50);
   return (
     <Card>
       <div className="border-b border-ink-edge px-4 py-3">
@@ -505,7 +506,7 @@ export function AuditTrail({ events }: { events: AuditEvent[] }) {
         <EmptyState icon={<History size={28} />} title="Tidak ada entri jejak audit" desc="Pencarian dan filter hanya mengembalikan data dalam cakupan peran." />
       ) : (
         <div className="divide-y divide-ink-edge">
-          {filtered.map((e) => (
+          {pgA.baris.map((e) => (
             <div key={e.id} className="px-4 py-2.5 text-2xs">
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -530,6 +531,7 @@ export function AuditTrail({ events }: { events: AuditEvent[] }) {
           ))}
         </div>
       )}
+      <Pager {...pgA} />
       <div className="border-t border-ink-edge px-4 py-2 text-2xs text-mist-dim">
         Login dan logout tidak dicatat. Pembatalan kuitansi/SPJ Draft menghapus entri terkait otomatis. Tidak ada tombol hapus manual.
       </div>

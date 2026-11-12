@@ -3,7 +3,7 @@ import { useReducer, useState } from 'react';
 import {
   Button, Card, StatusBadge, Field, Input, Select, RupiahInput, Modal,
   useToast, SearchBox, FilterSelect, EmptyState,
-} from '@/components/ui';
+  usePaging, Pager } from '@/components/ui';
 import { repo } from '@/data/repo';
 import * as anggaran from '@/data/anggaran';
 import { formatRupiah, terbilang } from '@/lib/format';
@@ -60,6 +60,7 @@ function KuitansiContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
     }
     return true;
   });
+  const pgK = usePaging(filtered);
 
   const rekeningLabel = (k: Kuitansi) => {
     const a = rekeningOptions.find((r) => r.rekening_id === k.rekening_id && r.pemetaan_subkegiatan_id === k.pemetaan_subkegiatan_id);
@@ -118,7 +119,7 @@ function KuitansiContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((k, i) => {
+                {pgK.baris.map((k, i) => {
                   const spj = repo.spjByKuitansi(k.id);
                   const bisaEdit = k.status === 'Aktif' && repo.canEditKuitansi(ta_id);
                   const bisaBatal = k.status === 'Aktif' && repo.canBatalkanKuitansi(ta_id);
@@ -169,6 +170,7 @@ function KuitansiContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
             </table>
           )}
         </div>
+        <Pager {...pgK} />
       </Card>
       <ErrorLine msg={err} />
 

@@ -1,7 +1,7 @@
 // VER-01 / VER-02 — Pemeriksaan SPJ oleh Verifikator: setujui atau kembalikan dengan catatan.
 // Larangan verifikasi mandiri ditegakkan di repo (setujuiSPJ / kembalikanSPJ).
 import { useState } from 'react';
-import { Button, Card, EmptyState, FilterSelect, Modal, SearchBox, StatusBadge, useToast } from '@/components/ui';
+import { Button, Card, EmptyState, FilterSelect, Modal, SearchBox, StatusBadge, useToast, usePaging, Pager } from '@/components/ui';
 import { ErrorLine, SectionTitle } from '@/components/AnggaranShared';
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
 import { repo } from '@/data/repo';
@@ -41,6 +41,7 @@ export function VerifikasiPage() {
     }
     return true;
   });
+  const pgV = usePaging(daftar);
   const spjAktif = aktif ? repo.spjById(aktif) : undefined;
 
   return (
@@ -72,7 +73,7 @@ export function VerifikasiPage() {
                 {['Seksi', 'Kuitansi', 'Jenis Belanja', 'Status', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
               </tr></thead>
               <tbody>
-                {daftar.map((x, i) => {
+                {pgV.baris.map((x, i) => {
                   const k = kuitansi.find((q) => q.id === x.kuitansi_id)!;
                   const seksi = seksiList.find((q) => q.id === k.seksi_ta_id);
                   return (
@@ -89,6 +90,7 @@ export function VerifikasiPage() {
             </table>
           )}
         </div>
+        <Pager {...pgV} />
       </Card>
       {spjAktif && <DetailVerifikasi spj={spjAktif} onClose={() => { setAktif(null); setTick((n) => n + 1); }} />}
     </div>

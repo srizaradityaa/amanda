@@ -1,6 +1,6 @@
 // BKU-01..05 — Buku Kas Umum (murni realisasi pengeluaran belanja). Bendahara mencatat/koreksi/cabut; Verifikator hanya membaca.
 import { useState } from 'react';
-import { Button, Card, EmptyState, Field, FilterSelect, Input, Modal, SearchBox, StatusBadge, useToast } from '@/components/ui';
+import { Button, Card, EmptyState, Field, FilterSelect, Input, Modal, SearchBox, StatusBadge, useToast, usePaging, Pager } from '@/components/ui';
 import { ErrorLine, SectionTitle } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
@@ -28,6 +28,7 @@ export function BKUPage() {
   const kuitansi = repo.kuitansiByTA(ta_id);
   const seksiList = repo.seksiTAByTA(ta_id);
   const menunggu = repo.spjByTA(ta_id).filter((x) => x.status === 'Menunggu BKU');
+  const pgM = usePaging(menunggu);
   const daftar = repo.bkuByTA(ta_id).filter((b) => {
     const k = kuitansi.find((q) => q.id === b.kuitansi_id);
     if (fSeksi && k?.seksi_ta_id !== fSeksi) return false;
@@ -40,6 +41,7 @@ export function BKUPage() {
     }
     return true;
   });
+  const pgB = usePaging(daftar);
   const reset = () => { setSearch(''); setFSeksi(''); setFStatus(''); setDari(''); setSampai(''); };
 
   return (
@@ -58,7 +60,7 @@ export function BKUPage() {
                 <thead className="bg-ink text-mist-dim"><tr className="text-left">
                   {['Seksi', 'Kuitansi', 'Bruto', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
                 </tr></thead>
-                <tbody>{menunggu.map((x, i) => {
+                <tbody>{pgM.baris.map((x, i) => {
                   const k = kuitansi.find((q) => q.id === x.kuitansi_id);
                   return (
                     <tr key={x.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
@@ -72,6 +74,7 @@ export function BKUPage() {
               </table>
             )}
           </div>
+        <Pager {...pgM} />
         </Card>
       )}
 
@@ -95,7 +98,7 @@ export function BKUPage() {
               <thead className="bg-ink text-mist-dim"><tr className="text-left">
                 {['No. BKU', 'Tanggal', 'Seksi', 'Uraian', 'Bruto', 'Status', ...(bendahara ? ['Aksi'] : [])].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
               </tr></thead>
-              <tbody>{daftar.map((b, i) => {
+              <tbody>{pgB.baris.map((b, i) => {
                 const k = kuitansi.find((q) => q.id === b.kuitansi_id);
                 return (
                   <tr key={b.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
@@ -121,6 +124,7 @@ export function BKUPage() {
             </table>
           )}
         </div>
+        <Pager {...pgB} />
       </Card>
 
       {catat && <FormBKU judul="Catat BKU" awal={{ nomor: '', tanggal: todayWita() }} onClose={() => setCatat(null)}

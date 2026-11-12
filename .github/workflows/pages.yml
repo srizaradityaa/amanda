@@ -20,8 +20,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Lint (tidak menghentikan penerbitan; hasilnya dibaca di log)
+      - name: Lint
         run: npm run lint
+      - name: Periksa tipe (informasi)
+        run: npm run typecheck
         continue-on-error: true
       - run: npm run build
         env:

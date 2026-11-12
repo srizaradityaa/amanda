@@ -183,7 +183,7 @@ function statusLampiran(spj: SPJ, proses: string | null): string | null {
   if (!spj.lampiran_nama_asli || spj.lampiran_ukuran_asal === null) return null;
   const asal = formatUkuran(spj.lampiran_ukuran_asal);
   if (spj.lampiran_status_optimasi === 'BYPASSED') return `Berhasil. Ukuran ${asal}, dikirim langsung tanpa kompresi (sampai 5 MB).`;
-  if (spj.lampiran_status_optimasi === 'SERVER_FALLBACK_COMPRESSED') return `Berhasil dicatat. Ukuran asal ${asal} (di atas 5 MB): kompresi dilakukan setelah backend tersedia.`;
+  if (spj.lampiran_status_optimasi === 'FAILED' || spj.lampiran_status_optimasi === 'SERVER_FALLBACK_COMPRESSED') return `Berhasil disimpan. Ukuran ${asal} (di atas 5 MB): berkas disimpan apa adanya, tanpa kompresi.`;
   return `Ukuran ${asal}${spj.lampiran_ukuran_final !== null ? `, setelah optimasi ${formatUkuran(spj.lampiran_ukuran_final)}` : ''}.`;
 }
 

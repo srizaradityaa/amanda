@@ -1274,7 +1274,7 @@ export const repoDemo = {
     spj.lampiran_nama_asli = berkas.nama;
     spj.lampiran_ukuran_asal = berkas.ukuran;
     if (berkas.ukuran <= 5 * MB) { spj.lampiran_ukuran_final = berkas.ukuran; spj.lampiran_status_optimasi = 'BYPASSED'; }
-    else { spj.lampiran_ukuran_final = null; spj.lampiran_status_optimasi = 'SERVER_FALLBACK_COMPRESSED'; }
+    else { spj.lampiran_ukuran_final = berkas.ukuran; spj.lampiran_status_optimasi = 'FAILED'; }
     return { ok: true };
   },
 

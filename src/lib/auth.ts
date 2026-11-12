@@ -2,6 +2,7 @@
 // Tahap A: data contoh, validasi di klien. Tahap B: penegakan server menggantikan ini.
 
 import { repo } from '@/data/repo';
+import { namaLengkap } from '@/lib/nama';
 import type { SessionPayload, Role, ActorType } from '@/data/types';
 import { nowWita, todayWita } from '@/lib/wita';
 import { supabase, modeServer, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
@@ -288,7 +289,7 @@ function buildInternalSession(
   peran: Role,
   seksi_ta_id: string | null,
 ): SessionPayload {
-  const nama = [personel.gelar_depan, personel.nama, personel.gelar_belakang].filter(Boolean).join(' ');
+  const nama = namaLengkap(personel);
   return {
     user_id: acc_id,
     actor_type: 'internal' as ActorType,

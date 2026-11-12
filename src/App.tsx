@@ -63,7 +63,12 @@ function App() {
 function AplikasiUtama() {
   const [view, setView] = useState<View>('login');
   const [session, setSession] = useState<SessionPayload | null>(getSession());
-  const [activeNav, setActiveNav] = useState('dashboard');
+  // Halaman aktif disimpan di hash (#/h/<id>) agar reload tetap di halaman yang sama.
+  const [activeNav, setActiveNavState] = useState(() => window.location.hash.match(/^#\/h\/([\w-]+)$/)?.[1] ?? 'dashboard');
+  const setActiveNav = (id: string) => {
+    setActiveNavState(id);
+    try { window.history.replaceState(null, '', id === 'dashboard' ? window.location.pathname + window.location.search : `#/h/${id}`); } catch { /* abaikan */ }
+  };
   // Mode server: tiap kali data dimuat ulang dari Supabase, seluruh layar dirender ulang.
   useSyncExternalStore(langgananData, versiData);
   const [dataStatus, setDataStatus] = useState<'belum' | 'memuat' | 'siap' | 'gagal'>(modeServer ? 'belum' : 'siap');

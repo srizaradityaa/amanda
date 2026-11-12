@@ -3,6 +3,7 @@
 // Di Tahap B lapisan ini diganti dengan panggilan backend (Supabase) tanpa mengubah konsumennya.
 
 import * as data from '@/data/sampleData';
+import { namaLengkap } from '@/lib/nama';
 import type {
   MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin, AkunPengawas,
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak,
@@ -760,7 +761,7 @@ export const repoDemo = {
       if (peran === 'pptk' && dels.some((d) => d.peran_digantikan === 'bendahara' && d.personel_pengganti_id === personel_id)) return { ok: false, error: 'Personel ini menjadi Plh. Bendahara aktif. Tidak boleh merangkap PPTK.' };
       if (peran === 'bendahara' && dels.some((d) => d.peran_digantikan === 'pptk' && d.personel_pengganti_id === personel_id)) return { ok: false, error: 'Personel ini menjadi Plh. PPTK aktif. Tidak boleh merangkap Bendahara.' };
     }
-    const nama = [per.gelar_depan, per.nama, per.gelar_belakang].filter(Boolean).join(' ');
+    const nama = namaLengkap(per);
     const nip = per.nip || per.nik;
     const id = `tg-${ta_id}-${Date.now()}`;
     // PEN-03: mutasi — jika ada penugasan lama untuk peran+seksi yang sama, tutup H-1
@@ -805,7 +806,7 @@ export const repoDemo = {
     // Tutup penugasan lama H-1 dari TMT pengganti
     t.tmt_selesai = tambahHari(tmt_baru, -1);
     // Buat penugasan baru dengan personel pengganti
-    const nama = [per.gelar_depan, per.nama, per.gelar_belakang].filter(Boolean).join(' ');
+    const nama = namaLengkap(per);
     const nip = per.nip || per.nik;
     const id = `tg-${t.ta_id}-${Date.now()}`;
     data.penugasanTA.push({
@@ -898,7 +899,7 @@ export const repoDemo = {
     if (peran_digantikan === 'pptk' && dels.some((d) => d.peran_digantikan === 'bendahara')) return { ok: false, error: 'Personel ini menjadi Plh. Bendahara aktif. Tidak boleh merangkap Plh. PPTK.' };
     const per = data.masterPersonel.find((p) => p.id === personel_pengganti_id);
     if (!per) return { ok: false, error: 'Personel pengganti tidak ditemukan.' };
-    const nama = [per.gelar_depan, per.nama, per.gelar_belakang].filter(Boolean).join(' ');
+    const nama = namaLengkap(per);
     const nip = per.nip || per.nik;
     const id = `dlg-${Date.now()}`;
     data.penugasanDelegasi.push({ id, ta_id, personel_pengganti_id, peran_digantikan, seksi_ta_id, tanggal_mulai, tanggal_berakhir, status: 'Delegasi Aktif', alasan_pencabutan: null, definitive_officer_id, nama_snapshot: nama, nip_snapshot: nip });

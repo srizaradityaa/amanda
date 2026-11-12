@@ -2,6 +2,7 @@
 // TA-01..TA-07, AKN-05, PEN-01..PEN-08, AKN-03.
 
 import { useState } from 'react';
+import { namaLengkap } from '@/lib/nama';
 import {
   Card, StatusBadge, Button, Field, Input, Select, EmptyState,
   Modal, TableHead, ProtectedNotice, RupiahInput, useToast,
@@ -609,7 +610,7 @@ function AddPenugasanModal({ taId, peran, seksiAwal, onClose, onSaved }: { taId:
         <Field label="Personel" required>
           <Select value={personelId} onChange={(e) => setPersonelId(e.target.value)}>
             <option value="">— pilih —</option>
-            {personel.map((p) => <option key={p.id} value={p.id}>{[p.gelar_depan, p.nama, p.gelar_belakang].filter(Boolean).join(' ')}</option>)}
+            {personel.map((p) => <option key={p.id} value={p.id}>{namaLengkap(p)}</option>)}
           </Select>
         </Field>
         {needsSeksi && (
@@ -662,7 +663,7 @@ function GantiPejabatModal({ penugasanId, taId, onClose, onSaved }: { penugasanI
         <Field label="Personel Pengganti" required>
           <Select value={personelId} onChange={(e) => setPersonelId(e.target.value)}>
             <option value="">— pilih —</option>
-            {personel.map((p) => <option key={p.id} value={p.id}>{[p.gelar_depan, p.nama, p.gelar_belakang].filter(Boolean).join(' ')}</option>)}
+            {personel.map((p) => <option key={p.id} value={p.id}>{namaLengkap(p)}</option>)}
           </Select>
         </Field>
         <Field label="TMT Pengganti" required hint="Penugasan lama otomatis berakhir H-1 dari tanggal ini.">
@@ -896,13 +897,13 @@ function AddDelegasiModal({ taId, onClose, onSaved }: { taId: string; onClose: (
         <Field label="Pejabat Definitif yang Digantikan" required>
           <Select value={definitiveId} onChange={(e) => setDefinitiveId(e.target.value)}>
             <option value="">— pilih —</option>
-            {definitifOptions.map((t) => { const p = repo.personelById(t.personel_id)!; return <option key={t.id} value={t.personel_id}>{[p.gelar_depan, p.nama, p.gelar_belakang].filter(Boolean).join(' ')}</option>; })}
+            {definitifOptions.map((t) => { const p = repo.personelById(t.personel_id)!; return <option key={t.id} value={t.personel_id}>{namaLengkap(p)}</option>; })}
           </Select>
         </Field>
         <Field label="Personel Pengganti (Plh./Plt.)" required>
           <Select value={personelId} onChange={(e) => setPersonelId(e.target.value)}>
             <option value="">— pilih —</option>
-            {personel.map((p) => <option key={p.id} value={p.id}>{[p.gelar_depan, p.nama, p.gelar_belakang].filter(Boolean).join(' ')}</option>)}
+            {personel.map((p) => <option key={p.id} value={p.id}>{namaLengkap(p)}</option>)}
           </Select>
         </Field>
         <Field label="Tanggal Mulai" required><Input type="date" value={mulai} onChange={(e) => setMulai(e.target.value)} /></Field>

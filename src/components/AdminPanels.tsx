@@ -4,6 +4,7 @@
 // BNT-01 Direktori, DSB-01 Dasbor, UIX-07/08.
 
 import { useState } from 'react';
+import { namaLengkap } from '@/lib/nama';
 import {
   Card, StatusBadge, Button, Field, Input, Select, EmptyState,
   Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice,
@@ -250,7 +251,7 @@ export function PersonelPage() {
               const status = acc ? acc.status : 'Belum Ada Akun' as AccountStatus;
               return (
                 <tr key={p.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
-                  <td className="std-row px-4 text-mist">{[p.gelar_depan, p.nama, p.gelar_belakang].filter(Boolean).join(' ')}</td>
+                  <td className="std-row px-4 text-mist">{namaLengkap(p)}</td>
                   <td className="std-row px-4 mono text-mist-dim">{p.nip || p.nik}</td>
                   <td className="std-row px-4 text-mist-dim">{p.pangkat}</td>
                   <td className="std-row px-4 mono text-mist-dim">{formatTanggalPendek(p.tmt)}</td>
@@ -298,6 +299,7 @@ function PersonelModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'
   );
 
   const save = async () => {
+    f.gelar_belakang = f.gelar_belakang.trim().replace(/^[,\s]+/, '');
     if (!f.nama.trim()) return setErr('Nama lengkap wajib diisi.');
     if (!f.pangkat.trim()) return setErr('Pangkat/golongan wajib diisi.');
     if (!f.tmt) return setErr('TMT wajib diisi.');

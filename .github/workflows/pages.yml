@@ -20,6 +20,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Lint (tidak menghentikan penerbitan; hasilnya dibaca di log)
+        run: npm run lint
+        continue-on-error: true
       - run: npm run build
         env:
           # Diisi di Settings > Secrets and variables > Actions > Variables (kunci anon bersifat publik; JANGAN isi service_role)

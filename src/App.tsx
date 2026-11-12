@@ -1,7 +1,7 @@
 // AMANDA — App shell (Langkah 1, Tahap A).
 // Menghubungkan login -> seleksi konteks berjenjang -> dasbor per peran.
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { lazy, useEffect, useState, useSyncExternalStore } from 'react';
 import { langgananData, versiData, muatSemua } from '@/data/store';
 import { langgananGalat } from '@/lib/galat';
 import { LoginPage } from '@/components/LoginPage';
@@ -15,30 +15,31 @@ import {
   AdminDasborPage, SOTKPage, PersonelPage, KamusPage, PajakPage,
   DirektoriPage, PetaJabatanPage,
 } from '@/components/AdminPanels';
-import { TahunAnggaranPage } from '@/components/TAPanels';
-import { FormBuilderPage } from '@/components/FormBuilderPage';
-import { TemplateKuitansiPage } from '@/components/TemplateKuitansiPage';
 import { VerifikasiPage } from '@/components/VerifikasiPage';
 import { BKUPage } from '@/components/BKUPage';
-import { PortalPublikPage } from '@/components/PortalPublikPage';
-import { HeatmapPage } from '@/components/HeatmapPage';
-import { LaporanPage } from '@/components/LaporanPage';
-import { LaporanKustomPage } from '@/components/LaporanKustomPage';
-import { KeaslianPage } from '@/components/KeaslianPage';
-import { TemplateVerifikasiPage } from '@/components/TemplateVerifikasiPage';
-import { DirektoriRekeningPage } from '@/components/DirektoriRekeningPage';
 import { AnggaranBendaharaPage } from '@/components/AnggaranBendaharaPage';
 import { AnggaranPptkPage } from '@/components/AnggaranPptkPage';
 import { KuitansiPage } from '@/components/KuitansiPage';
 import { SPJPage } from '@/components/SPJPage';
 import { GerbangBanner } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
-import { DrilldownPage } from '@/components/DrilldownPage';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
 import { BarChart3, BookOpen, LayoutDashboard, ScrollText, ShieldCheck, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
 import type { SessionPayload } from '@/data/types';
+
+const TahunAnggaranPage = lazy(() => import('@/components/TAPanels').then((m) => ({ default: m.TahunAnggaranPage })));
+const FormBuilderPage = lazy(() => import('@/components/FormBuilderPage').then((m) => ({ default: m.FormBuilderPage })));
+const TemplateKuitansiPage = lazy(() => import('@/components/TemplateKuitansiPage').then((m) => ({ default: m.TemplateKuitansiPage })));
+const PortalPublikPage = lazy(() => import('@/components/PortalPublikPage').then((m) => ({ default: m.PortalPublikPage })));
+const HeatmapPage = lazy(() => import('@/components/HeatmapPage').then((m) => ({ default: m.HeatmapPage })));
+const LaporanPage = lazy(() => import('@/components/LaporanPage').then((m) => ({ default: m.LaporanPage })));
+const LaporanKustomPage = lazy(() => import('@/components/LaporanKustomPage').then((m) => ({ default: m.LaporanKustomPage })));
+const KeaslianPage = lazy(() => import('@/components/KeaslianPage').then((m) => ({ default: m.KeaslianPage })));
+const TemplateVerifikasiPage = lazy(() => import('@/components/TemplateVerifikasiPage').then((m) => ({ default: m.TemplateVerifikasiPage })));
+const DirektoriRekeningPage = lazy(() => import('@/components/DirektoriRekeningPage').then((m) => ({ default: m.DirektoriRekeningPage })));
+const DrilldownPage = lazy(() => import('@/components/DrilldownPage').then((m) => ({ default: m.DrilldownPage })));
 
 type View = 'login' | 'context' | 'app' | 'public';
 

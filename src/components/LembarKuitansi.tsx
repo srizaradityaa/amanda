@@ -64,7 +64,7 @@ export function LembarKuitansi({ tpl, d, logoUrl }: { tpl: TemplateKuitansi; d: 
       <div>
         <Baris label="Sudah terima dari">{tpl.terima_dari}</Baris>
         <Baris label="Uang sejumlah" tebal>{formatRupiah(d.bruto)}</Baris>
-        <Baris label="Terbilang">{`/// ${d.terbilang} ///`}</Baris>
+        <Baris label="Terbilang"><i>{`/// ${d.terbilang} ///`}</i></Baris>
         <Baris label="Untuk pembayaran">{d.uraian}</Baris>
         <div className="flex gap-2 py-1 pl-[34%]">
           <span className="font-bold">Sub Keg.</span><span className="font-bold">{d.subkegiatan}</span>

@@ -7,9 +7,9 @@ import {
 import { repo } from '@/data/repo';
 import { gerbangStatus } from '@/data/anggaran';
 import { formatRupiah } from '@/lib/format';
-import { formatTanggalPendek, todayWita } from '@/lib/wita';
+import { formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
-import { aktorSesi, ErrorLine, Panel, SectionTitle } from '@/components/AnggaranShared';
+import { ErrorLine, Panel, SectionTitle } from '@/components/AnggaranShared';
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
 import { PajakSPJModal } from '@/components/PajakSPJModal';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
@@ -18,7 +18,7 @@ import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
 import { modeServer } from '@/lib/supabase';
 import { RekeningPenerimaPanel, barisDariSPJ, type BarisRekening } from '@/components/RekeningPenerimaPanel';
 import type { SPJ, Kuitansi, SessionPayload, FormDinamis, FieldFormDinamis } from '@/data/types';
-import { FileText, ScrollText, Plus, Trash2, Send, Clock as Unlock, Lock, Eye, Pencil, Printer, Circle as XCircle } from 'lucide-react';
+import { ScrollText, Plus, Trash2, Send, Clock as Unlock, Lock, Eye, Pencil, Printer, Circle as XCircle } from 'lucide-react';
 
 export function SPJPage() {
   const sesi = getSession();
@@ -401,7 +401,7 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
 }
 
 // ===== SPJ-04 — Form Dinamis editor dengan blok berulang + BNT-04 auto-fill =====
-function FormDinamisEditor({ form, jawaban, setJawaban, isDraft, spjId }: {
+function FormDinamisEditor({ form, jawaban, setJawaban, isDraft }: {
   form: FormDinamis;
   jawaban: Record<string, string | string[] | Record<string, string>[]>;
   setJawaban: (j: Record<string, string | string[] | Record<string, string>[]>) => void;

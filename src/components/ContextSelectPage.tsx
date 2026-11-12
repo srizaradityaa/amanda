@@ -148,7 +148,7 @@ function InternalSelect({ onResolved }: { onResolved: () => void }) {
   if (!personel) return null;
   const taIds = repo.taIdsForPersonel(personel.id);
 
-  function resolveJabatan(ta_id: string, peran: PeranPenugasan, seksi_ta_id: string | null, isDelegasi: boolean) {
+  function resolveJabatan(ta_id: string, peran: PeranPenugasan, seksi_ta_id: string | null, _isDelegasi: boolean) {
     // Plh./Plt. PPTK tetap peran 'pptk' untuk sesi (D01 §6 poin 7).
     const role: Role = peran as Role;
     selectContextForInternal(ta_id, role, seksi_ta_id);

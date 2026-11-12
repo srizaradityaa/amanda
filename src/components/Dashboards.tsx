@@ -1,22 +1,21 @@
 // Dasbor per peran (D03 §14) + Audit Trail reader (AUD-01) + Portal Publik stub.
 // Tahap A: tampilan dasar untuk demonstrasi skenario Langkah 1.
 
-import { useEffect, useReducer, useState } from 'react';
+import { useReducer, useState } from 'react';
 import {
   repo,
 } from '@/data/repo';
 import {
   Card, StatusBadge, EmptyState, Button,
 } from '@/components/ui';
-import { formatRupiah, formatPersen, persenNumerik } from '@/lib/format';
-import { formatTanggal, formatTanggalPendek, todayWita } from '@/lib/wita';
-import { peranLabel } from '@/lib/audit';
+import { formatRupiah, formatPersen } from '@/lib/format';
+import { formatTanggal, formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
 import * as anggaran from '@/data/anggaran';
 import { analitikSeksi, type Zona } from '@/data/analitik';
 import { aktorSesi, ErrorLine, StatusSeksiBadge, useTick, sisaWaktu } from '@/components/AnggaranShared';
-import type { SessionPayload, AuditEvent, TahunAnggaran } from '@/data/types';
-import { Landmark, ScrollText, FileText, ShieldCheck, TriangleAlert as AlertTriangle, Clock, Building2, Search, History, Lock, CircleCheck, TrendingUp, Flame } from 'lucide-react';
+import type { AuditEvent, TahunAnggaran } from '@/data/types';
+import { ScrollText, FileText, TriangleAlert as AlertTriangle, Clock, Search, History, Lock, CircleCheck, TrendingUp, Flame } from 'lucide-react';
 
 // ============ ADMIN — Dasbor Administrasi Global ============
 export function AdminDashboard() {
@@ -72,7 +71,6 @@ export function BendaharaDashboard() {
   const s = getSession()!;
   const ta = repo.tahunAnggaranById(s.active_ta_id!)!;
   const seksiList = repo.seksiTAByTA(ta.id).filter((x) => x.status === 'Aktif');
-  const kuitansi = repo.kuitansiByTA(ta.id);
   const [sahkanErr, setSahkanErr] = useState<string | null>(null);
   const [, bump] = useReducer((x: number) => x + 1, 0);
   useTick();
@@ -325,7 +323,6 @@ export function PakpaDashboard() {
   const ta = repo.tahunAnggaranById(s.active_ta_id!)!;
   const seksiList = repo.seksiTAByTA(ta.id);
   const pemetaan = repo.pemetaanByTA(ta.id);
-  const alokasiSub = repo.alokasiSubkegiatanByTA(ta.id);
   const alokasiRek = repo.alokasiRekeningByTA(ta.id);
   const kuitansi = repo.kuitansiByTA(ta.id);
   const bkuList = repo.bkuByTA(ta.id);

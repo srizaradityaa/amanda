@@ -13,7 +13,7 @@ export interface KlienStorage {
 }
 
 export function kunciLampiran(spjId: string, namaBerkas: string): string {
-  const aman = namaBerkas.normalize('NFKD').replace(/[^\w.\-]+/g, '_').slice(0, 120) || 'lampiran.pdf';
+  const aman = namaBerkas.normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(0, 120) || 'lampiran.pdf';
   return `${spjId}/${aman}`;
 }
 

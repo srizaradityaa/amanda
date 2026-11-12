@@ -27,6 +27,7 @@ function crc32(data: Uint8Array): number {
 
 function esc(s: string): string {
   // hapus karakter kendali yang tidak sah di XML 1.0
+  // eslint-disable-next-line no-control-regex
   const bersih = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
   return bersih.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -39,7 +40,7 @@ function namaKolom(i: number): string {
 
 /** Nama sheet sah: maksimal 31 karakter, tanpa []:*?/\ dan unik tanpa memandang huruf besar kecil. */
 export function namaSheetAman(nama: string, dipakai: string[]): string {
-  let dasar = nama.replace(/[\[\]:*?/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31) || 'Sheet';
+  const dasar = nama.replace(/[[\]:*?/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31) || 'Sheet';
   let hasil = dasar;
   let n = 2;
   while (dipakai.some((x) => x.toLowerCase() === hasil.toLowerCase())) {

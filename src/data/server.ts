@@ -150,7 +150,7 @@ export const server = {
     let kunci = '', nama = '';
     if (berkas && file && supabase) {
       nama = file.name;
-      kunci = `${penugasan}/${Date.now()}-${file.name.normalize('NFKD').replace(/[^\w.\-]+/g, '_').slice(0, 100)}`;
+      kunci = `${penugasan}/${Date.now()}-${file.name.normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(0, 100)}`;
       const u = await unggah(supabase as never, BUCKET_SK, kunci, file);
       if (!u.ok) return { ok: false, error: u.error ?? 'Gagal mengunggah berkas SK.' } as Hasil & { id?: string };
     }
@@ -163,7 +163,7 @@ export const server = {
     if (b && typeof b === 'object') {
       let kunci = '';
       if (b.file && supabase) {
-        kunci = `${id}/${Date.now()}-${b.nama.normalize('NFKD').replace(/[^\w.\-]+/g, '_').slice(0, 100)}`;
+        kunci = `${id}/${Date.now()}-${b.nama.normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(0, 100)}`;
         const u = await unggah(supabase as never, BUCKET_SK, kunci, b.file);
         if (!u.ok) return { ok: false, error: u.error ?? 'Gagal mengunggah berkas SK.' } as Hasil;
       }

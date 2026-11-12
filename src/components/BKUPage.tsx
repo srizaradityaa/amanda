@@ -9,7 +9,7 @@ import { formatTanggalPendek, todayWita } from '@/lib/wita';
 import type { BKU, SPJ } from '@/data/types';
 import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 
-export async function BKUPage() {
+export function BKUPage() {
   const s = getSession()!;
   const ta_id = s.active_ta_id!;
   const ta = repo.tahunAnggaranById(ta_id)!;

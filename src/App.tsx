@@ -8,7 +8,7 @@ import { LoginPage } from '@/components/LoginPage';
 import { ContextSelectPage } from '@/components/ContextSelectPage';
 import { DashboardShell, type NavItem } from '@/components/DashboardShell';
 import {
-  AdminDashboard, BendaharaDashboard, PptkDashboard, VerifikatorDashboard,
+  BendaharaDashboard, PptkDashboard, VerifikatorDashboard,
   PakpaDashboard, PengawasDashboard, AuditTrail,
 } from '@/components/Dashboards';
 import {

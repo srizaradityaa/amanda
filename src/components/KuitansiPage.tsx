@@ -11,7 +11,7 @@ import { LembarKuitansi, KUNCI_LOGO_KUITANSI } from '@/components/LembarKuitansi
 import { urlBerkasSesi } from '@/lib/berkas';
 import { formatTanggal, formatTanggalPendek, todayWita } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
-import { aktorSesi, ErrorLine, Panel, SectionTitle } from '@/components/AnggaranShared';
+import { ErrorLine, Panel, SectionTitle } from '@/components/AnggaranShared';
 import type { Kuitansi, SessionPayload, AlokasiRekening, PemetaanSubkegiatanTA } from '@/data/types';
 import { FileText, Printer, Pencil, XCircle, Lock, Plus } from 'lucide-react';
 

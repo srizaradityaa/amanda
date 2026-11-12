@@ -13,8 +13,8 @@ import { recordAudit } from '@/lib/audit';
 import { getSession } from '@/lib/auth';
 import { formatTanggal, formatTanggalPendek, todayWita, tambahHari } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
-import type { MasterSOTK, MasterPersonel, MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, AkunLogin, AkunPengawas, AccountStatus, DirektoriTransaksionalSPJ } from '@/data/types';
-import { Plus, Pencil, Archive, Search, KeyRound, UserCog, Building2, Users, FileText, TriangleAlert as AlertTriangle, Lock, ShieldCheck, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
+import type { AccountStatus, DirektoriTransaksionalSPJ } from '@/data/types';
+import { Plus, Pencil, Archive, KeyRound, Building2, Users, TriangleAlert as AlertTriangle, Lock, ShieldCheck, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
 
 const SESSION = getSession();
 
@@ -212,7 +212,6 @@ export function PersonelPage() {
   });
 
   const totalAkun = repo.akunLogin().filter((a) => a.status === 'ACTIVE').length;
-  const totalHistori = repo.pangkatHistory('').length + 0;
 
   return (
     <div className="space-y-4">
@@ -519,7 +518,7 @@ export function KamusPage() {
   const [subModal, setSubModal] = useState<{ mode: 'tambah' | 'edit'; id?: string } | null>(null);
   const [rekModal, setRekModal] = useState<{ mode: 'tambah' | 'edit'; id?: string } | null>(null);
 
-  const filterFn = <T extends { nama: string; kode?: string; kode_rekening?: string; status: string }>(item: T, searchKey: string) => {
+  const filterFn = <T extends { nama: string; kode?: string; kode_rekening?: string; status: string }>(item: T) => {
     if (statusFilter && item.status !== statusFilter) return false;
     if (!search) return true;
     const kode = (item.kode_rekening ?? item.kode ?? '').toLowerCase();
@@ -546,7 +545,7 @@ export function KamusPage() {
           <table className="w-full text-2xs">
             <TableHead columns={['Kode', 'Nama', 'Rincian', 'Status', 'Aksi']} />
             <tbody>
-              {subList.filter((s) => filterFn(s, search)).map((s, i) => (
+              {subList.filter((s) => filterFn(s)).map((s, i) => (
                 <tr key={s.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
                   <td className="std-row px-4 mono text-mist">{s.kode}</td>
                   <td className="std-row px-4 text-mist">{s.nama}</td>
@@ -561,7 +560,7 @@ export function KamusPage() {
           <table className="w-full text-2xs">
             <TableHead columns={['Kode Rekening', 'Nama', 'Rincian', 'Status', 'Aksi']} />
             <tbody>
-              {rekList.filter((r) => filterFn(r, search)).map((r, i) => (
+              {rekList.filter((r) => filterFn(r)).map((r, i) => (
                 <tr key={r.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
                   <td className="std-row px-4 mono text-mist">{r.kode_rekening}</td>
                   <td className="std-row px-4 text-mist">{r.nama}</td>

@@ -13,12 +13,12 @@ import type {
   FormDinamis, FieldFormDinamis, BlokBerulangFormDinamis, TemplateKuitansi,
   TokenVerifikasiSPJ, FormatNomorVerifikasi, TemplateVerifikasi,
 } from '@/data/types';
-import { selisihHari, tambahHari, todayWita, nowWita } from '@/lib/wita';
+import { tambahHari, todayWita, nowWita } from '@/lib/wita';
 import { validasiTagSistem, versiBerikutnya } from '@/lib/formDinamis';
 import { recordAudit, purgeAuditForKuitansi, purgeAuditForSPJ, purgeAuditForTA } from '@/lib/audit';
-import { gerbangStatus, sisaSpdBebas, komitmenAlokasi } from '@/data/anggaran';
+import { gerbangStatus, sisaSpdBebas } from '@/data/anggaran';
 import { MB, ekstensiBerkas, hapusBerkasSesi } from '@/lib/berkas';
-import type { SessionPayload, StatusKuitansi, StatusSPJ } from '@/data/types';
+import type { SessionPayload } from '@/data/types';
 
 // Helper: remove items matching predicate from a namespace-imported array (in-place).
 function removeAll<T>(arr: T[], pred: (x: T) => boolean): void {

@@ -1,10 +1,10 @@
 // Langkah 3 — Panel Admin: Tahun Anggaran & Penugasan (Tahap A).
 // TA-01..TA-07, AKN-05, PEN-01..PEN-08, AKN-03.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Card, StatusBadge, Button, Field, Input, Select, EmptyState,
-  Modal, SearchBox, TableHead, ProtectedNotice, RupiahInput, useToast,
+  Modal, TableHead, ProtectedNotice, RupiahInput, useToast,
 } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { EditPaguModal } from '@/components/EditPaguModal';
@@ -15,13 +15,12 @@ import { recordAudit } from '@/lib/audit';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
 import { simpanBerkasSesi, hapusBerkasSesi, adaBerkasSesi, bukaBerkasSesi, unduhBerkasSesi } from '@/lib/berkas';
 import { getSession } from '@/lib/auth';
-import { formatTanggal, formatTanggalPendek, todayWita, tambahHari } from '@/lib/wita';
+import { formatTanggal, formatTanggalPendek, todayWita } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
-import type { TahunAnggaran, PeranPenugasan, PenugasanTA, PenugasanDelegasi, SeksiTA, RegisterSK, AccountStatus } from '@/data/types';
-import { Plus, Trash2, ArrowRight, Building2, Users, ShieldCheck, TriangleAlert as AlertTriangle, Lock, CircleCheck as CheckCircle2, Circle as XCircle, FileText, CalendarClock, Copy, UserCog, Pencil, UserPlus } from 'lucide-react';
+import type { TahunAnggaran, PeranPenugasan, RegisterSK } from '@/data/types';
+import { Plus, Trash2, ArrowRight, Building2, Users, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Circle as XCircle, FileText, CalendarClock, UserCog, Pencil, UserPlus } from 'lucide-react';
 
 type TAStatus = TahunAnggaran['status'];
-const SESSION = getSession();
 
 // ============ TA-01/02/05/07 — Manajemen Tahun Anggaran ============
 export function TahunAnggaranPage() {
@@ -451,11 +450,10 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
 }
 
 // ===== TA-04 — Snapshot seksi & pemetaan subkegiatan =====
-function SeksiTab({ taId, isDraft, isArsip }: { taId: string; isDraft: boolean; isArsip: boolean }) {
+function SeksiTab({ taId, isDraft }: { taId: string; isDraft: boolean; isArsip: boolean }) {
   const [refresh, setRefresh] = useState(0);
   const [addSeksi, setAddSeksi] = useState(false);
   const seksi = repo.seksiTAByTA(taId);
-  const sotkaAktif = repo.masterSOTK().filter((s) => s.status_versi === 'Aktif');
 
   return (
     <div className="space-y-3">

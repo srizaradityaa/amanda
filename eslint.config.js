@@ -18,11 +18,10 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      // Hanya memengaruhi hot-reload saat pengembangan; berkas bersama sengaja memuat konstanta dan komponen.
+      'react-refresh/only-export-components': 'off',
     },
   }
 );

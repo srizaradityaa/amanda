@@ -109,7 +109,7 @@ export function TemplateVerifikasiPage() {
             <p className="text-2xs text-mist-dim">Gambar stempel (PNG/JPG, maks. 2 MB)</p>
             <UnggahBerkas nama={t.stempel_berkas} accept=".png,.jpg,.jpeg" label="Pilih stempel" onPilih={(f) => pilihGambar(KUNCI_STEMPEL, 'stempel_berkas', f)} onHapus={() => hapusGambar(KUNCI_STEMPEL, 'stempel_berkas')} />
           </div>
-          <p className="text-2xs text-mist-dim">Gambar hanya dipegang pada sesi ini. Penyimpanan permanen menunggu backend.</p>
+          <p className="text-2xs text-mist-dim">Gambar tersimpan permanen di server dan dipakai semua pengguna saat mencetak.</p>
           <ErrorLine msg={errBerkas} />
           <ErrorLine msg={err} />
           <Button onClick={simpan}>Simpan Template</Button>

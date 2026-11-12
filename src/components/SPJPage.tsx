@@ -250,7 +250,7 @@ function EditSPJModal({ sesi, spj, kuitansi, onClose, onSaved }: {
   const [unggahStatus, setUnggahStatus] = useState<string | null>(null);
 
   // SPJ-06: urutan status UI "Menyiapkan dokumen..." lalu "Mengunggah dokumen..."; sukses setelah lapisan data menerima.
-  // Kompresi PDF sungguhan di peramban dan server menunggu backend (Tahap B).
+  // Kompresi PDF belum ada: berkas di atas 5 MB disimpan apa adanya dan dicatat berstatus FAILED.
   const pilihLampiran = async (f: File) => {
     setErr(null);
     setUnggahStatus(modeServer ? 'Mengunggah dokumen...' : null);

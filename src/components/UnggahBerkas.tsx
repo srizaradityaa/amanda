@@ -46,7 +46,7 @@ export function UnggahBerkas({
         )}
       </div>
       {nama && onBuka && !bisaBuka && (
-        <p className="text-2xs text-mist-dim">Berkas hanya dapat dibuka pada sesi saat diunggah. Penyimpanan permanen tersedia setelah backend.</p>
+        <p className="text-2xs text-mist-dim">Isi berkas belum dapat ditampilkan. Muat ulang halaman; bila tetap tidak muncul, unggah ulang berkasnya.</p>
       )}
       {status && <p className="text-2xs text-mist-dim">{status}</p>}
     </div>

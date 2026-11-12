@@ -7,6 +7,8 @@ import { paguSeksi, paguSubkegiatan, statusSeksi } from '@/data/anggaran';
 import type { AktorAnggaran } from '@/data/anggaran';
 import { repo } from '@/data/repo';
 import { recordAudit } from '@/lib/audit';
+import { supabase, modeServer } from '@/lib/supabase';
+import { buatApi } from '@/lib/api';
 import { formatRupiah } from '@/lib/format';
 import { todayWita } from '@/lib/wita';
 import type { BKU, FormDinamis, FieldFormDinamis, Kuitansi, SPJ } from '@/data/types';
@@ -384,5 +386,6 @@ export function laporanKustom(
 // ===== Jejak unduhan Pengawas (D01 §9 poin 5) =====
 export function catatUnduhanPengawas(aktor: AktorAnggaran, ta_id: string, namaLaporan: string, format: 'Excel' | 'PDF'): void {
   if (aktor.peran !== 'pengawas') return; // peran lain tidak menghasilkan jejak (T-163)
+  if (modeServer) { void buatApi(supabase as never).pengawas_catat_aksi({ p_entitas: `Laporan ${namaLaporan}`, p_keterangan: `Unduhan ${format}` }).catch(() => {}); return; }
   recordAudit({ ta_id, entitas: `Laporan ${namaLaporan}`, aksi: 'aksi_pengawas', nilai_sesudah: `Unduhan ${format}` });
 }

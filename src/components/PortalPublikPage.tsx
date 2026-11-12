@@ -1,7 +1,7 @@
 // PUB-01..05, PUB-07 — Portal Keterbukaan Informasi Publik (anonim, baca saja).
 // Hanya memakai agregat aman dari data/publik.ts: persentase, cacah, nama seksi, peringkat. Tidak ada nominal rupiah.
 import { useCallback, useEffect, useState } from 'react';
-import { daftarTAPublik, ringkasanPublik, type KodeKategori, type RingkasanPublik } from '@/data/publik';
+import { daftarTAPublikAsync, ringkasanPublikAsync, type TAPublik, type KodeKategori, type RingkasanPublik } from '@/data/publik';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Maximize2, Minimize2, Pencil } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
@@ -52,12 +52,17 @@ function Gauge({ persen, label }: { persen: number | null; label: string }) {
 }
 
 export function PortalPublikPage({ onBack }: { onBack: () => void }) {
-  const daftar = daftarTAPublik();
-  const [taId, setTaId] = useState(daftar.find((t) => t.bawaan)?.id ?? daftar[0]?.id ?? '');
-  const [r, setR] = useState<RingkasanPublik | null>(() => (taId ? ringkasanPublik(taId) : null));
+  const [daftar, setDaftar] = useState<TAPublik[]>([]);
+  const [taId, setTaId] = useState('');
+  const [r, setR] = useState<RingkasanPublik | null>(null);
+  useEffect(() => {
+    let batal = false;
+    void daftarTAPublikAsync().then((d) => { if (batal) return; setDaftar(d); setTaId((cur) => cur || (d.find((t) => t.bawaan)?.id ?? d[0]?.id ?? '')); });
+    return () => { batal = true; };
+  }, []);
   const [layarPenuh, setLayarPenuh] = useState(false);
 
-  const segarkan = useCallback(() => { setR(taId ? ringkasanPublik(taId) : null); }, [taId]);
+  const segarkan = useCallback(() => { if (!taId) { setR(null); return; } void ringkasanPublikAsync(taId).then(setR); }, [taId]);
   useEffect(() => { segarkan(); const t = setInterval(segarkan, SEGAR_MS); return () => clearInterval(t); }, [segarkan]);
 
   const alih = useCallback(() => {

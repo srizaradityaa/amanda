@@ -72,3 +72,24 @@ export function ringkasanPublik(ta_id: string): RingkasanPublik | null {
     diperbarui: nowWita(),
   };
 }
+
+// ---- Mode server: portal anonim membaca agregat langsung dari RPC publik (tanpa login, tanpa data lokal) ----
+import { supabase, modeServer } from '@/lib/supabase';
+import { buatApi } from '@/lib/api';
+
+export async function daftarTAPublikAsync(): Promise<TAPublik[]> {
+  if (!modeServer) return daftarTAPublik();
+  try { const d = await buatApi(supabase as never).publik_daftar_ta() as unknown; return Array.isArray(d) ? (d as TAPublik[]) : []; } catch { return []; }
+}
+export async function ringkasanPublikAsync(ta_id: string): Promise<RingkasanPublik | null> {
+  if (!modeServer) return ringkasanPublik(ta_id);
+  try {
+    const { ok, ...isi } = await buatApi(supabase as never).publik_ringkasan({ p_ta: ta_id }) as unknown as { ok: boolean } & RingkasanPublik;
+    return ok ? (isi as RingkasanPublik) : null;
+  } catch { return null; }
+}
+export type HasilKeaslian = { berlaku: false } | { berlaku: true; ta: string; seksi: string; tanggal: string; nomor: string };
+export async function cekKeaslianAsync(token: string, demo: (t: string) => HasilKeaslian): Promise<HasilKeaslian> {
+  if (!modeServer) return demo(token);
+  try { const r = await buatApi(supabase as never).pub_cek_keaslian({ p_token: token }) as unknown as HasilKeaslian; return r && r.berlaku ? r : { berlaku: false }; } catch { return { berlaku: false }; }
+}

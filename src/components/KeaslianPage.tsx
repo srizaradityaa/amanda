@@ -1,11 +1,15 @@
 // VER-05 — Halaman keaslian SPJ via token (publik, tanpa login).
 // Hanya status, nomor verifikasi, nama TA, nama seksi, dan tanggal verifikasi (nomor dicocokkan dengan lembar cetak). Respons seragam untuk token tidak dikenal atau tidak berlaku.
+import { useEffect, useState } from 'react';
 import { repo } from '@/data/repo';
+import { cekKeaslianAsync, type HasilKeaslian } from '@/data/publik';
 import { formatTanggal } from '@/lib/wita';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 export function KeaslianPage({ token }: { token: string }) {
-  const r = repo.cekKeaslian(token);
+  const [r, setR] = useState<HasilKeaslian | null>(null);
+  useEffect(() => { let batal = false; void cekKeaslianAsync(token, repo.cekKeaslian).then((h) => { if (!batal) setR(h); }); return () => { batal = true; }; }, [token]);
+  if (!r) return <div className="flex min-h-screen items-center justify-center bg-ink text-sm text-mist-dim">Memeriksa keaslian…</div>;
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink p-4">
       <div className="w-full max-w-md rounded-lg border border-ink-edge bg-ink-surface p-6 text-center">

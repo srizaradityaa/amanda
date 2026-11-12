@@ -179,11 +179,6 @@ function AppShell({
 
   return (
     <DashboardShell nav={nav} activeId={active?.id ?? 'dashboard'} onNavigate={onNavigate}>
-      {modeServer && (
-        <div role="status" className="mb-4 rounded-md border border-amber/40 bg-amber/10 px-3 py-2 text-2xs text-mist">
-          <strong>Tahap uji:</strong> seluruh data dibaca dan disimpan di Supabase. Laporkan setiap galat yang Anda temui.
-        </div>
-      )}
       {bannerTA && <GerbangBanner ta_id={bannerTA} />}
       {active?.render()}
     </DashboardShell>

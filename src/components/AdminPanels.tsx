@@ -212,7 +212,8 @@ export function PersonelPage() {
     return t.includes(search.toLowerCase());
   });
 
-  const totalAkun = repo.akunLogin().filter((a) => a.status === 'ACTIVE').length;
+  // Akun Admin sistem (tanpa personel) tidak dihitung; hanya akun milik personel yang aktif.
+  const totalAkun = repo.akunLogin().filter((a) => a.status === 'ACTIVE' && a.personel_id !== null && a.username !== 'admin').length;
 
   return (
     <div className="space-y-4">
@@ -220,7 +221,7 @@ export function PersonelPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard icon={<Users size={18} />} label="Total Personel" value={`${list.length}`} />
         <StatCard icon={<KeyRound size={18} />} label="Akun Aktif" value={`${totalAkun}`} />
-        <StatCard icon={<Layers size={18} />} label="Entri Histori" value={`${repo.pangkatHistory('').length || 10}`} />
+        <StatCard icon={<Layers size={18} />} label="Entri Histori" value={`${list.reduce((n, p) => n + repo.pangkatHistory(p.id).length, 0)}`} />
       </div>
       {/* MST-04 — Navigasi */}
       <div className="flex flex-wrap gap-2 text-2xs">

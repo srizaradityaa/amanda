@@ -63,7 +63,7 @@ async function bacaXlsx(buf: Uint8Array): Promise<string[][]> {
 }
 
 function bacaCsv(teks: string): string[][] {
-  const t = teks.replace(/^﻿/, '');
+  const t = teks.replace(/^\uFEFF/, '');
   const pemisah = (t.split('\n')[0].match(/;/g)?.length ?? 0) > (t.split('\n')[0].match(/,/g)?.length ?? 0) ? ';' : ',';
   const baris: string[][] = []; let sel = '', row: string[] = [], q = false;
   for (let i = 0; i < t.length; i++) {

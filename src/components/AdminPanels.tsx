@@ -12,43 +12,147 @@ import { bacaKodeNama } from '@/lib/xlsxBaca';
 import { unduhXlsx } from '@/lib/xlsx';
 import { bukaDokumenMaster } from '@/lib/masterDok';
 import { formatUkuran } from '@/lib/berkas';
-import { recordAudit } from '@/lib/audit';
+import { recordAudit, visibleAuditEvents } from '@/lib/audit';
 import { getSession } from '@/lib/auth';
-import { formatTanggal, formatTanggalPendek, todayWita, tambahHari } from '@/lib/wita';
+import { formatTanggal, formatTanggalPendek, todayWita, tambahHari, selisihHari } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
 import type { AccountStatus, DirektoriTransaksionalSPJ } from '@/data/types';
 import { Download, Upload, FileText, Plus, Pencil, Archive, KeyRound, Building2, Users, Lock, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
 
 const SESSION = getSession();
 
-// ============ DSB-01 — Dasbor Administrasi Global (diperluas dari Langkah 1) ============
+// ============ DSB-01 — Dasbor Administrasi Global ============
+// Admin tidak melihat alokasi, SPD, kuitansi, SPJ, verifikasi, BKU, atau angka realisasi (D01 §6 poin 2);
+// dasbor ini hanya memuat kesiapan sistem, master, akun, dan aktivitas administratif.
+
+function bukaMenu(id: string) { window.dispatchEvent(new CustomEvent('amanda:nav', { detail: id })); }
+
+function Tautan({ id, children }: { id: string; children: React.ReactNode }) {
+  return <button onClick={() => bukaMenu(id)} className="text-teal hover:underline">{children}</button>;
+}
+
+type Tindakan = { tingkat: 'crit' | 'warn'; teks: string; menu: string; aksi: string };
+
+function kumpulkanTindakan(): Tindakan[] {
+  const out: Tindakan[] = [];
+  const akun = repo.akunLogin().filter((a) => a.personel_id !== null);
+  const personel = repo.masterPersonel();
+  const terkunci = akun.filter((a) => a.locked).length;
+  if (terkunci > 0) out.push({ tingkat: 'crit', teks: `${terkunci} akun terkunci setelah salah sandi.`, menu: 'personel', aksi: 'Buka kunci' });
+  if (repo.masterSOTK().filter((s) => s.status_versi === 'Aktif').length === 0) out.push({ tingkat: 'warn', teks: 'Master SOTK masih kosong.', menu: 'sotk', aksi: 'Isi SOTK' });
+  if (personel.length === 0) out.push({ tingkat: 'warn', teks: 'Master Personel masih kosong.', menu: 'personel', aksi: 'Isi personel' });
+  const tanpaAkun = personel.filter((p) => !akun.some((a) => a.personel_id === p.id)).length;
+  if (tanpaAkun > 0) out.push({ tingkat: 'warn', teks: `${tanpaAkun} personel belum punya akun login.`, menu: 'personel', aksi: 'Buat akun' });
+  if (repo.masterSubkegiatan().filter((x) => x.status === 'Aktif').length === 0) out.push({ tingkat: 'warn', teks: 'Master Subkegiatan masih kosong.', menu: 'kamus', aksi: 'Isi subkegiatan' });
+  if (repo.masterRekeningBelanja().filter((x) => x.status === 'Aktif').length === 0) out.push({ tingkat: 'warn', teks: 'Master Rekening Belanja masih kosong.', menu: 'kamus', aksi: 'Isi rekening' });
+  const taList = repo.tahunAnggaran();
+  if (taList.length === 0) out.push({ tingkat: 'warn', teks: 'Belum ada Tahun Anggaran.', menu: 'tahun-anggaran', aksi: 'Buat TA' });
+  else if (!taList.some((t) => t.status === 'Aktif Penuh')) out.push({ tingkat: 'warn', teks: 'Belum ada Tahun Anggaran yang aktif.', menu: 'tahun-anggaran', aksi: 'Kelola TA' });
+  for (const ta of taList.filter((t) => t.status !== 'Arsip Read-Only')) {
+    const kurang = repo.checklistKesiapan(ta.id).items.filter((i) => !i.ok);
+    for (const k of kurang) out.push({ tingkat: ta.status === 'Draft' ? 'warn' : 'crit', teks: `TA ${ta.tahun}: ${k.label} belum terpenuhi.`, menu: 'tahun-anggaran', aksi: 'Lengkapi' });
+    for (const d of repo.delegasiByTA(ta.id).filter((x) => x.status === 'Delegasi Aktif')) {
+      const sisa = selisihHari(d.tanggal_berakhir, todayWita());
+      if (sisa <= 7) out.push({ tingkat: 'warn', teks: `TA ${ta.tahun}: delegasi ${d.nama_snapshot} berakhir ${sisa <= 0 ? 'hari ini' : `dalam ${sisa} hari`}.`, menu: 'tahun-anggaran', aksi: 'Tinjau' });
+    }
+  }
+  return out;
+}
+
 export function AdminDasborPage() {
   const taList = repo.tahunAnggaran();
+  const akun = repo.akunLogin().filter((a) => a.personel_id !== null);
+  const tindakan = kumpulkanTindakan();
+  const terbaru = [...visibleAuditEvents()].sort((a, b) => (a.waktu < b.waktu ? 1 : -1)).slice(0, 8);
   return (
     <div className="space-y-6">
       <PageHeader title="Dasbor Administrasi Global" desc="Master & Tahun Anggaran — mode baca saja. Admin tidak melihat alokasi, SPD, kuitansi, SPJ, verifikasi, BKU, atau angka realisasi/sisa SPD." />
-      {/* Kartu TA + Pagu Induk */}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard icon={<Users size={18} />} label="Personel" value={`${repo.masterPersonel().length}`} />
+        <StatCard icon={<KeyRound size={18} />} label="Akun aktif" value={`${akun.filter((a) => a.status === 'ACTIVE' && !a.locked).length}`} />
+        <StatCard icon={<Lock size={18} />} label="Akun terkunci" value={`${akun.filter((a) => a.locked).length}`} />
+        <StatCard icon={<Building2 size={18} />} label="Unit SOTK aktif" value={`${repo.masterSOTK().filter((s) => s.status_versi === 'Aktif').length}`} />
+        <StatCard icon={<Layers size={18} />} label="Subkegiatan aktif" value={`${repo.masterSubkegiatan().filter((x) => x.status === 'Aktif').length}`} />
+        <StatCard icon={<ScrollText size={18} />} label="Rekening belanja aktif" value={`${repo.masterRekeningBelanja().filter((x) => x.status === 'Aktif').length}`} />
+        <StatCard icon={<FileText size={18} />} label="Jenis pajak aktif" value={`${repo.masterJenisPajak().filter((x) => x.status === 'Aktif').length}`} />
+        <StatCard icon={<History size={18} />} label="Tahun Anggaran" value={`${taList.length}`} />
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-mist">Perlu tindakan</h3>
+        <Card className="p-4">
+          {tindakan.length === 0 ? (
+            <p className="flex items-center gap-2 text-sm text-ok"><StatusBadge kind="ok" label="Aman" /> Tidak ada yang perlu ditindaklanjuti.</p>
+          ) : (
+            <ul className="divide-y divide-ink-edge/60">
+              {tindakan.map((t, i) => (
+                <li key={i} className="flex items-center gap-3 py-2 text-2xs">
+                  <StatusBadge kind={t.tingkat} label={t.tingkat === 'crit' ? 'Penting' : 'Perhatian'} />
+                  <span className="flex-1 text-mist">{t.teks}</span>
+                  <Tautan id={t.menu}>{t.aksi}</Tautan>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
       <div>
         <h3 className="mb-3 text-sm font-semibold text-mist">Tahun Anggaran</h3>
+        {taList.length === 0 && <EmptyState title="Belum ada Tahun Anggaran" desc="Buat TA pertama dari menu Tahun Anggaran." />}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {taList.map((ta) => (
-            <Card key={ta.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="mono text-base font-semibold text-mist">TA {ta.tahun}</span>
-                <StatusBadge kind={ta.status === 'Aktif Penuh' ? 'ok' : ta.status === 'Draft' ? 'neutral' : 'warn'} label={ta.status} />
-              </div>
-              <div className="mt-3 space-y-1 text-2xs text-mist-dim">
-                <Row label="Pagu Induk" value={formatRupiah(ta.pagu_induk)} mono />
-                <Row label="APBD-P" value={ta.mode_apbd_p ? 'Aktif' : 'Tidak'} />
-                <Row label="Pernah transaksi" value={ta.pernah_transaksi ? 'Ya' : 'Tidak'} />
-                <Row label="Arsip terakhir" value={formatTanggal(ta.tanggal_arsip_terakhir)} />
-              </div>
-              {ta.status === 'Arsip Read-Only' && (
-                <div className="mt-3"><ProtectedNotice label="Arsip Read-Only" /></div>
-              )}
-            </Card>
-          ))}
+          {taList.map((ta) => {
+            const cek = repo.checklistKesiapan(ta.id);
+            const ok = cek.items.filter((i) => i.ok).length;
+            return (
+              <Card key={ta.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <span className="mono text-base font-semibold text-mist">TA {ta.tahun}</span>
+                  <StatusBadge kind={ta.status === 'Aktif Penuh' ? 'ok' : ta.status === 'Draft' ? 'neutral' : 'warn'} label={ta.status} />
+                </div>
+                <div className="mt-3 space-y-1 text-2xs text-mist-dim">
+                  <Row label="Pagu Induk" value={formatRupiah(ta.pagu_induk)} mono />
+                  <Row label="APBD-P" value={ta.mode_apbd_p ? 'Aktif' : 'Tidak'} />
+                  <Row label="Arsip terakhir" value={formatTanggal(ta.tanggal_arsip_terakhir)} />
+                </div>
+                {ta.status !== 'Arsip Read-Only' && (
+                  <div className="mt-3">
+                    <div className="mb-1 flex justify-between text-2xs text-mist-dim"><span>Kesiapan</span><span className="mono">{ok}/{cek.items.length}</span></div>
+                    <div className="h-1.5 overflow-hidden rounded bg-ink-edge" role="progressbar" aria-valuenow={ok} aria-valuemax={cek.items.length} aria-label="Kesiapan TA">
+                      <div className={`h-full ${ok === cek.items.length ? 'bg-ok' : 'bg-amber'}`} style={{ width: `${cek.items.length ? (ok / cek.items.length) * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                )}
+                {ta.status === 'Arsip Read-Only' && (
+                  <div className="mt-3"><ProtectedNotice label="Arsip Read-Only" /></div>
+                )}
+              </Card>
+            );
+          })}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-mist">Aktivitas terbaru</h3>
+          <Tautan id="audit">Lihat semua</Tautan>
+        </div>
+        <Card className="p-4">
+          {terbaru.length === 0 ? (
+            <p className="text-2xs text-mist-dim">Belum ada aktivitas tercatat.</p>
+          ) : (
+            <ul className="divide-y divide-ink-edge/60">
+              {terbaru.map((e) => (
+                <li key={e.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2 text-2xs">
+                  <span className="mono text-mist-dim">{formatTanggalPendek(e.waktu.slice(0, 10))} {e.waktu.slice(11, 16)}</span>
+                  <span className="text-mist">{e.entitas}</span>
+                  <span className="text-mist-dim">oleh {e.aktor_nama_snapshot}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
     </div>
   );

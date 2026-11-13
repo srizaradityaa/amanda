@@ -64,6 +64,12 @@ function AplikasiUtama() {
     setActiveNavState(id);
     try { window.history.replaceState(null, '', id === 'dashboard' ? window.location.pathname + window.location.search : `#/h/${id}`); } catch { /* abaikan */ }
   };
+  // Tautan di dalam halaman (mis. dasbor Admin) membuka menu lain lewat peristiwa ini.
+  useEffect(() => {
+    const h = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (typeof id === 'string') setActiveNav(id); };
+    window.addEventListener('amanda:nav', h);
+    return () => window.removeEventListener('amanda:nav', h);
+  }, []);
   // Mode server: tiap kali data dimuat ulang dari Supabase, seluruh layar dirender ulang.
   useSyncExternalStore(langgananData, versiData);
   const [dataStatus, setDataStatus] = useState<'belum' | 'memuat' | 'siap' | 'gagal'>(modeServer ? 'belum' : 'siap');

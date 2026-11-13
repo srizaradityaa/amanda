@@ -17,3 +17,6 @@
 - PDF daftar subkegiatan/rekening disimpan sebagai arsip rujukan (bucket `master-dokumen`, hanya Admin). PDF tidak dibaca otomatis.
 - Perbaikan galat "Rekening/Subkegiatan tidak ditemukan": tombol Tambah mengirim ID kosong sehingga dianggap ubah. Kode ganda kini ditolak dengan pesan jelas.
 - Semua galat operasi tulis kini selalu ditampilkan (sebelumnya ada yang diam-diam gagal).
+
+## Larangan rangkap jabatan (2026-11-13)
+Keputusan pemilik: satu orang dilarang merangkap jabatan pada TA yang sama (PA/KPA, Bendahara, PPTK, Verifikator), termasuk saat ditunjuk sebagai Plh./Plt. Ini memperluas Dokumen 01 §6 poin 1 (yang hanya melarang Bendahara merangkap PPTK). Satu orang tetap boleh memegang peran yang sama pada beberapa seksi. Ditegakkan di server (migrasi 0017); penugasan lama yang sudah merangkap tidak diubah otomatis dan harus dikoreksi Admin.

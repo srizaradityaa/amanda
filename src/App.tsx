@@ -75,9 +75,10 @@ function AplikasiUtama() {
   const [galat, setGalat] = useState<string | null>(null);
   useEffect(() => langgananGalat((p) => setGalat(p)), []);
   const sibuk = useSyncExternalStore(langgananSibuk, sedangSibuk) > 0;
-  const [info, setInfo] = useState<string | null>(null);
-  useEffect(() => langgananInfo((p) => { setInfo(p); }), []);
-  useEffect(() => { if (!info) return; const t = setTimeout(() => setInfo(null), 2200); return () => clearTimeout(t); }, [info]);
+  const [info, setInfo] = useState<{ t: string; n: number } | null>(null);
+  useEffect(() => langgananInfo((p) => { setInfo((x) => ({ t: p, n: (x?.n ?? 0) + 1 })); }), []);
+  useEffect(() => { if (!info) return; const t = setTimeout(() => setInfo(null), 2000); return () => clearTimeout(t); }, [info]);
+  useEffect(() => { if (!galat) return; const t = setTimeout(() => setGalat(null), 7000); return () => clearTimeout(t); }, [galat]);
   const adaSesiAktif = !!session && !isPending(session);
   useEffect(() => {
     if (!modeServer) return;
@@ -172,7 +173,7 @@ function AplikasiUtama() {
         </div>
       )}
       {info && !sibuk && (
-        <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md border border-ok/50 bg-ink-surface px-4 py-2 text-sm text-mist shadow-lg">✓ {info}</div>
+        <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md border border-ok/50 bg-ink-surface px-4 py-2 text-sm text-mist shadow-lg">✓ {info.t}</div>
       )}
       {galat && (
         <div role="alert" className="fixed bottom-4 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-start gap-3 rounded-md border border-crit/50 bg-ink-surface px-4 py-3 text-sm text-mist shadow-lg">

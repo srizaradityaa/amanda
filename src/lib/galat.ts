@@ -2,7 +2,7 @@
 type Pendengar = (pesan: string | null) => void;
 const pendengar = new Set<Pendengar>();
 export function langgananGalat(fn: Pendengar): () => void { pendengar.add(fn); return () => { pendengar.delete(fn); }; }
-export function tampilkanGalat(pesan: string): void { for (const f of pendengar) f(pesan); }
+export function tampilkanGalat(pesan: string): void { for (const f of pendengar) { f(null); f(pesan); } }
 
 // Penanda "sedang memproses" global: tombol simpan/tambah/aksi lain langsung memberi tanda walau server jauh.
 let sibuk = 0;

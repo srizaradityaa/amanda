@@ -349,7 +349,7 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
     ...seksiTA.map((sk) => ({ kunci: `pptk-${sk.id}`, peran: 'pptk' as PeranPenugasan, label: 'PPTK', lingkup: sk.nama_snapshot, seksiId: sk.id as string | null })),
   ];
   const kosong = slot.filter((x) => !tgs.some((t) => t.peran === x.peran && (t.seksi_ta_id ?? null) === x.seksiId) && !delAktif.some((d) => d.peran_digantikan === x.peran && (d.seksi_ta_id ?? null) === x.seksiId)).length
-    + (pengawas.length === 0 ? 1 : 0);
+    ;
   const ikon = 'rounded p-1 text-mist-dim hover:text-mist';
 
   const barisSlot = (x: Slot, i: number) => {
@@ -411,9 +411,9 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
           <tbody>
             {slot.map(barisSlot)}
             {pengawas.length === 0 ? (
-              <tr className="border-l-2 border-l-crit"><td className="px-3 py-2 font-medium text-mist">Pengawas</td><td className="px-3 py-2 text-mist-dim">Seluruh seksi (baca saja)</td>
-                <td className="px-3 py-2"><span className="inline-flex items-center gap-1 font-semibold text-crit"><AlertTriangle size={12} /> KOSONG: belum ditugaskan</span></td>
-                <td className="px-3 py-2"><StatusBadge kind="crit" label="Kosong" /></td><td className="px-3 py-2">—</td><td className="px-3 py-2">—</td>
+              <tr className="border-l-2 border-l-transparent"><td className="px-3 py-2 font-medium text-mist">Pengawas</td><td className="px-3 py-2 text-mist-dim">Seluruh seksi (baca saja)</td>
+                <td className="px-3 py-2 text-mist-dim">Belum ada (opsional; boleh lebih dari satu)</td>
+                <td className="px-3 py-2"><StatusBadge kind="neutral" label="Opsional" /></td><td className="px-3 py-2">—</td><td className="px-3 py-2">—</td>
                 <td className="px-3 py-2">{!isArsip && <Button className="px-2 py-0.5 text-2xs" onClick={() => setPengModal(true)}><Plus size={12} /> Tugaskan</Button>}</td></tr>
             ) : pengawas.map((t) => {
               const p = repo.pengawasById(t.pengawas_id);

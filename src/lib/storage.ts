@@ -21,7 +21,7 @@ export function kunciLampiran(spjId: string, namaBerkas: string): string {
 }
 
 export async function unggah(k: KlienStorage, bucket: string, kunci: string, berkas: Blob | File): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await denganSibuk(() => k.storage.from(bucket).upload(kunci, berkas, { upsert: true, contentType: (berkas as File).type || undefined }));
+  const { error } = await denganSibuk(async () => await k.storage.from(bucket).upload(kunci, berkas, { upsert: true, contentType: (berkas as File).type || undefined }));
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 export async function unduh(k: KlienStorage, bucket: string, kunci: string): Promise<{ ok: boolean; blob?: Blob; error?: string }> {

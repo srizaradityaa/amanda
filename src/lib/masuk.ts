@@ -1,5 +1,5 @@
 // Alur masuk AMANDA lewat Edge Function `masuk` (dua langkah).
-// 1) verifikasi NIP/NIK (atau email Pengawas) + kata sandi -> tiket + daftar konteks (TA, peran, seksi)
+// 1) verifikasi NIP/NIK + kata sandi -> tiket + daftar konteks (TA, peran, seksi)
 // 2) buka sesi pada satu konteks -> token Supabase yang dipasang ke klien (setSession)
 export interface Konteks { ta_id: string | null; tahun: string | null; peran: string; seksi_ta_id: string | null; seksi_nama: string | null; delegasi: boolean }
 export interface HasilVerifikasi { ok: boolean; error?: string; tiket?: string; nama?: string; konteks?: Konteks[] }

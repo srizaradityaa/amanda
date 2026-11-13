@@ -1,5 +1,4 @@
-// UIX-03 — Layout dasbor: sidebar + topbar untuk semua peran kecuali Pengawas/Auditor.
-// Pengawas memakai menu atas tanpa sidebar dan tanpa mini progress bar (D03 §1; D01 §3.3).
+// UIX-03 — Layout dasbor: sidebar + topbar.
 // Topbar: TA aktif, peran aktif (label), mini progress bar per peran, tombol logout.
 // Tanpa dropdown ganti TA/peran (AUT-03 — isolasi konteks sesi).
 
@@ -57,7 +56,6 @@ export function DashboardShell({
 
   if (!session) return null;
 
-  const isPengawas = session.active_role === 'pengawas';
   const renderItem = (item: NavItem) => (
     <button
       key={item.id}
@@ -75,10 +73,6 @@ export function DashboardShell({
       <span>{item.label}</span>
     </button>
   );
-
-  if (isPengawas) {
-    return <PengawasLayout nav={nav} activeId={activeId} onNavigate={onNavigate} session={session}>{children}</PengawasLayout>;
-  }
 
   return (
     <div className="flex min-h-screen bg-ink text-mist lg:h-screen lg:overflow-hidden">
@@ -194,7 +188,6 @@ function MiniProgress({ role, session }: { role: Role | 'pending'; session: Sess
       </div>
     );
   }
-  if (role === 'pengawas') return null; // tidak ada mini progress bar
 
   // Hitung agregat instansi atau seksi (SPD-01: komitmen = kuitansi Aktif atau Terkunci tanpa BKU)
   const ta_id = session.active_ta_id;
@@ -255,70 +248,6 @@ function Bar({ pct, label }: { pct: number; label: string }) {
         <div className="h-full rounded-full bg-amber" style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
       <span className="mono tnum text-mist">{label}</span>
-    </div>
-  );
-}
-
-// Pengawas: menu atas tanpa sidebar, tanpa mini progress bar
-function PengawasLayout({
-  nav,
-  activeId,
-  onNavigate,
-  session,
-  children,
-}: {
-  nav: NavItem[];
-  activeId: string;
-  onNavigate: (id: string) => void;
-  session: SessionPayload;
-  children: ReactNode;
-}) {
-  const ta = session.active_ta_id ? repo.tahunAnggaranById(session.active_ta_id) : undefined;
-  return (
-    <div className="flex min-h-screen flex-col bg-ink text-mist lg:h-screen lg:overflow-hidden">
-      <header className="border-b border-ink-edge bg-ink-surface">
-        <div className="flex h-12 items-center gap-3 px-4">
-          <Logo varian="ikon" tinggi={28} />
-          <span className="text-sm font-bold tracking-tight">AMANDA</span>
-          <span className="rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 text-2xs font-medium text-mist-dim">
-            Pengawas/Auditor
-          </span>
-          {ta && (
-            <span className="mono rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 text-2xs font-medium text-mist">
-              TA {ta.tahun}
-            </span>
-          )}
-          <div className="ml-auto flex items-center gap-2">
-            <span className="hidden text-2xs text-mist-dim sm:inline">{session.nama_snapshot}</span>
-            <button
-              onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-ink-edge px-2.5 py-1.5 text-2xs font-medium text-mist-dim hover:border-crit/40 hover:text-crit"
-              aria-label="Keluar"
-            >
-              <LogOut size={14} />
-              <span className="hidden sm:inline">Keluar</span>
-            </button>
-          </div>
-        </div>
-        {/* Menu atas, bukan sidebar */}
-        <nav className="flex gap-1 overflow-x-auto border-t border-ink-edge px-4 py-2">
-          {nav.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeId === item.id
-                  ? 'bg-amber/10 text-amber ring-1 ring-amber/30'
-                  : 'text-mist-dim hover:bg-ink-edge/40 hover:text-mist'
-              }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      </header>
-      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:min-h-0">{children}</main>
     </div>
   );
 }

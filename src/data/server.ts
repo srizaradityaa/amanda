@@ -8,7 +8,7 @@ import { segarkan } from '@/data/store';
 import { tampilkanGalat, tampilkanInfo, denganSibuk } from '@/lib/galat';
 import { unggah, hapus as hapusBerkas, kunciLampiran, BUCKET_SK, BUCKET_LAMPIRAN, BUCKET_MASTER } from '@/lib/storage';
 import type {
-  MasterPersonel, AkunPengawas, MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, TAStatus, AccountStatus,
+  MasterPersonel, MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, TAStatus, AccountStatus,
   PeranPenugasan, FieldFormDinamis, BlokBerulangFormDinamis, TemplateKuitansi, TemplateVerifikasi, FormatNomorVerifikasi, SessionPayload,
 } from '@/data/types';
 
@@ -37,11 +37,6 @@ function pecahPersonel(p: Partial<MasterPersonel>): Record<string, unknown> {
   for (const k of ['gelar_depan', 'nama', 'gelar_belakang', 'nip', 'nik', 'pangkat', 'tmt', 'no_whatsapp'] as const) if (p[k] !== undefined) o[k] = p[k];
   return o;
 }
-function pecahPengawas(p: Partial<AkunPengawas>): Record<string, unknown> {
-  const o: Record<string, unknown> = {};
-  for (const k of ['nama_lengkap', 'instansi_asal', 'nomor_surat_tugas', 'tanggal_surat_tugas', 'email', 'tanggal_akhir_akses'] as const) if (p[k] !== undefined) o[k] = p[k];
-  return o;
-}
 
 // ----------------------------- SOTK -----------------------------
 export const server = {
@@ -64,18 +59,6 @@ export const server = {
   buatAkun: (personel_id: string, sandi: string) => jalankan(api.adm_akun_buat({ p_personel_id: personel_id, p_sandi: sandi })),
   resetPassword: (akun_id: string, sandi: string) => jalankan(api.adm_akun_reset_sandi({ p_akun_id: akun_id, p_sandi: sandi }), { toast: true }),
   setAkunStatus: (akun_id: string, status: AccountStatus) => jalankan(api.adm_akun_set_status({ p_akun_id: akun_id, p_status: status }), { toast: true }),
-  tambahPengawas: (p: Omit<AkunPengawas, 'id' | 'failed_attempts' | 'locked' | 'status'>) =>
-    jalankan(api.adm_pengawas_tambah({ p: pecahPengawas(p), p_sandi: (p as { password?: string }).password ?? '' })),
-  async editPengawas(id: string, p: Partial<AkunPengawas>) {
-    if (p.status !== undefined) {
-      const rs = await jalankan(api.adm_pengawas_set_status({ p_id: id, p_status: p.status }), { toast: true });
-      if (!rs.ok) return;
-    }
-    const sisa = pecahPengawas(p);
-    if (Object.keys(sisa).length) await jalankan(api.adm_pengawas_edit({ p_id: id, p: sisa }), { toast: true });
-  },
-  resetPengawasPassword: (id: string, sandi: string) => jalankan(api.adm_pengawas_reset_sandi({ p_id: id, p_sandi: sandi })),
-
   // ------------------------- Master -------------------------
   tambahSubkegiatan: (kode: string, nama: string) => jalankan(api.adm_subkegiatan_simpan({ p_id: '', p_kode: kode, p_nama: nama }), { toast: true }),
   async editSubkegiatan(id: string, p: Partial<MasterSubkegiatan>) {
@@ -187,8 +170,6 @@ export const server = {
     }
     return jalankan(api.adm_sk_lengkapi({ ...dasar, p_berkas: 'tetap' }));
   },
-  tambahPengawasTA: (ta: string, pengawas: string, mulai: string, akhir: string) => jalankan(api.adm_pengawas_ta_tambah({ p_ta: ta, p_pengawas: pengawas, p_mulai: mulai, p_akhir: akhir })),
-  hapusPengawasTA: (id: string) => jalankan(api.adm_pengawas_ta_hapus({ p_id: id }), { toast: true }),
   tambahDelegasi: (ta: string, pengganti: string, peran: PeranPenugasan, seksi: string | null, mulai: string, berakhir: string, definitif: string) =>
     jalankan(api.adm_delegasi_tetapkan({ p_ta: ta, p_pengganti: pengganti, p_peran: peran, p_seksi: seksi as string, p_mulai: mulai, p_berakhir: berakhir, p_definitif: definitif })),
   cabutDelegasi: (id: string, alasan: string) => jalankan(api.adm_delegasi_cabut({ p_id: id, p_alasan: alasan })),

@@ -3,10 +3,10 @@
 // Lapisan akses data ini bentuknya mengikuti D04 agar mudah diganti backend di Tahap B.
 
 import type {
-  MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin, AkunPengawas,
+  MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin,
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
-  PenugasanPengawasTA, RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
+  RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
   Kuitansi, SPJ, BKU, TokenVerifikasiSPJ, FormatNomorVerifikasi, TemplateVerifikasi, AuditEvent, VersiAlokasiAnggaran, DirektoriTransaksionalSPJ, DirektoriRekeningBank,
   JendelaAlokasi, LedgerSPD, FormDinamis, TemplateKuitansi,
 } from '@/data/types';
@@ -62,12 +62,6 @@ export const akunLogin: AkunLogin[] = [
   { id: 'acc-6', personel_id: 'p-6', username: '198911112014032007', password: 'amanda123', status: 'ACTIVE', failed_attempts: 0, locked: false },
   { id: 'acc-7', personel_id: 'p-7', username: '198601252011011008', password: 'amanda123', status: 'NON-ACTIVE', failed_attempts: 0, locked: false },
   { id: 'acc-8', personel_id: 'p-8', username: '3210014503900001', password: 'amanda123', status: 'ACTIVE', failed_attempts: 0, locked: false },
-];
-
-// ===== Akun Pengawas/Auditor (terpisah dari personel) — D04 §3, D01 §8 =====
-export const akunPengawas: AkunPengawas[] = [
-  { id: 'aud-1', nama_lengkap: 'Rizal Fauzan, S.E., M.Si.', instansi_asal: 'Inspektorat Daerah Kab. Balangan', nomor_surat_tugas: '003/INSPEKTORAT/2026', tanggal_surat_tugas: '2026-02-01', email: 'rizal.auditor@balangankab.go.id', tanggal_akhir_akses: '2026-12-31', password: 'amanda123', status: 'ACTIVE', failed_attempts: 0, locked: false },
-  { id: 'aud-2', nama_lengkap: 'Lestari Pujiati, S.Sos., M.Si.', instansi_asal: 'BPKP Perwakilan Kalsel', nomor_surat_tugas: '045/BPKP/KSL/2026', tanggal_surat_tugas: '2026-03-10', email: 'lestari.auditor@bpkp.go.id', tanggal_akhir_akses: tambahHari(todayWita(), -30), password: 'amanda123', status: 'ACTIVE', failed_attempts: 0, locked: false },
 ];
 
 // ===== Master Subkegiatan & Rekening Belanja (kamus global) — D04 §2.1 =====
@@ -236,12 +230,6 @@ export const penugasanDelegasi: PenugasanDelegasi[] = [
   // dlg-2: sudah lewat tanggal berakhir, akan diakhiri otomatis saat aplikasi dimuat
   { id: 'dlg-2', ta_id: 'ta-2026', personel_pengganti_id: 'p-10', peran_digantikan: 'bendahara', seksi_ta_id: null, tanggal_mulai: tambahHari(todayWita(), -20), tanggal_berakhir: tambahHari(todayWita(), -2), status: 'Delegasi Aktif', alasan_pencabutan: null, definitive_officer_id: 'p-2', nama_snapshot: 'Yuni Astuti', nip_snapshot: '3210014503900002' },
   { id: 'dlg-1', ta_id: 'ta-2026', personel_pengganti_id: 'p-8', peran_digantikan: 'pptk', seksi_ta_id: 'sek-2026-2', tanggal_mulai: tambahHari(todayWita(), -5), tanggal_berakhir: tambahHari(todayWita(), 20), status: 'Delegasi Aktif', alasan_pencabutan: null, definitive_officer_id: 'p-4', nama_snapshot: 'Nina Marlina', nip_snapshot: '3210014503900001' },
-];
-
-export const penugasanPengawasTA: PenugasanPengawasTA[] = [
-  { id: 'tp-1', ta_id: 'ta-2026', pengawas_id: 'aud-1', tanggal_mulai: '2026-02-01', tanggal_akhir: '2026-12-31' },
-  { id: 'tp-2', ta_id: 'ta-2025', pengawas_id: 'aud-1', tanggal_mulai: '2025-01-01', tanggal_akhir: '2026-12-31' },
-  { id: 'tp-3', ta_id: 'ta-2026', pengawas_id: 'aud-2', tanggal_mulai: '2026-03-10', tanggal_akhir: tambahHari(todayWita(), -30) },
 ];
 
 export const registerSK: RegisterSK[] = [

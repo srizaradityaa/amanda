@@ -3,14 +3,10 @@
 
 import { useState } from 'react';
 import { namaLengkap } from '@/lib/nama';
-import {
-  Card, StatusBadge, Button, Field, Input, Select, EmptyState,
-  Modal, TableHead, ProtectedNotice, RupiahInput, useToast,
-} from '@/components/ui';
+import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, TableHead, ProtectedNotice, RupiahInput, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { EditPaguModal } from '@/components/EditPaguModal';
 import { ApbdPModal } from '@/components/ApbdPModal';
-import { PengawasPage } from '@/components/AdminPanels';
 import * as anggaran from '@/data/anggaran';
 import { recordAudit } from '@/lib/audit';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
@@ -20,7 +16,7 @@ import { getSession } from '@/lib/auth';
 import { formatTanggal, formatTanggalPendek, todayWita } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
 import type { TahunAnggaran, PeranPenugasan, RegisterSK } from '@/data/types';
-import { Plus, Trash2, ArrowRight, Building2, Users, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Circle as XCircle, FileText, CalendarClock, UserCog, Pencil, UserPlus } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, Building2, Users, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Circle as XCircle, FileText, CalendarClock, Pencil, UserPlus } from 'lucide-react';
 
 type TAStatus = TahunAnggaran['status'];
 
@@ -270,7 +266,7 @@ function RetensiModal({ taId, onClose, onSaved }: { taId: string; onClose: () =>
   );
 }
 
-// ============ TA Detail — Snapshot seksi, pemetaan, penugasan, delegasi, pengawas ============
+// ============ TA Detail — Snapshot seksi, pemetaan, penugasan, delegasi ============
 // Workspace khusus satu TA (menggantikan pop-up Detail). Tinggi tetap di laptop; isi dibagi per tab.
 function TAWorkspace({ ta, aksi, onBack }: { ta: TahunAnggaran; aksi: React.ReactNode; onBack: () => void }) {
   const [tab, setTab] = useState<'ringkasan' | 'penugasan' | 'seksi'>('ringkasan');
@@ -334,12 +330,9 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
   const [delModal, setDelModal] = useState(false);
   const [cabutModal, setCabutModal] = useState<{ delegasiId: string } | null>(null);
   const [riwayat, setRiwayat] = useState<{ peran: PeranPenugasan; seksiId: string | null; label: string } | null>(null);
-  const [pengModal, setPengModal] = useState(false);
-  const [akunPengModal, setAkunPengModal] = useState(false);
   const tgs = repo.penugasanByTA(taId).filter((t) => t.tmt_selesai === null);
   const delAktif = repo._allDelegasi(taId).filter((d) => d.status === 'Delegasi Aktif');
   const seksiTA = repo.seksiTAByTA(taId);
-  const pengawas = repo.penugasanPengawasByTA(taId);
 
   type Slot = { kunci: string; peran: PeranPenugasan; label: string; lingkup: string; seksiId: string | null };
   const slot: Slot[] = [
@@ -401,8 +394,6 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {!isArsip && <Button className="text-2xs" onClick={() => setDelModal(true)}><Plus size={12} /> Tetapkan Plh./Plt.</Button>}
-        {!isArsip && <Button variant="secondary" className="text-2xs" onClick={() => setPengModal(true)}><Plus size={12} /> Tugaskan Pengawas</Button>}
-        <Button variant="ghost" className="text-2xs" onClick={() => setAkunPengModal(true)}><UserCog size={12} /> Kelola Akun Pengawas</Button>
         <span className={`ml-auto text-2xs ${kosong > 0 ? 'font-semibold text-crit' : 'text-ok'}`}>{kosong > 0 ? `${kosong} peran masih kosong` : 'Semua peran terisi'}</span>
       </div>
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-ink-edge bg-ink-surface">
@@ -410,23 +401,6 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
           <TableHead columns={['Peran', 'Lingkup', 'Pemegang jabatan', 'Tanda', 'Masa tugas', 'SK', 'Aksi']} />
           <tbody>
             {slot.map(barisSlot)}
-            {pengawas.length === 0 ? (
-              <tr className="border-l-2 border-l-transparent"><td className="px-3 py-2 font-medium text-mist">Pengawas</td><td className="px-3 py-2 text-mist-dim">Seluruh seksi (baca saja)</td>
-                <td className="px-3 py-2 text-mist-dim">Belum ada (opsional; boleh lebih dari satu)</td>
-                <td className="px-3 py-2"><StatusBadge kind="neutral" label="Opsional" /></td><td className="px-3 py-2">—</td><td className="px-3 py-2">—</td>
-                <td className="px-3 py-2">{!isArsip && <Button className="px-2 py-0.5 text-2xs" onClick={() => setPengModal(true)}><Plus size={12} /> Tugaskan</Button>}</td></tr>
-            ) : pengawas.map((t) => {
-              const p = repo.pengawasById(t.pengawas_id);
-              return (
-                <tr key={t.id} className="border-l-2 border-l-transparent">
-                  <td className="px-3 py-2 font-medium text-mist">Pengawas</td><td className="px-3 py-2 text-mist-dim">Seluruh seksi (baca saja)</td>
-                  <td className="px-3 py-2"><span className="text-mist">{p?.nama_lengkap ?? '—'}</span> <span className="text-mist-dim">• {p?.instansi_asal ?? '—'}</span></td>
-                  <td className="px-3 py-2"><StatusBadge kind="neutral" label="Ditugaskan" /></td>
-                  <td className="px-3 py-2 mono whitespace-nowrap text-mist-dim">{formatTanggalPendek(t.tanggal_mulai)} — {formatTanggalPendek(t.tanggal_akhir)}</td>
-                  <td className="px-3 py-2">—</td><td className="px-3 py-2">{!isArsip && <button onClick={async () => { await repo.hapusPengawasTA(t.id); recordAudit({ ta_id: taId, entitas: `Penugasan Pengawas: ${p?.nama_lengkap ?? ''}`, aksi: 'aksi_administratif', nilai_sesudah: 'Penugasan dihapus' }); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus penugasan Pengawas"><Trash2 size={14} /></button>}</td>
-                </tr>
-              );
-            })}
           </tbody>
         </table>
       </div>
@@ -435,12 +409,6 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
           <RiwayatJabatan taId={taId} peran={riwayat.peran} seksiId={riwayat.seksiId} />
         </Modal>
       )}
-      {akunPengModal && (
-        <Modal open onClose={() => setAkunPengModal(false)} title="Akun Pengawas/Auditor" wider footer={<div className="flex justify-end"><Button variant="ghost" onClick={() => setAkunPengModal(false)}>Tutup</Button></div>}>
-          <PengawasPage />
-        </Modal>
-      )}
-      {pengModal && <AddPengawasTAModal taId={taId} onClose={() => setPengModal(false)} onSaved={() => { setPengModal(false); setRefresh((r) => r + 1); }} />}
       {addModal && <AddPenugasanModal taId={taId} peran={addModal.peran} seksiAwal={addModal.seksiId} onClose={() => setAddModal(null)} onSaved={() => { setAddModal(null); setRefresh((r) => r + 1); }} />}
       {skModal && <SKModal penugasanId={skModal.penugasanId} onClose={() => setSkModal(null)} onSaved={() => { setSkModal(null); setRefresh((r) => r + 1); }} />}
       {gantiModal && <GantiPejabatModal penugasanId={gantiModal.penugasanId} taId={taId} onClose={() => setGantiModal(null)} onSaved={() => { setGantiModal(null); setRefresh((r) => r + 1); }} />}
@@ -812,39 +780,6 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
         </div>
       )}
     </div>
-  );
-}
-
-function AddPengawasTAModal({ taId, onClose, onSaved }: { taId: string; onClose: () => void; onSaved: () => void }) {
-  const [pengawasId, setPengawasId] = useState('');
-  const [mulai, setMulai] = useState(todayWita());
-  const [akhir, setAkhir] = useState('');
-  const [err, setErr] = useState('');
-  const pengawas = repo.akunPengawas().filter((a) => a.status === 'ACTIVE');
-  const save = async () => {
-    if (!pengawasId) return setErr('Pilih akun Pengawas.');
-    if (!mulai || !akhir) return setErr('Tanggal mulai dan akhir wajib diisi.');
-    const r = await repo.tambahPengawasTA(taId, pengawasId, mulai, akhir);
-    if (!r.ok) return setErr(r.error ?? 'Gagal.');
-    const p = repo.pengawasById(pengawasId)!;
-    recordAudit({ ta_id: taId, entitas: `Penugasan Pengawas: ${p.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: `Mulai ${mulai}, akhir ${akhir}` });
-    onSaved();
-  };
-  return (
-    <Modal open onClose={onClose} title="Tugaskan Pengawas ke TA"
-      footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Tugaskan</Button></div>}>
-      <div className="space-y-4">
-        <Field label="Akun Pengawas" required>
-          <Select value={pengawasId} onChange={(e) => setPengawasId(e.target.value)}>
-            <option value="">— pilih —</option>
-            {pengawas.map((p) => <option key={p.id} value={p.id}>{p.nama_lengkap} ({p.instansi_asal})</option>)}
-          </Select>
-        </Field>
-        <Field label="Tanggal Mulai" required><Input type="date" value={mulai} onChange={(e) => setMulai(e.target.value)} /></Field>
-        <Field label="Tanggal Akhir" required><Input type="date" value={akhir} onChange={(e) => setAkhir(e.target.value)} /></Field>
-        <p className="text-2xs text-mist-dim">Tanpa seksi — cakupan seluruh seksi pada TA yang ditugaskan.</p>
-      </div>
-    </Modal>
   );
 }
 

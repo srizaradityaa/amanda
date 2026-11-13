@@ -1,13 +1,11 @@
 // UIX-02 — Halaman login Split-Hero responsif (D03 §1).
 // Panel kiri identitas Pemkab Balangan • Kec. Batumandi + logo + AMANDA + etos.
 // Panel kanan kartu datar; tombol amber "Masuk ke Sistem"; tautan "Lihat Ringkasan Publik".
-// Single-field identifier: angka -> personel; '@' -> Pengawas/Auditor (ikon + label teks).
+// Satu kolom identitas: NIP/NIK personel.
 
 import { useState, useEffect, useRef } from 'react';
-import {
-  Eye, EyeOff, AlertCircle, ShieldCheck, Building2, ChevronRight, Lock,
-} from 'lucide-react';
-import { loginAsync, isAuditorIdentifier, modeServer } from '@/lib/auth';
+import { Eye, EyeOff, AlertCircle, ShieldCheck, ChevronRight, Lock } from 'lucide-react';
+import { loginAsync, modeServer } from '@/lib/auth';
 import { Button, Field, Input } from '@/components/ui';
 import type { LoginResult } from '@/lib/auth';
 import { Logo } from '@/components/Logo';
@@ -23,8 +21,6 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
   useEffect(() => {
     idRef.current?.focus();
   }, []);
-
-  const auditorMode = isAuditorIdentifier(identifier);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,29 +73,22 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
           <div className="rounded-lg border border-ink-edge bg-ink-surface p-6 sm:p-8">
             <h2 className="mb-1 text-lg font-semibold text-mist">Masuk ke Sistem</h2>
             <p className="mb-6 text-2xs text-mist-dim">
-              Gunakan NIP, NIK, atau email Pengawas/Auditor sesuai penugasan Anda.
+              Gunakan NIP atau NIK sesuai penugasan Anda.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              <Field label="NIP / NIK / Email Auditor" required>
+              <Field label="NIP / NIK" required>
                 <Input
                   ref={idRef}
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Contoh: 198501012010011001 atau auditor@balangankab.go.id"
-                  className={auditorMode ? 'mono' : 'mono'}
+                  placeholder="Contoh: 198501012010011001"
+                  className="mono"
                   autoComplete="username"
                   spellCheck={false}
                 />
               </Field>
-
-              {auditorMode && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-teal/5 px-2.5 py-1 text-2xs font-medium text-teal">
-                  <Building2 size={12} />
-                  <span>Akun Pengawas/Auditor</span>
-                </div>
-              )}
 
               <Field label="Kata Sandi" required>
                 <div className="relative">

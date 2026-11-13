@@ -1,14 +1,11 @@
 // Langkah 2 — Panel Admin: Master Data & Akun (Tahap A, frontend dengan data contoh).
 // MST-01 SOTK, MST-02 Personel, MST-03 Pangkat, MST-04 Manajemen Personel,
-// MST-05 Subkegiatan/Rekening, MST-06 Pajak, AKN-01/02 Akun, AKN-04 Pengawas,
+// MST-05 Subkegiatan/Rekening, MST-06 Pajak, AKN-01/02 Akun,
 // BNT-01 Direktori, DSB-01 Dasbor, UIX-07/08.
 
 import { useState, useRef } from 'react';
 import { namaLengkap } from '@/lib/nama';
-import {
-  Card, StatusBadge, Button, Field, Input, Select, EmptyState,
-  Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager,
-} from '@/components/ui';
+import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { bacaKodeNama } from '@/lib/xlsxBaca';
 import { unduhXlsx } from '@/lib/xlsx';
@@ -19,7 +16,7 @@ import { getSession } from '@/lib/auth';
 import { formatTanggal, formatTanggalPendek, todayWita, tambahHari } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
 import type { AccountStatus, DirektoriTransaksionalSPJ } from '@/data/types';
-import { Download, Upload, FileText, Plus, Pencil, Archive, KeyRound, Building2, Users, TriangleAlert as AlertTriangle, Lock, ShieldCheck, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
+import { Download, Upload, FileText, Plus, Pencil, Archive, KeyRound, Building2, Users, Lock, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
 
 const SESSION = getSession();
 
@@ -821,128 +818,6 @@ function PajakModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'; i
       <Field label="Kode (opsional)"><Input className="mono" value={f.kode} onChange={(e) => setF({ ...f, kode: e.target.value })} /></Field>
       <Field label="Nama Jenis Pajak" required><Input value={f.nama} onChange={(e) => setF({ ...f, nama: e.target.value })} /></Field>
     </div>
-  </Modal>;
-}
-
-// ============ AKN-04 — Akun Pengawas/Auditor ============
-export function PengawasPage() {
-  const [list, setList] = useState(repo.akunPengawas());
-  const [search, setSearch] = useState('');
-  const [modal, setModal] = useState<{ mode: 'tambah' | 'edit' | 'reset' | 'nonaktif' | 'tanggal'; id?: string } | null>(null);
-  const refresh = () => setList([...repo.akunPengawas()]);
-
-  const filtered = list.filter((a) => {
-    if (!search) return true;
-    return `${a.nama_lengkap} ${a.email} ${a.instansi_asal}`.toLowerCase().includes(search.toLowerCase());
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <PageHeader title="Akun Pengawas/Auditor" desc="Terpisah dari Master Personel. Tidak memiliki NIP/NIK, pangkat, TMT, atau WhatsApp." />
-        <Button onClick={() => setModal({ mode: 'tambah' })}><Plus size={16} /> Tambah Akun Pengawas</Button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchBox value={search} onChange={setSearch} placeholder="Cari nama, email, instansi..." />
-        <Button variant="ghost" onClick={() => setSearch('')}>Reset</Button>
-      </div>
-      <Card>
-        <table className="w-full text-2xs">
-          <TableHead columns={['Nama', 'Instansi Asal', 'No. Surat Tugas', 'Email', 'Akhir Akses', 'Status', 'Aksi']} />
-          <tbody>
-            {filtered.map((a, i) => (
-              <tr key={a.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
-                <td className="std-row px-4 text-mist">{a.nama_lengkap}</td>
-                <td className="std-row px-4 text-mist-dim">{a.instansi_asal}</td>
-                <td className="std-row px-4 mono text-mist-dim">{a.nomor_surat_tugas}</td>
-                <td className="std-row px-4 text-mist-dim">{a.email}</td>
-                <td className="std-row px-4 mono text-mist-dim">{formatTanggalPendek(a.tanggal_akhir_akses)}</td>
-                <td className="std-row px-4">{a.status === 'ACTIVE' ? <StatusBadge kind="ok" label="ACTIVE" /> : <StatusBadge kind="crit" label="NON-ACTIVE" />}</td>
-                <td className="std-row px-4">
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setModal({ mode: 'edit', id: a.id })} className="rounded p-1 text-mist-dim hover:text-mist" title="Edit"><Pencil size={14} /></button>
-                    <button onClick={() => setModal({ mode: 'reset', id: a.id })} className="rounded p-1 text-mist-dim hover:text-amber" title="Reset Password"><KeyRound size={14} /></button>
-                    <button onClick={() => setModal({ mode: 'tanggal', id: a.id })} className="rounded p-1 text-mist-dim hover:text-teal" title="Ubah Tanggal Akses"><AlertTriangle size={14} /></button>
-                    <button onClick={() => setModal({ mode: 'nonaktif', id: a.id })} className="rounded p-1 text-mist-dim hover:text-crit" title="Nonaktifkan"><Lock size={14} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && <EmptyState icon={<ShieldCheck size={28} />} title="Tidak ada akun Pengawas" />}
-      </Card>
-      {modal && <PengawasModal mode={modal.mode} id={modal.id} onClose={() => setModal(null)} onSaved={refresh} />}
-    </div>
-  );
-}
-
-function PengawasModal({ mode, id, onClose, onSaved }: { mode: string; id?: string; onClose: () => void; onSaved: () => void }) {
-  const ex = id ? repo.akunPengawas().find((a) => a.id === id) : undefined;
-  const [f, setF] = useState({
-    nama_lengkap: ex?.nama_lengkap ?? '', instansi_asal: ex?.instansi_asal ?? '',
-    nomor_surat_tugas: ex?.nomor_surat_tugas ?? '', tanggal_surat_tugas: ex?.tanggal_surat_tugas ?? todayWita(),
-    email: ex?.email ?? '', tanggal_akhir_akses: ex?.tanggal_akhir_akses ?? todayWita(), password: '',
-  });
-  const [alasan, setAlasan] = useState('');
-  const [err, setErr] = useState('');
-  const set = (k: string, v: string) => setF((s) => ({ ...s, [k]: v }));
-
-  const save = async () => {
-    if (mode === 'tambah') {
-      if (!f.nama_lengkap.trim() || !f.email.trim() || !f.instansi_asal.trim()) return setErr('Nama, instansi, dan email wajib diisi.');
-      if (!f.nomor_surat_tugas.trim()) return setErr('Nomor surat tugas wajib diisi.');
-      if (f.password.length < 6) return setErr('Password minimal 6 karakter.');
-      const r = await repo.tambahPengawas({ nama_lengkap: f.nama_lengkap, instansi_asal: f.instansi_asal, nomor_surat_tugas: f.nomor_surat_tugas, tanggal_surat_tugas: f.tanggal_surat_tugas, email: f.email, tanggal_akhir_akses: f.tanggal_akhir_akses, password: f.password });
-      if (!r.ok) return setErr(r.error ?? 'Gagal.');
-      recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${f.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: 'Akun dibuat' });
-    } else if (mode === 'edit' && id) {
-      await repo.editPengawas(id, { nama_lengkap: f.nama_lengkap, instansi_asal: f.instansi_asal, nomor_surat_tugas: f.nomor_surat_tugas, tanggal_surat_tugas: f.tanggal_surat_tugas, email: f.email });
-      recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${f.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: 'Profil diperbarui' });
-    } else if (mode === 'reset' && id) {
-      if (f.password.length < 6) return setErr('Password minimal 6 karakter.');
-      const r = await repo.resetPengawasPassword(id, f.password);
-      if (!r.ok) return setErr(r.error ?? 'Gagal.');
-      recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${ex?.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sesudah: 'Password direset' });
-    } else if (mode === 'tanggal' && id) {
-      if (!alasan.trim()) return setErr('Alasan ubah tanggal akhir akses wajib diisi.');
-      const lama = ex?.tanggal_akhir_akses ?? '';
-      await repo.editPengawas(id, { tanggal_akhir_akses: f.tanggal_akhir_akses });
-      recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${ex?.nama_lengkap}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: f.tanggal_akhir_akses, alasan: alasan.trim() });
-    } else if (mode === 'nonaktif' && id) {
-      if (!alasan.trim()) return setErr('Alasan penonaktifan wajib diisi.');
-      const baru = ex?.status === 'ACTIVE' ? 'NON-ACTIVE' : 'ACTIVE';
-      await repo.editPengawas(id, { status: baru as AccountStatus });
-      recordAudit({ ta_id: null, entitas: `Akun Pengawas: ${ex?.nama_lengkap}`, aksi: 'perubahan_status_akun', nilai_sebelum: ex?.status, nilai_sesudah: baru, alasan: alasan.trim() });
-    }
-    onSaved(); onClose();
-  };
-
-  const title = mode === 'tambah' ? 'Tambah Akun Pengawas' : mode === 'edit' ? 'Edit Akun Pengawas' : mode === 'reset' ? 'Reset Password Pengawas' : mode === 'tanggal' ? 'Ubah Tanggal Akhir Akses' : mode === 'nonaktif' ? (ex?.status === 'ACTIVE' ? 'Nonaktifkan Akun' : 'Aktifkan Kembali') : '';
-  return <Modal open onClose={onClose} title={title} footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Simpan</Button></div>}>
-    {mode === 'reset' ? (
-      <Field label="Password Baru" required hint="Minimal 6 karakter"><Input type="password" value={f.password} onChange={(e) => set('password', e.target.value)} /></Field>
-    ) : mode === 'tanggal' ? (
-      <div className="space-y-4">
-        <Field label="Tanggal Akhir Akses Baru" required><Input type="date" value={f.tanggal_akhir_akses} onChange={(e) => set('tanggal_akhir_akses', e.target.value)} /></Field>
-        <Field label="Alasan" required><Input value={alasan} onChange={(e) => setAlasan(e.target.value)} /></Field>
-      </div>
-    ) : mode === 'nonaktif' ? (
-      <div className="space-y-4">
-        <p className="text-2xs text-mist-dim">{ex?.status === 'ACTIVE' ? 'NON-ACTIVE memutus login tanpa menghapus data atau riwayat.' : 'Aktifkan kembali akun Pengawas.'}</p>
-        <Field label="Alasan" required><Input value={alasan} onChange={(e) => setAlasan(e.target.value)} /></Field>
-      </div>
-    ) : (
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Nama Lengkap" required><Input value={f.nama_lengkap} onChange={(e) => set('nama_lengkap', e.target.value)} /></Field>
-        <Field label="Instansi Asal" required><Input value={f.instansi_asal} onChange={(e) => set('instansi_asal', e.target.value)} /></Field>
-        <Field label="Nomor Surat Tugas" required><Input className="mono" value={f.nomor_surat_tugas} onChange={(e) => set('nomor_surat_tugas', e.target.value)} /></Field>
-        <Field label="Tanggal Surat Tugas"><Input type="date" value={f.tanggal_surat_tugas} onChange={(e) => set('tanggal_surat_tugas', e.target.value)} /></Field>
-        <Field label="Email Login" required><Input type="email" value={f.email} onChange={(e) => set('email', e.target.value)} /></Field>
-        <Field label="Tanggal Akhir Akses" required><Input type="date" value={f.tanggal_akhir_akses} onChange={(e) => set('tanggal_akhir_akses', e.target.value)} /></Field>
-        {mode === 'tambah' && <Field label="Password Awal" required hint="Minimal 6 karakter; tidak wajib diganti saat login pertama"><Input type="password" value={f.password} onChange={(e) => set('password', e.target.value)} /></Field>}
-      </div>
-    )}
   </Modal>;
 }
 

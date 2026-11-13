@@ -7,14 +7,8 @@ import { langgananGalat, langgananInfo, langgananSibuk, sedangSibuk } from '@/li
 import { LoginPage } from '@/components/LoginPage';
 import { ContextSelectPage } from '@/components/ContextSelectPage';
 import { DashboardShell, type NavItem } from '@/components/DashboardShell';
-import {
-  BendaharaDashboard, PptkDashboard, VerifikatorDashboard,
-  PakpaDashboard, PengawasDashboard, AuditTrail,
-} from '@/components/Dashboards';
-import {
-  AdminDasborPage, SOTKPage, PersonelPage, KamusPage, PajakPage,
-  DirektoriPage, PetaJabatanPage,
-} from '@/components/AdminPanels';
+import { BendaharaDashboard, PptkDashboard, VerifikatorDashboard, PakpaDashboard, AuditTrail } from '@/components/Dashboards';
+import { AdminDasborPage, SOTKPage, PersonelPage, KamusPage, PajakPage, DirektoriPage, PetaJabatanPage } from '@/components/AdminPanels';
 import { VerifikasiPage } from '@/components/VerifikasiPage';
 import { BKUPage } from '@/components/BKUPage';
 import { AnggaranBendaharaPage } from '@/components/AnggaranBendaharaPage';
@@ -26,7 +20,7 @@ import { repo } from '@/data/repo';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
-import { BarChart3, BookOpen, LayoutDashboard, ScrollText, ShieldCheck, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
+import { BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
 import type { SessionPayload } from '@/data/types';
 
 const TahunAnggaranPage = lazy(() => import('@/components/TAPanels').then((m) => ({ default: m.TahunAnggaranPage })));
@@ -197,9 +191,7 @@ function AppShell({
   const role = session.active_role;
   const nav = buildNav(role);
   const active = nav.find((n) => n.id === activeNav) ?? nav[0];
-  const bannerTA = role === 'pengawas'
-    ? null
-    : session.active_ta_id ?? (role === 'admin' ? repo.tahunAnggaran().find((t) => t.status === 'Aktif Penuh')?.id ?? null : null);
+  const bannerTA = session.active_ta_id ?? (role === 'admin' ? repo.tahunAnggaran().find((t) => t.status === 'Aktif Penuh')?.id ?? null : null);
 
   return (
     <DashboardShell nav={nav} activeId={active?.id ?? 'dashboard'} onNavigate={onNavigate}>
@@ -268,13 +260,6 @@ function buildNav(role: string): NavItem[] {
       { id: 'heatmap', label: 'Heatmap Realisasi', icon: <BarChart3 size={18} />, render: () => <HeatmapPage /> },
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
-      { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
-    ];
-  }
-  if (role === 'pengawas') {
-    return [
-      { id: 'dashboard', label: 'Dasbor', icon: <ShieldCheck size={18} />, render: () => <PengawasDashboard /> },
-      { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
     ];
   }

@@ -20,3 +20,6 @@
 
 ## Larangan rangkap jabatan (2026-11-13)
 Keputusan pemilik: satu orang dilarang merangkap jabatan pada TA yang sama (PA/KPA, Bendahara, PPTK, Verifikator), termasuk saat ditunjuk sebagai Plh./Plt. Ini memperluas Dokumen 01 §6 poin 1 (yang hanya melarang Bendahara merangkap PPTK). Satu orang tetap boleh memegang peran yang sama pada beberapa seksi. Ditegakkan di server (migrasi 0017); penugasan lama yang sudah merangkap tidak diubah otomatis dan harus dikoreksi Admin.
+
+## Peran Pengawas/Auditor dihapus (2026-11-13)
+Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; pemantauan publik tetap lewat Portal Publik dan halaman Keaslian. Dampak terhadap dokumen acuan: Dokumen 01 §8–9 (akun dan jejak unduhan Pengawas), Dokumen 03 §7 (workflow Pengawas), Dokumen 04 (akun Pengawas), Dokumen 05 §2 (kolom Pengawas) dan skenario H, serta login dengan email tidak berlaku lagi. Migrasi 0018 menghapus tabel `akun_pengawas`, `penugasan_pengawas_ta`, tujuh fungsi `adm_pengawas_*`/`pengawas_catat_aksi`, dan jalur login email. Login kini hanya NIP/NIK. Entri audit lama bernilai `aksi_pengawas` tetap diperbolehkan oleh batasan tabel agar riwayat tidak rusak.

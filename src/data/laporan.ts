@@ -6,9 +6,7 @@ import * as data from '@/data/sampleData';
 import { paguSeksi, paguSubkegiatan, statusSeksi } from '@/data/anggaran';
 import type { AktorAnggaran } from '@/data/anggaran';
 import { repo } from '@/data/repo';
-import { recordAudit } from '@/lib/audit';
-import { supabase, modeServer } from '@/lib/supabase';
-import { buatApi } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { formatRupiah } from '@/lib/format';
 import { todayWita } from '@/lib/wita';
 import type { BKU, FormDinamis, FieldFormDinamis, Kuitansi, SPJ } from '@/data/types';
@@ -52,7 +50,7 @@ export const DAFTAR_LAPORAN: { id: LaporanId; judul: string; deskripsi: string }
 
 export function laporanBolehUntuk(peran: string): LaporanId[] {
   if (peran === 'pa_kpa') return ['a', 'b', 'd', 'e', 'f', 'g'];
-  if (['bendahara', 'verifikator', 'pptk', 'pengawas'].includes(peran)) return ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+  if (['bendahara', 'verifikator', 'pptk'].includes(peran)) return ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
   return [];
 }
 
@@ -60,11 +58,8 @@ export function laporanBolehUntuk(peran: string): LaporanId[] {
 function cakupanSeksi(aktor: AktorAnggaran, ta_id: string, filter: FilterLaporan): HasilData<string[]> {
   const ta = data.tahunAnggaran.find((t) => t.id === ta_id);
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
-  if (!['bendahara', 'verifikator', 'pa_kpa', 'pptk', 'pengawas'].includes(aktor.peran)) {
+  if (!['bendahara', 'verifikator', 'pa_kpa', 'pptk'].includes(aktor.peran)) {
     return { ok: false, error: 'Peran Anda tidak memiliki akses laporan.' };
-  }
-  if (aktor.peran === 'pengawas' && !repo.taIdsForPengawas(aktor.id).includes(ta_id)) {
-    return { ok: false, error: 'TA ini tidak termasuk penugasan Anda.' };
   }
   const semua = data.seksiTA.filter((s) => s.ta_id === ta_id).map((s) => s.id);
   let lingkup = semua;
@@ -383,9 +378,3 @@ export function laporanKustom(
   return { ok: true, data: { kolom, baris: batas ? baris.slice(0, batas) : baris, totalBaris: baris.length } };
 }
 
-// ===== Jejak unduhan Pengawas (D01 §9 poin 5) =====
-export function catatUnduhanPengawas(aktor: AktorAnggaran, ta_id: string, namaLaporan: string, format: 'Excel' | 'PDF'): void {
-  if (aktor.peran !== 'pengawas') return; // peran lain tidak menghasilkan jejak (T-163)
-  if (modeServer) { void buatApi(supabase as never).pengawas_catat_aksi({ p_entitas: `Laporan ${namaLaporan}`, p_keterangan: `Unduhan ${format}` }).catch(() => {}); return; }
-  recordAudit({ ta_id, entitas: `Laporan ${namaLaporan}`, aksi: 'aksi_pengawas', nilai_sesudah: `Unduhan ${format}` });
-}

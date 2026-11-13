@@ -50,7 +50,6 @@ function peranLabel(role: string): string {
     case 'pptk': return 'PPTK/Seksi';
     case 'verifikator': return 'Verifikator';
     case 'pa_kpa': return 'PA/KPA';
-    case 'pengawas': return 'Pengawas/Auditor';
     default: return role;
   }
 }
@@ -133,7 +132,6 @@ export function visibleAuditEvents(): AuditEvent[] {
   if (!s) return [];
   if (s.active_role === 'admin') return store;
   if (s.active_role === 'verifikator') return s.active_ta_id ? store.filter((e) => e.ta_id === s.active_ta_id) : store;
-  if (s.active_role === 'pengawas') return s.active_ta_id ? store.filter((e) => e.ta_id === s.active_ta_id) : store;
   if (s.active_role === 'bendahara') {
     // hanya entri aksinya sendiri
     return store.filter((e) => e.aktor_id === s.user_id);

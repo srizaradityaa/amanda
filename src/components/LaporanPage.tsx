@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button, Card, EmptyState, FilterSelect, StatusBadge, useToast } from '@/components/ui';
 import { ErrorLine, SectionTitle, aktorSesi } from '@/components/AnggaranShared';
 import { LaporanCetakModal, TabelLaporan, unduhLaporanExcel } from '@/components/LaporanTampil';
-import { buatLaporan, catatUnduhanPengawas, DAFTAR_LAPORAN, laporanBolehUntuk, type FilterLaporan, type LaporanId } from '@/data/laporan';
+import { buatLaporan, DAFTAR_LAPORAN, laporanBolehUntuk, type FilterLaporan, type LaporanId } from '@/data/laporan';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
 import { bisaBukaLampiran, unduhLampiranSPJ } from '@/lib/lampiran';
@@ -29,11 +29,9 @@ export function LaporanPage() {
     const h = buatLaporan(id, aktor, ta_id, f); // penegakan hak dilakukan ulang saat unduhan
     if (!h.ok) { toast.notify(h.error); return; }
     unduhLaporanExcel(h.data, `${meta.judul} TA ${ta.tahun}`);
-    catatUnduhanPengawas(aktor, ta_id, meta.judul, 'Excel');
   };
   const buka = () => {
     if (!hasil.ok) return;
-    catatUnduhanPengawas(aktor, ta_id, meta.judul, 'PDF');
     setCetak(true);
   };
   const toggle = (kunci: 'jenis_belanja' | 'jenis_pajak', v: string) => {
@@ -102,7 +100,7 @@ export function LaporanPage() {
         {hasil.ok ? <TabelLaporan laporan={hasil.data} /> : <div className="p-4"><ErrorLine msg={hasil.error} /></div>}
       </Card>
 
-      {aktor.peran !== 'pengawas' && <LampiranSPJPanel ta_id={ta_id} />}
+      <LampiranSPJPanel ta_id={ta_id} />
       {cetak && hasil.ok && <LaporanCetakModal laporan={hasil.data} onClose={() => setCetak(false)} />}
     </div>
   );

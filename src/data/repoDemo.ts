@@ -5,10 +5,10 @@
 import * as data from '@/data/sampleData';
 import { namaLengkap } from '@/lib/nama';
 import type {
-  MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin, AkunPengawas,
+  MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin,
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
-  PenugasanPengawasTA, RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
+  RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
   Kuitansi, SPJ, BKU, AuditEvent, PeranPenugasan,
   DirektoriTransaksionalSPJ, DirektoriRekeningBank, RekeningPenerimaSPJ, AccountStatus, TAStatus,
   FormDinamis, FieldFormDinamis, BlokBerulangFormDinamis, TemplateKuitansi,
@@ -317,7 +317,6 @@ export const repoDemo = {
   pangkatHistory: (personel_id: string): PangkatHistoryEntry[] =>
     data.pangkatHistory.filter((p) => p.personel_id === personel_id),
   akunLogin: (): AkunLogin[] => data.akunLogin,
-  akunPengawas: (): AkunPengawas[] => data.akunPengawas,
   masterSubkegiatan: (): MasterSubkegiatan[] => data.masterSubkegiatan,
   masterRekeningBelanja: (): MasterRekeningBelanja[] => data.masterRekeningBelanja,
   masterJenisPajak: (): MasterJenisPajak[] => data.masterJenisPajak,
@@ -367,10 +366,6 @@ export const repoDemo = {
     data.penugasanTA.filter((t) => t.ta_id === ta_id),
   penugasanByPersonel: (personel_id: string): PenugasanTA[] =>
     data.penugasanTA.filter((t) => t.personel_id === personel_id),
-  penugasanPengawasByTA: (ta_id: string): PenugasanPengawasTA[] =>
-    data.penugasanPengawasTA.filter((t) => t.ta_id === ta_id),
-  penugasanPengawasByAkun: (pengawas_id: string): PenugasanPengawasTA[] =>
-    data.penugasanPengawasTA.filter((t) => t.pengawas_id === pengawas_id),
   delegasiByTA: (ta_id: string): PenugasanDelegasi[] =>
     data.penugasanDelegasi.filter((d) => d.ta_id === ta_id && d.status === 'Delegasi Aktif'),
   registerSK: (): RegisterSK[] => data.registerSK,
@@ -402,15 +397,10 @@ export const repoDemo = {
   // --- Lookup helper ---
   personelById: (id: string): MasterPersonel | undefined =>
     data.masterPersonel.find((p) => p.id === id),
-  pengawasById: (id: string): AkunPengawas | undefined =>
-    data.akunPengawas.find((p) => p.id === id),
   akunByPersonel: (personel_id: string): AkunLogin | undefined =>
     data.akunLogin.find((a) => a.personel_id === personel_id),
   akunByUsername: (username: string): AkunLogin | undefined =>
     data.akunLogin.find((a) => a.username === username),
-  pengawasByEmail: (email: string): AkunPengawas | undefined =>
-    data.akunPengawas.find((p) => p.email.toLowerCase() === email.toLowerCase()),
-
   // --- Penugasan role helper (untuk alur masuk berjenjang) ---
   // Kembalikan daftar TA tempat personel punya penugasan aktif.
   taIdsForPersonel: (personel_id: string): string[] => {
@@ -437,11 +427,6 @@ export const repoDemo = {
     }
     return out;
   },
-  taIdsForPengawas: (pengawas_id: string): string[] => {
-    const tps = data.penugasanPengawasTA.filter((t) => t.pengawas_id === pengawas_id);
-    return [...new Set(tps.map((t) => t.ta_id))];
-  },
-
   // ===== Direktori Transaksional SPJ (BNT-01) =====
   direktoriTransaksional: (): DirektoriTransaksionalSPJ[] => data.direktoriTransaksional,
   koreksiDirektori: (id: string, nip_nik: string, nama: string) => {
@@ -560,27 +545,6 @@ export const repoDemo = {
     if (acc) acc.status = status;
   },
 
-  // ===== Akun Pengawas CRUD (AKN-04) =====
-  tambahPengawas: (p: Omit<AkunPengawas, 'id' | 'failed_attempts' | 'locked' | 'status'>): { ok: boolean; error?: string } => {
-    if (p.password.length < 6) return { ok: false, error: 'Password minimal 6 karakter.' };
-    if (!p.nomor_surat_tugas.trim()) return { ok: false, error: 'Nomor surat tugas wajib diisi.' };
-    if (data.akunPengawas.find((a) => a.email.toLowerCase() === p.email.toLowerCase())) return { ok: false, error: 'Email sudah digunakan.' };
-    const id = `aud-${Date.now()}`;
-    data.akunPengawas.push({ ...p, id, status: 'ACTIVE', failed_attempts: 0, locked: false });
-    return { ok: true };
-  },
-  editPengawas: (id: string, p: Partial<AkunPengawas>): void => {
-    const a = data.akunPengawas.find((x) => x.id === id);
-    if (a) Object.assign(a, p);
-  },
-  resetPengawasPassword: (id: string, new_password: string): { ok: boolean; error?: string } => {
-    if (new_password.length < 6) return { ok: false, error: 'Password minimal 6 karakter.' };
-    const a = data.akunPengawas.find((x) => x.id === id);
-    if (!a) return { ok: false, error: 'Akun tidak ditemukan.' };
-    a.password = new_password; a.failed_attempts = 0; a.locked = false;
-    return { ok: true };
-  },
-
   // ===== Master Subkegiatan & Rekening (MST-05) =====
   tambahSubkegiatan: (kode: string, nama: string): { ok: boolean; error?: string } => {
     if (data.masterSubkegiatan.some((x) => x.kode.trim() === kode.trim())) return { ok: false, error: 'Kode subkegiatan sudah ada.' };
@@ -674,11 +638,10 @@ export const repoDemo = {
     if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
     if (ta.status !== 'Draft') return { ok: false, error: 'Hanya TA Draft yang dapat dihapus.' };
     if (ta.pernah_transaksi) return { ok: false, error: 'TA yang pernah memiliki kuitansi tidak dapat dihapus kecuali melalui retensi 12 tahun.' };
-    // hapus data terkait (seksi, pemetaan, penugasan, pengawas)
+    // hapus data terkait (seksi, pemetaan, penugasan)
     removeAll(data.seksiTA, (s) => s.ta_id === id);
     removeAll(data.pemetaanSubkegiatanTA, (p) => p.ta_id === id);
     removeAll(data.penugasanTA, (t) => t.ta_id === id);
-    removeAll(data.penugasanPengawasTA, (t) => t.ta_id === id);
     removeAll(data.penugasanDelegasi, (d) => d.ta_id === id);
     removeAll(data.tahunAnggaran, (t) => t.id === id);
     return { ok: true };
@@ -916,18 +879,6 @@ export const repoDemo = {
   skByPenugasan: (penugasan_id: string): RegisterSK[] =>
     data.registerSK.filter((s) => s.penugasan_id === penugasan_id),
 
-  // ===== AKN-05 — Penugasan Pengawas per TA =====
-  tambahPengawasTA: (ta_id: string, pengawas_id: string, tanggal_mulai: string, tanggal_akhir: string): { ok: boolean; error?: string } => {
-    if (!tanggal_mulai || !tanggal_akhir) return { ok: false, error: 'Tanggal mulai dan akhir wajib diisi.' };
-    if (data.penugasanPengawasTA.find((t) => t.ta_id === ta_id && t.pengawas_id === pengawas_id)) return { ok: false, error: 'Pengawas sudah ditugaskan di TA ini.' };
-    const id = `tp-${Date.now()}`;
-    data.penugasanPengawasTA.push({ id, ta_id, pengawas_id, tanggal_mulai, tanggal_akhir });
-    return { ok: true };
-  },
-  hapusPengawasTA: (tp_id: string): void => {
-    removeAll(data.penugasanPengawasTA, (t) => t.id === tp_id);
-  },
-
   // ===== PEN-05 — Delegasi Plh./Plt.: penetapan =====
   tambahDelegasi: (ta_id: string, personel_pengganti_id: string, peran_digantikan: PeranPenugasan, seksi_ta_id: string | null, tanggal_mulai: string, tanggal_berakhir: string, definitive_officer_id: string): { ok: boolean; error?: string } => {
     if (!tanggal_mulai || !tanggal_berakhir) return { ok: false, error: 'Tanggal mulai dan berakhir wajib diisi.' };
@@ -1025,7 +976,6 @@ export const repoDemo = {
     removeAll(data.seksiTA, (x) => x.ta_id === ta_id);
     removeAll(data.penugasanTA, (t) => t.ta_id === ta_id);
     removeAll(data.penugasanDelegasi, (d) => d.ta_id === ta_id);
-    removeAll(data.penugasanPengawasTA, (t) => t.ta_id === ta_id);
     removeAll(data.tahunAnggaran, (t) => t.id === ta_id);
     return { ok: true }; // tanpa catatan penghapusan (D01 §1.3 poin 6)
   },
@@ -1541,7 +1491,7 @@ export const repoDemo = {
   },
 
   // SPJ-08 — hak unduh lampiran PDF SPJ (D02 §9): Bendahara, Verifikator, PA/KPA seluruh seksi; PPTK seksinya.
-  // Admin, Pengawas/Auditor, dan Publik ditolak.
+  // Admin dan Publik ditolak.
   unduhLampiranSPJ: (spj_id: string, session: SessionPayload): { ok: boolean; error?: string; nama?: string } => {
     const spj = data.spj.find((x) => x.id === spj_id);
     if (!spj) return { ok: false, error: 'SPJ tidak ditemukan.' };

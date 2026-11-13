@@ -6,7 +6,7 @@ import { muatAset } from '@/lib/aset';
 import { supabase, modeServer } from '@/lib/supabase';
 import type {
   TahunAnggaran, VersiAlokasiAnggaran, SPJ, DirektoriTransaksionalSPJ, RegisterSK, JendelaAlokasi, FormatNomorVerifikasi,
-  AkunLogin, AkunPengawas, SeksiTA,
+  AkunLogin, SeksiTA,
 } from '@/data/types';
 
 type Baris = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -52,9 +52,9 @@ function ganti<T>(arr: T[], baris: T[]) { arr.splice(0, arr.length, ...baris); }
 /** Kosongkan data contoh. Dipanggil sekali saat mode server, sebelum layar apa pun dirender. */
 export function kosongkanDataContoh(): void {
   for (const arr of [
-    data.masterSOTK, data.masterPersonel, data.pangkatHistory, data.akunLogin, data.akunPengawas, data.masterSubkegiatan,
+    data.masterSOTK, data.masterPersonel, data.pangkatHistory, data.akunLogin, data.masterSubkegiatan,
     data.masterRekeningBelanja, data.masterDokumen, data.masterJenisPajak, data.formDinamis, data.tahunAnggaran, data.seksiTA, data.pemetaanSubkegiatanTA,
-    data.penugasanTA, data.penugasanDelegasi, data.penugasanPengawasTA, data.registerSK, data.versiAlokasiAnggaran, data.jendelaAlokasi,
+    data.penugasanTA, data.penugasanDelegasi, data.registerSK, data.versiAlokasiAnggaran, data.jendelaAlokasi,
     data.ledgerSPD, data.alokasiSubkegiatan, data.alokasiRekening, data.kuitansi, data.spj, data.bku, data.tokenVerifikasi,
     data.formatNomorVerifikasi, data.direktoriTransaksional, data.rekeningBankDirektori, data.auditEvents,
   ] as unknown[][]) arr.length = 0;
@@ -85,14 +85,13 @@ export function muatSemua(ringan = false): Promise<void> {
   };
   berjalan = (async () => {
     const [
-      sotk, personel, pangkat, akun, pengawas, sub, rek, pajak, form, ta, seksi, pemetaan, tugas, delegasi, tugasPengawas, sk,
+      sotk, personel, pangkat, akun, sub, rek, pajak, form, ta, seksi, pemetaan, tugas, delegasi, sk,
       versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, token, fmt, dir, dirRef, rekBank, audit, konf, mdok,
     ] = await Promise.all([
       M('sotk', 'id,nama_unit,tmt_mulai,tmt_selesai,dasar_hukum,pengganti_dari_id,status_versi', ['id']),
       M('personel', 'id,gelar_depan,nama,gelar_belakang,nip,nik,pangkat,tmt,no_whatsapp', ['id']),
       M('riwayat_pangkat', 'id,personel_id,pangkat,gelar_depan,gelar_belakang,tmt_mulai,tmt_selesai', ['tmt_mulai', 'id']),
       M('akun_login', 'id,personel_id,username,status,failed_attempts,locked', ['id']),
-      M('akun_pengawas', 'id,nama_lengkap,instansi_asal,nomor_surat_tugas,tanggal_surat_tugas,email,tanggal_akhir_akses,status,failed_attempts,locked', ['id']),
       M('subkegiatan', 'id,kode,nama,status', ['kode']),
       M('rekening_belanja', 'id,kode_rekening,nama,status', ['kode_rekening']),
       M('jenis_pajak', 'id,kode,nama_jenis_pajak,status', ['id']),
@@ -102,7 +101,6 @@ export function muatSemua(ringan = false): Promise<void> {
       ambil('pemetaan_subkegiatan_ta', 'id,ta_id,seksi_ta_id,subkegiatan_id,kode_snapshot,nama_snapshot', ['kode_snapshot', 'id']),
       ambil('penugasan_ta', 'id,ta_id,peran,personel_id,seksi_ta_id,tmt_mulai,tmt_selesai,provisional,nama_snapshot,nip_snapshot', ['tmt_mulai', 'id']),
       ambil('penugasan_delegasi', 'id,ta_id,personel_pengganti_id,peran_digantikan,seksi_ta_id,tanggal_mulai,tanggal_berakhir,status,alasan_pencabutan,definitive_officer_id,nama_snapshot,nip_snapshot', ['tanggal_mulai', 'id']),
-      ambil('penugasan_pengawas_ta', 'id,ta_id,pengawas_id,tanggal_mulai,tanggal_akhir', ['id']),
       ambil('register_sk', 'id,penugasan_id,nomor_sk,tanggal_sk,berkas_key,berkas_nama,berkas_ukuran,provisional', ['tanggal_sk', 'id']),
       ambil('versi_alokasi', 'id,ta_id,fase,tanggal_efektif,aktor_id,aktor_nama_snapshot,aktor_peran_snapshot,keterangan', ['tanggal_efektif', 'id']),
       ambil('versi_alokasi_rincian', 'versi_id,pemetaan_subkegiatan_id,rekening_id,pagu', ['versi_id', 'pemetaan_subkegiatan_id']),
@@ -133,7 +131,6 @@ export function muatSemua(ringan = false): Promise<void> {
     gantiM(data.masterPersonel, personel);
     gantiM(data.pangkatHistory, pangkat);
     gantiM<AkunLogin>(data.akunLogin, akun, (r) => ({ ...r, password: '' }) as AkunLogin);
-    gantiM<AkunPengawas>(data.akunPengawas, pengawas, (r) => ({ ...r, password: '' }) as AkunPengawas);
     gantiM(data.masterSubkegiatan, sub);
     gantiM(data.masterRekeningBelanja, rek);
     gantiM(data.masterJenisPajak, pajak);
@@ -144,7 +141,6 @@ export function muatSemua(ringan = false): Promise<void> {
     ganti(data.pemetaanSubkegiatanTA, a(pemetaan));
     ganti(data.penugasanTA, a(tugas));
     ganti(data.penugasanDelegasi, a(delegasi));
-    ganti(data.penugasanPengawasTA, a(tugasPengawas));
     ganti(data.registerSK, a<Baris>(sk).map(({ berkas_nama, ...r }) => ({ ...r, berkas: berkas_nama ?? null }) as RegisterSK));
 
     const rinci = new Map<string, { pemetaan_subkegiatan_id: string; rekening_id: string | null; pagu: number }[]>();

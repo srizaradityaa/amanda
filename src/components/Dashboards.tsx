@@ -395,33 +395,6 @@ export function PakpaDashboard() {
   );
 }
 
-// ============ PENGAWAS/AUDITOR — Dasbor baca saja ============
-export function PengawasDashboard() {
-  const s = getSession()!;
-  const ta = repo.tahunAnggaranById(s.active_ta_id!)!;
-  const tp = repo.penugasanPengawasByTA(ta.id).find((t) => t.pengawas_id === s.user_id);
-  const aud = repo.pengawasById(s.user_id);
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Dasbor Pengawas / Auditor" desc={`${ta.tahun} • Mode baca saja — laporan`} />
-      <Card className="p-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <InfoItem label="Penugasan" value={`TA ${ta.tahun}`} />
-          <InfoItem label="Instansi asal" value={aud?.instansi_asal ?? '—'} />
-          <InfoItem label="Nomor surat tugas" value={aud?.nomor_surat_tugas ?? '—'} />
-          <InfoItem label="Tanggal akhir akses" value={formatTanggal(aud?.tanggal_akhir_akses ?? null)} />
-          <InfoItem label="Rentang penugasan" value={`${formatTanggal(tp?.tanggal_mulai ?? null)} — ${formatTanggal(tp?.tanggal_akhir ?? null)}`} />
-          <InfoItem label="Status TA" value={ta.status} />
-        </div>
-        <div className="mt-4 rounded-md border border-ink-edge bg-ink px-3 py-2 text-2xs text-mist-dim">
-          Pengawas tidak melihat countdown, banner merah, mini progress bar, atau sidebar. Tanpa drill-down anggaran, master, akun, atau tombol proses.
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 // ============ Komponen bersama ============
 function PageHeader({ title, desc }: { title: string; desc?: string }) {
   return (

@@ -1,15 +1,13 @@
 // AUT-02 — Layar seleksi TA & jabatan untuk personel multi-penugasan / multi-jabatan (D03 §1).
 // P-121: personel multi-TA -> daftar TA lalu daftar jabatan.
-// P-119: auditor multi-TA -> daftar TA.
 
 import { useState } from 'react';
 import { repo } from '@/data/repo';
-import { selectContextForInternal, selectContextForAuditor, getSession, isPending, modeServer, konteksPending, pilihKonteksServer, logout } from '@/lib/auth';
+import { selectContextForInternal, getSession, isPending, modeServer, konteksPending, pilihKonteksServer, logout } from '@/lib/auth';
 import type { Konteks } from '@/lib/masuk';
 import { Card, Button } from '@/components/ui';
-import { ChevronRight, ShieldCheck, UserCircle2 } from 'lucide-react';
+import { ChevronRight, UserCircle2 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { formatTanggal } from '@/lib/wita';
 import type { Role, PeranPenugasan } from '@/data/types';
 
 const PERAN_LABEL: Record<string, string> = {
@@ -18,7 +16,6 @@ const PERAN_LABEL: Record<string, string> = {
   pptk: 'PPTK / Seksi',
   verifikator: 'Verifikator',
   pa_kpa: 'PA/KPA',
-  pengawas: 'Pengawas/Auditor',
 };
 
 function peranLabel(p: PeranPenugasan): string {
@@ -31,9 +28,6 @@ export function ContextSelectPage({ onResolved }: { onResolved: () => void }) {
 
   if (modeServer) return <ServerSelect onResolved={onResolved} />;
 
-  if (s.actor_type === 'auditor') {
-    return <AuditorSelect onResolved={onResolved} />;
-  }
   return <InternalSelect onResolved={onResolved} />;
 }
 
@@ -64,26 +58,6 @@ function ServerSelect({ onResolved }: { onResolved: () => void }) {
   }
 
   const infoGalat = galat && <p role="alert" className="mb-3 text-2xs text-crit">{galat}</p>;
-
-  if (p.tipe === 'auditor') {
-    return (
-      <Shell title="Pilih Tahun Anggaran Penugasan" subtitle={`${p.nama} — Pengawas/Auditor`}>
-        {infoGalat}
-        <div className="space-y-2">
-          {p.konteks.map((k, i) => (
-            <button key={i} disabled={sibuk} onClick={() => pilih(k)}
-              className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40 disabled:opacity-60">
-              <div className="flex items-center gap-3">
-                <ShieldCheck size={20} className="text-teal" />
-                <div className="mono text-sm font-semibold text-mist">TA {k.tahun ?? k.ta_id}</div>
-              </div>
-              <ChevronRight size={18} className="text-mist-dim" />
-            </button>
-          ))}
-        </div>
-      </Shell>
-    );
-  }
 
   if (!selectedTA && daftarTA.length > 1) {
     return (
@@ -222,43 +196,6 @@ function InternalSelect({ onResolved }: { onResolved: () => void }) {
   );
 }
 
-function AuditorSelect({ onResolved }: { onResolved: () => void }) {
-  const s = getSession()!;
-  const aud = repo.pengawasById(s.user_id);
-  if (!aud) return null;
-  const taIds = repo.taIdsForPengawas(aud.id);
-
-  return (
-    <Shell title="Pilih Tahun Anggaran Penugasan" subtitle={`${aud.nama_lengkap} — Pengawas/Auditor`}>
-      <div className="space-y-2">
-        {taIds.map((tid) => {
-          const ta = repo.tahunAnggaranById(tid);
-          return (
-            <button
-              key={tid}
-              onClick={() => {
-                selectContextForAuditor(tid);
-                onResolved();
-              }}
-              className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40"
-            >
-              <div className="flex items-center gap-3">
-                <ShieldCheck size={20} className="text-teal" />
-                <div>
-                  <div className="mono text-sm font-semibold text-mist">TA {ta?.tahun ?? tid}</div>
-                  <div className="text-2xs text-mist-dim">
-                    Akhir akses: {formatTanggal(aud.tanggal_akhir_akses)} • Status: {ta?.status}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight size={18} className="text-mist-dim" />
-            </button>
-          );
-        })}
-      </div>
-    </Shell>
-  );
-}
 
 function Shell({
   title,

@@ -19,9 +19,6 @@ export const repo = {
   buatAkun: mut(repoDemo.buatAkun, server.buatAkun),
   resetPassword: mut(repoDemo.resetPassword, server.resetPassword),
   setAkunStatus: mut(repoDemo.setAkunStatus, server.setAkunStatus),
-  tambahPengawas: mut(repoDemo.tambahPengawas, server.tambahPengawas),
-  editPengawas: mut(repoDemo.editPengawas, server.editPengawas),
-  resetPengawasPassword: mut(repoDemo.resetPengawasPassword, server.resetPengawasPassword),
   tambahSubkegiatan: mut(repoDemo.tambahSubkegiatan, server.tambahSubkegiatan),
   editSubkegiatan: mut(repoDemo.editSubkegiatan, server.editSubkegiatan),
   tambahRekening: mut(repoDemo.tambahRekening, server.tambahRekening),
@@ -56,8 +53,6 @@ export const repo = {
   gantiPejabatDefinitif: mut(repoDemo.gantiPejabatDefinitif, server.gantiPejabatDefinitif),
   tambahSK: mut(repoDemo.tambahSK, server.tambahSK),
   lengkapiSK: mut(repoDemo.lengkapiSK, server.lengkapiSK),
-  tambahPengawasTA: mut(repoDemo.tambahPengawasTA, server.tambahPengawasTA),
-  hapusPengawasTA: mut(repoDemo.hapusPengawasTA, server.hapusPengawasTA),
   tambahDelegasi: mut(repoDemo.tambahDelegasi, server.tambahDelegasi),
   cabutDelegasi: mut(repoDemo.cabutDelegasi, server.cabutDelegasi),
   // --- Tahap 3: BKU ---

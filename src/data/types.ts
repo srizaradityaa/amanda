@@ -9,10 +9,9 @@ export type Role =
   | 'bendahara'
   | 'pptk'
   | 'verifikator'
-  | 'pa_kpa'
-  | 'pengawas';
+  | 'pa_kpa';
 
-export type ActorType = 'internal' | 'auditor';
+export type ActorType = 'internal';
 
 export type AccountStatus = 'Belum Ada Akun' | 'ACTIVE' | 'NON-ACTIVE';
 
@@ -54,20 +53,6 @@ export interface AkunLogin {
   personel_id: string | null; // null untuk akun admin murni bila perlu
   username: string; // auto dari NIP/NIK
   password: string; // data contoh plaintext; backend Tahap B mengganti
-  status: AccountStatus;
-  failed_attempts: number;
-  locked: boolean;
-}
-
-export interface AkunPengawas {
-  id: string;
-  nama_lengkap: string;
-  instansi_asal: string;
-  nomor_surat_tugas: string;
-  tanggal_surat_tugas: string;
-  email: string;
-  tanggal_akhir_akses: string;
-  password: string;
   status: AccountStatus;
   failed_attempts: number;
   locked: boolean;
@@ -241,14 +226,6 @@ export interface PenugasanDelegasi {
   definitive_officer_id: string;
   nama_snapshot: string;
   nip_snapshot: string;
-}
-
-export interface PenugasanPengawasTA {
-  id: string;
-  ta_id: string;
-  pengawas_id: string;
-  tanggal_mulai: string;
-  tanggal_akhir: string;
 }
 
 export interface RegisterSK {
@@ -455,7 +432,6 @@ export type AuditAksi =
   | 'perubahan_status_ta'
   | 'perubahan_status_akun'
   | 'aksi_administratif'
-  | 'aksi_pengawas'
   | 'efisiensi_spd'
   | 'kenaikan_spd'
   | 'pergeseran_spd';
@@ -491,7 +467,4 @@ export interface SessionPayload {
   active_seksi_id: string | null; // khusus PPTK
   nama_snapshot: string;
   nip_snapshot: string;
-  // Pengawas snapshot
-  instansi_asal_snapshot?: string;
-  nomor_surat_tugas_snapshot?: string;
 }

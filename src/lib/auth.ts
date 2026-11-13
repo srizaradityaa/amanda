@@ -4,7 +4,7 @@
 import { repo } from '@/data/repo';
 import { namaLengkap } from '@/lib/nama';
 import type { SessionPayload, Role, ActorType } from '@/data/types';
-import { nowWita, todayWita } from '@/lib/wita';
+import { nowWita } from '@/lib/wita';
 import { supabase, modeServer, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
 import { resetData } from '@/data/store';
 import { verifikasiMasuk, bukaSesi, type Konteks } from '@/lib/masuk';
@@ -96,11 +96,7 @@ export type LoginResult =
 
 const GENERIC_ERROR = 'Kredensial tidak dikenali atau akun tidak aktif.';
 
-// AUT-01 — single-field identifier. Angka -> personel internal; '@' -> Pengawas/Auditor.
-export function isAuditorIdentifier(id: string): boolean {
-  return id.includes('@');
-}
-
+// AUT-01 — satu kolom identitas: NIP/NIK personel internal (peran Pengawas/Auditor dihapus).
 export function login(identifier: string, password: string): LoginResult {
   // AUT-06 — pesan galat generik, tidak menyebut NIP atau sandi yang salah.
   touchActivity();
@@ -112,9 +108,6 @@ export function login(identifier: string, password: string): LoginResult {
     return { ok: false, error: 'Kata sandi minimal 6 karakter.' };
   }
 
-  if (isAuditorIdentifier(identifier)) {
-    return loginAuditor(identifier.trim(), password);
-  }
   return loginInternal(identifier.trim(), password);
 }
 
@@ -191,64 +184,6 @@ function loginInternal(identifier: string, password: string): LoginResult {
   return { ok: true, session };
 }
 
-function loginAuditor(email: string, password: string): LoginResult {
-  const aud = repo.pengawasByEmail(email);
-  if (!aud) return { ok: false, error: GENERIC_ERROR };
-  if (aud.locked) {
-    return { ok: false, error: 'Akun terkunci. Hubungi Administrator Sistem.' };
-  }
-  if (aud.status === 'NON-ACTIVE') {
-    return { ok: false, error: GENERIC_ERROR };
-  }
-  // P-48 — login ditolak setelah tanggal akhir akses
-  if (todayWita() > aud.tanggal_akhir_akses) {
-    return { ok: false, error: 'Masa akses akun Pengawas/Auditor telah berakhir. Hubungi Administrator Sistem.' };
-  }
-  if (aud.password !== password) {
-    aud.failed_attempts += 1;
-    if (aud.failed_attempts >= 10) aud.locked = true;
-    return { ok: false, error: GENERIC_ERROR };
-  }
-  aud.failed_attempts = 0;
-
-  const taIds = repo.taIdsForPengawas(aud.id);
-  if (taIds.length === 0) {
-    return { ok: false, error: 'Akun Pengawas belum ditugaskan pada TA. Hubungi Administrator Sistem.' };
-  }
-
-  // P-119 — bila 1 TA langsung masuk
-  if (taIds.length === 1) {
-    const session: SessionPayload = {
-      user_id: aud.id,
-      actor_type: 'auditor',
-      active_ta_id: taIds[0],
-      active_role: 'pengawas' as Role,
-      active_seksi_id: null,
-      nama_snapshot: aud.nama_lengkap,
-      nip_snapshot: '—',
-      instansi_asal_snapshot: aud.instansi_asal,
-      nomor_surat_tugas_snapshot: aud.nomor_surat_tugas,
-    };
-    writeSession(session);
-    return { ok: true, session };
-  }
-
-  // multi-TA: pending seleksi TA
-  const session: SessionPayload = {
-    user_id: aud.id,
-    actor_type: 'auditor',
-    active_ta_id: null,
-    active_role: 'pending' as Role,
-    active_seksi_id: null,
-    nama_snapshot: aud.nama_lengkap,
-    nip_snapshot: '—',
-    instansi_asal_snapshot: aud.instansi_asal,
-    nomor_surat_tugas_snapshot: aud.nomor_surat_tugas,
-  };
-  writeSession(session);
-  return { ok: true, session };
-}
-
 // AUT-02 — seleksi TA & jabatan untuk personel multi-penugasan / multi-jabatan.
 export function selectContextForInternal(ta_id: string, peran: Role, seksi_ta_id: string | null): boolean {
   const s = readSession();
@@ -258,26 +193,6 @@ export function selectContextForInternal(ta_id: string, peran: Role, seksi_ta_id
   const personel = repo.personelById(acc.personel_id);
   if (!personel) return false;
   const session = buildInternalSession(acc.id, personel, ta_id, peran as never, seksi_ta_id);
-  writeSession(session);
-  return true;
-}
-
-export function selectContextForAuditor(ta_id: string): boolean {
-  const s = readSession();
-  if (!s || s.actor_type !== 'auditor') return false;
-  const aud = repo.pengawasById(s.user_id);
-  if (!aud) return false;
-  const session: SessionPayload = {
-    user_id: aud.id,
-    actor_type: 'auditor',
-    active_ta_id: ta_id,
-    active_role: 'pengawas' as Role,
-    active_seksi_id: null,
-    nama_snapshot: aud.nama_lengkap,
-    nip_snapshot: '—',
-    instansi_asal_snapshot: aud.instansi_asal,
-    nomor_surat_tugas_snapshot: aud.nomor_surat_tugas,
-  };
   writeSession(session);
   return true;
 }
@@ -310,7 +225,7 @@ export { nowWita };
 
 // ===================== MODE SERVER (Supabase) =====================
 // Tiket dan daftar konteks hanya disimpan di memori (tidak pernah di storage).
-interface PendingServer { tiket: string; tipe: 'internal' | 'auditor'; nama: string; konteks: Konteks[] }
+interface PendingServer { tiket: string; tipe: 'internal'; nama: string; konteks: Konteks[] }
 let pendingServer: PendingServer | null = null;
 
 export function konteksPending(): PendingServer | null {
@@ -326,8 +241,6 @@ function payloadKeSesi(p: Record<string, unknown>): SessionPayload {
     active_seksi_id: (p.active_seksi_id as string | null) ?? null,
     nama_snapshot: String(p.nama_snapshot ?? ''),
     nip_snapshot: String(p.nip_snapshot ?? '—'),
-    instansi_asal_snapshot: p.instansi_asal_snapshot as string | undefined,
-    nomor_surat_tugas_snapshot: p.nomor_surat_tugas_snapshot as string | undefined,
   };
 }
 
@@ -354,8 +267,7 @@ export async function loginServer(identifier: string, password: string): Promise
   if (!v.ok || !v.tiket) return { ok: false, error: v.error ?? GENERIC_ERROR };
   const konteks = v.konteks ?? [];
   if (konteks.length === 0) return { ok: false, error: 'Akun belum memiliki penugasan aktif. Hubungi Administrator Sistem.' };
-  const tipe: 'internal' | 'auditor' = isAuditorIdentifier(identifier) ? 'auditor' : 'internal';
-  pendingServer = { tiket: v.tiket, tipe, nama: v.nama ?? '', konteks };
+  pendingServer = { tiket: v.tiket, tipe: 'internal', nama: v.nama ?? '', konteks };
 
   // Satu konteks saja -> langsung masuk (P-119/P-120).
   if (konteks.length === 1) {
@@ -365,7 +277,7 @@ export async function loginServer(identifier: string, password: string): Promise
   }
   // Banyak konteks -> sesi sementara "pending" untuk layar pilih.
   const sementara: SessionPayload = {
-    user_id: '', actor_type: tipe, active_ta_id: null, active_role: 'pending' as Role,
+    user_id: '', actor_type: 'internal', active_ta_id: null, active_role: 'pending' as Role,
     active_seksi_id: null, nama_snapshot: v.nama ?? '', nip_snapshot: '—',
   };
   writeSession(sementara);

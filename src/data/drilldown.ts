@@ -55,7 +55,7 @@ function pemetaanSeksi(ta_id: string, seksi_ta_id: string) {
   return data.pemetaanSubkegiatanTA.filter((p) => p.ta_id === ta_id && p.seksi_ta_id === seksi_ta_id);
 }
 
-// Cakupan per peran (Dokumen 01 §7 poin 5; Dokumen 03 §4 poin 8). Admin dan Pengawas tidak punya drill-down.
+// Cakupan per peran (Dokumen 01 §7 poin 5; Dokumen 03 §4 poin 8). Admin tidak punya drill-down.
 export type TingkatDrill = 'seksi' | 'subkegiatan' | 'rekening';
 
 const CAKUPAN: Record<Role, TingkatDrill | null> = {
@@ -64,7 +64,6 @@ const CAKUPAN: Record<Role, TingkatDrill | null> = {
   pa_kpa: 'subkegiatan',
   pptk: 'rekening',
   admin: null,
-  pengawas: null,
 };
 
 function izinkan(aktor: AktorAnggaran, tingkat: TingkatDrill, seksi_ta_id?: string): string | null {

@@ -1,3 +1,4 @@
+import { denganSibuk } from '@/lib/galat';
 // Unggah/unduh berkas ke Supabase Storage. Bucket dan kebijakannya dibuat oleh migrasi 0010.
 // Alur lampiran SPJ: (1) unggah objek `<spj_id>/<nama>` ke bucket `lampiran-spj`, (2) panggil RPC pptk_spj_lampiran untuk mencatat metadata.
 // Alur hapus: panggil RPC pptk_spj_lampiran_hapus / pptk_spj_lepas / adm_ta_hapus_retensi; hasilnya memuat kunci objek untuk dihapus dari Storage.
@@ -20,7 +21,7 @@ export function kunciLampiran(spjId: string, namaBerkas: string): string {
 }
 
 export async function unggah(k: KlienStorage, bucket: string, kunci: string, berkas: Blob | File): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await k.storage.from(bucket).upload(kunci, berkas, { upsert: true, contentType: (berkas as File).type || undefined });
+  const { error } = await denganSibuk(() => k.storage.from(bucket).upload(kunci, berkas, { upsert: true, contentType: (berkas as File).type || undefined }));
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 export async function unduh(k: KlienStorage, bucket: string, kunci: string): Promise<{ ok: boolean; blob?: Blob; error?: string }> {

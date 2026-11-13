@@ -3,7 +3,7 @@
 
 import { lazy, useEffect, useState, useSyncExternalStore } from 'react';
 import { langgananData, versiData, muatSemua } from '@/data/store';
-import { langgananGalat } from '@/lib/galat';
+import { langgananGalat, langgananInfo, langgananSibuk, sedangSibuk } from '@/lib/galat';
 import { LoginPage } from '@/components/LoginPage';
 import { ContextSelectPage } from '@/components/ContextSelectPage';
 import { DashboardShell, type NavItem } from '@/components/DashboardShell';
@@ -74,6 +74,10 @@ function AplikasiUtama() {
   const [dataStatus, setDataStatus] = useState<'belum' | 'memuat' | 'siap' | 'gagal'>(modeServer ? 'belum' : 'siap');
   const [galat, setGalat] = useState<string | null>(null);
   useEffect(() => langgananGalat((p) => setGalat(p)), []);
+  const sibuk = useSyncExternalStore(langgananSibuk, sedangSibuk) > 0;
+  const [info, setInfo] = useState<string | null>(null);
+  useEffect(() => langgananInfo((p) => { setInfo(p); }), []);
+  useEffect(() => { if (!info) return; const t = setTimeout(() => setInfo(null), 2200); return () => clearTimeout(t); }, [info]);
   const adaSesiAktif = !!session && !isPending(session);
   useEffect(() => {
     if (!modeServer) return;
@@ -156,6 +160,20 @@ function AplikasiUtama() {
   return (
     <>
       <AppShell session={session} activeNav={activeNav} onNavigate={setActiveNav} />
+      {sibuk && (
+        <div className="fixed inset-0 z-[60] cursor-progress" role="status" aria-live="polite" aria-busy="true">
+          <div className="absolute inset-x-0 top-0 h-1 overflow-hidden bg-ink-edge">
+            <div className="h-full w-1/3 bg-amber" style={{ animation: 'amanda-geser 1s linear infinite' }} />
+          </div>
+          <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-md border border-amber/40 bg-ink-surface px-4 py-2 text-sm text-mist shadow-lg">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-amber border-t-transparent" />
+            Memproses… mohon tunggu, jangan klik lagi.
+          </div>
+        </div>
+      )}
+      {info && !sibuk && (
+        <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md border border-ok/50 bg-ink-surface px-4 py-2 text-sm text-mist shadow-lg">✓ {info}</div>
+      )}
       {galat && (
         <div role="alert" className="fixed bottom-4 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-start gap-3 rounded-md border border-crit/50 bg-ink-surface px-4 py-3 text-sm text-mist shadow-lg">
           <span className="flex-1">{galat}</span>

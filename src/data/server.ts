@@ -5,7 +5,7 @@ import * as data from '@/data/sampleData';
 import { supabase } from '@/lib/supabase';
 import { buatApi, type Hasil } from '@/lib/api';
 import { segarkan } from '@/data/store';
-import { tampilkanGalat } from '@/lib/galat';
+import { tampilkanGalat, tampilkanInfo, denganSibuk } from '@/lib/galat';
 import { unggah, hapus as hapusBerkas, kunciLampiran, BUCKET_SK, BUCKET_LAMPIRAN, BUCKET_MASTER } from '@/lib/storage';
 import type {
   MasterPersonel, AkunPengawas, MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, TAStatus, AccountStatus,
@@ -16,13 +16,17 @@ export const api = buatApi(supabase as never);
 const GALAT_UMUM = 'Layanan tidak tersedia. Periksa koneksi lalu coba lagi.';
 
 /** Jalankan RPC; bila ok, segarkan data. Galat jaringan dijadikan hasil { ok:false }. */
-export async function jalankan<T extends Hasil>(p: Promise<T>, opsi?: { toast?: boolean; tanpaSegar?: boolean } /* galat selalu ditampilkan kecuali toast:false */): Promise<T> {
-  let r: T;
-  try { r = await p; } catch { r = { ok: false, error: GALAT_UMUM } as T; }
-  if (!r || typeof r !== 'object') r = { ok: false, error: GALAT_UMUM } as T;
-  if (r.ok) { if (!opsi?.tanpaSegar) { try { await segarkan(); } catch { /* data lama tetap tampil */ } } }
-  else if (opsi?.toast !== false) tampilkanGalat(r.error ?? GALAT_UMUM);
-  return r;
+export function jalankan<T extends Hasil>(p: Promise<T>, opsi?: { toast?: boolean; tanpaSegar?: boolean } /* galat selalu ditampilkan kecuali toast:false */): Promise<T> {
+  return denganSibuk(async () => {
+    let r: T;
+    try { r = await p; } catch { r = { ok: false, error: GALAT_UMUM } as T; }
+    if (!r || typeof r !== 'object') r = { ok: false, error: GALAT_UMUM } as T;
+    if (r.ok) {
+      if (!opsi?.tanpaSegar) { try { await segarkan(); } catch { /* data lama tetap tampil */ } }
+      tampilkanInfo('Tersimpan.');
+    } else if (opsi?.toast !== false) tampilkanGalat(r.error ?? GALAT_UMUM);
+    return r;
+  });
 }
 
 const tglOrNull = (s: string | null | undefined) => (s && s.trim() ? s : null);

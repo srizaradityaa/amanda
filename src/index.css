@@ -99,3 +99,5 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+@keyframes amanda-geser { from { transform: translateX(-100%); } to { transform: translateX(300%); } }

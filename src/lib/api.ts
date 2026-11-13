@@ -32,6 +32,8 @@ export function buatApi(k: KlienRpc) {
     adm_penugasan_tambah: (a: { p_ta: string, p_peran: string, p_personel: string, p_seksi: string, p_tmt: string, p_provisional?: boolean }) => panggil('adm_penugasan_tambah', a),
     adm_personel_edit: (a: { p_id: string, p: unknown }) => panggil('adm_personel_edit', a),
     adm_personel_perubahan_pangkat: (a: { p_id: string, p_pangkat: string, p_gelar_depan: string, p_gelar_belakang: string, p_tmt: string }) => panggil('adm_personel_perubahan_pangkat', a),
+    adm_personel_impor: (a: { p_baris: unknown }) => panggil('adm_personel_impor', a),
+    adm_sotk_impor: (a: { p_baris: unknown }) => panggil('adm_sotk_impor', a),
     adm_personel_tambah: (a: { p: unknown }) => panggil('adm_personel_tambah', a),
     adm_rekening_bank_gabung: (a: { p_keep: string, p_drop: string }) => panggil('adm_rekening_bank_gabung', a),
     adm_rekening_bank_koreksi: (a: { p_id: string, p_nama: string, p_bank: string, p_nomor: string, p_alias?: string }) => panggil('adm_rekening_bank_koreksi', a),

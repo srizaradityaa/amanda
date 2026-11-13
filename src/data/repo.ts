@@ -14,6 +14,8 @@ export const repo = {
   ubahSOTKTypo: mut(repoDemo.ubahSOTKTypo, server.ubahSOTKTypo),
   arsipkanSOTK: mut(repoDemo.arsipkanSOTK, server.arsipkanSOTK),
   tambahPersonel: mut(repoDemo.tambahPersonel, server.tambahPersonel),
+  imporPersonel: mut(repoDemo.imporPersonel, server.imporPersonel),
+  imporSOTK: mut(repoDemo.imporSOTK, server.imporSOTK),
   editPersonel: mut(repoDemo.editPersonel, server.editPersonel),
   simpanPerubahanPangkat: mut(repoDemo.simpanPerubahanPangkat, server.simpanPerubahanPangkat),
   buatAkun: mut(repoDemo.buatAkun, server.buatAkun),

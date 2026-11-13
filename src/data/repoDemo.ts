@@ -484,6 +484,29 @@ export const repoDemo = {
     data.masterPersonel.push(personel);
     return { ok: true, personel };
   },
+  imporPersonel: (baris: Omit<MasterPersonel, 'id'>[]): { ok: boolean; error?: string; ditambah?: number; galat?: { baris: number; pesan: string }[] } => {
+    if (data.masterPersonel.length) return { ok: false, error: 'Impor massal hanya tersedia saat daftar personel masih kosong.' };
+    const galat: { baris: number; pesan: string }[] = []; const lihat = new Set<string>();
+    baris.forEach((b, i) => {
+      const k = b.nip.trim() || b.nik.trim();
+      if (!b.nama.trim() || !b.pangkat.trim()) galat.push({ baris: i + 1, pesan: 'Nama dan pangkat wajib diisi.' });
+      else if (!k) galat.push({ baris: i + 1, pesan: 'NIP atau NIK wajib diisi.' });
+      else if (!/^[0-9+]+$/.test(b.no_whatsapp)) galat.push({ baris: i + 1, pesan: 'Nomor WhatsApp wajib diisi (angka, boleh diawali +).' });
+      else if (lihat.has(k)) galat.push({ baris: i + 1, pesan: `Nomor ${k} muncul lebih dari sekali dalam berkas.` });
+      else lihat.add(k);
+    });
+    if (galat.length) return { ok: false, error: `Impor dibatalkan: ${galat.length} baris bermasalah. Tidak ada data yang disimpan.`, galat };
+    baris.forEach((b, i) => data.masterPersonel.push({ ...b, id: `p-imp-${Date.now()}-${i}`, nip: b.nip.trim(), nik: b.nik.trim() }));
+    return { ok: true, ditambah: baris.length };
+  },
+  imporSOTK: (baris: { nama_unit: string; tmt_mulai: string; dasar_hukum: string }[]): { ok: boolean; error?: string; ditambah?: number; galat?: { baris: number; pesan: string }[] } => {
+    if (data.masterSOTK.length) return { ok: false, error: 'Impor massal hanya tersedia saat daftar unit masih kosong.' };
+    const galat: { baris: number; pesan: string }[] = []; const lihat = new Set<string>();
+    baris.forEach((b, i) => { const n = b.nama_unit.trim().toLowerCase(); if (!n) galat.push({ baris: i + 1, pesan: 'Nama unit wajib diisi.' }); else if (lihat.has(n)) galat.push({ baris: i + 1, pesan: `Unit "${b.nama_unit}" muncul lebih dari sekali dalam berkas.` }); else lihat.add(n); });
+    if (galat.length) return { ok: false, error: `Impor dibatalkan: ${galat.length} baris bermasalah. Tidak ada data yang disimpan.`, galat };
+    baris.forEach((b, i) => data.masterSOTK.push({ id: `sotk-imp-${Date.now()}-${i}`, nama_unit: b.nama_unit.trim(), tmt_mulai: b.tmt_mulai, tmt_selesai: null, dasar_hukum: b.dasar_hukum, pengganti_dari_id: null, status_versi: 'Aktif' }));
+    return { ok: true, ditambah: baris.length };
+  },
   editPersonel: (id: string, p: Partial<MasterPersonel>): { ok: boolean; error?: string } => {
     const per = data.masterPersonel.find((x) => x.id === id);
     if (!per) return { ok: false, error: 'Personel tidak ditemukan.' };

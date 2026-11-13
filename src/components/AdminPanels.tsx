@@ -9,6 +9,7 @@ import { KELOMPOK_PANGKAT, pangkatBaku } from '@/data/pangkat';
 import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { bacaKodeNama } from '@/lib/xlsxBaca';
+import { bacaPersonel, bacaSOTK, KOLOM_PERSONEL, KOLOM_SOTK } from '@/lib/imporMaster';
 import { unduhXlsx } from '@/lib/xlsx';
 import { bukaDokumenMaster } from '@/lib/masterDok';
 import { formatUkuran } from '@/lib/berkas';
@@ -171,6 +172,7 @@ export function SOTKPage() {
         <PageHeader title="Master SOTK" desc="Daftar datar unit kerja berversi. Hanya versi aktif yang tampil di daftar utama; riwayat dibuka per unit." />
         <Button onClick={() => setModal({ mode: 'tambah' })}><Plus size={16} /> Tambah Unit Baru</Button>
       </div>
+      {repo.masterSOTK().length === 0 && <ImporMasterBox jenis="sotk" onSelesai={refresh} />}
       {/* MST-01: tanpa pencarian (D01 §15 poin 2) */}
       <Card>
         <table className="w-full text-2xs">
@@ -340,6 +342,8 @@ export function PersonelPage() {
         <PageHeader title="Master Personel" desc="Identitas & atribut wajib. NIP/NIK angka tanpa batas digit, wajib unik." />
         <Button onClick={() => setModal({ mode: 'tambah' })}><Plus size={16} /> Tambah Personel</Button>
       </div>
+
+      {list.length === 0 && <ImporMasterBox jenis="personel" onSelesai={refresh} />}
 
       {/* UIX-07 — Pencarian + filter */}
       <div className="flex flex-wrap items-center gap-2">
@@ -785,6 +789,84 @@ function DokumenDaftar({ jenis, onUbah }: { jenis: 'subkegiatan' | 'rekening'; o
         </ul>
       )}
     </Card>
+  );
+}
+
+type Galat = { baris: number; pesan: string };
+function ImporMasterBox({ jenis, onSelesai }: { jenis: 'personel' | 'sotk'; onSelesai: () => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [pesan, setPesan] = useState('');
+  const [data, setData] = useState<{ baris: Record<string, string>[]; nomorAsli: number[]; galat: Galat[] } | null>(null);
+  const kolom = jenis === 'personel' ? KOLOM_PERSONEL : KOLOM_SOTK;
+  const kunci = jenis === 'personel' ? ['nip', 'nik', 'gelar_depan', 'nama', 'gelar_belakang', 'pangkat', 'tmt', 'no_whatsapp'] : ['nama_unit', 'tmt_mulai', 'dasar_hukum'];
+  const templat = () => unduhXlsx(jenis === 'personel' ? 'templat-personel.xlsx' : 'templat-sotk.xlsx', [{
+    nama: 'Data',
+    baris: jenis === 'personel'
+      ? [kolom, ['198001012005011001', '', 'Dr.', 'Contoh Nama', 'S.Sos', 'Penata Muda Tk. I (III/b)', '2024-01-01', '081234567890']]
+      : [kolom, ['Sekretariat', '2024-01-01', 'Peraturan Bupati No. 1 Tahun 2024']],
+    tebal: [0],
+  }]);
+  const pilih = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    setPesan('');
+    try {
+      const h = jenis === 'personel' ? await bacaPersonel(f) : await bacaSOTK(f);
+      if (h.baris.length === 0) setPesan('Berkas tidak berisi baris data.');
+      else setData({ baris: h.baris as unknown as Record<string, string>[], nomorAsli: h.nomorAsli, galat: h.galat });
+    } catch (err) { setPesan(err instanceof Error ? err.message : 'Berkas tidak dapat dibaca.'); }
+  };
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-3 p-4 text-2xs">
+        <div className="min-w-[16rem] flex-1">
+          <div className="text-sm font-medium text-mist">Daftar masih kosong. Isi sekaligus dari Excel.</div>
+          <p className="mt-1 text-mist-dim">Kolom: {kolom.join(', ')}. {jenis === 'personel' ? 'Pangkat/Golongan harus persis salah satu pilihan baku. TMT kosong diisi tanggal hari ini. ' : 'TMT Mulai kosong diisi tanggal hari ini. '}Opsi ini hilang setelah ada data.</p>
+          {pesan && <p className="mt-2 text-crit">{pesan}</p>}
+        </div>
+        <Button variant="ghost" onClick={templat}><Download size={16} /> Templat Excel</Button>
+        <Button onClick={() => ref.current?.click()}><Upload size={16} /> Impor Excel</Button>
+        <input ref={ref} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={pilih} />
+      </div>
+      {data && <ImporMasterModal jenis={jenis} kolom={kolom} kunci={kunci} data={data} onClose={() => { setData(null); onSelesai(); }} />}
+    </Card>
+  );
+}
+
+function ImporMasterModal({ jenis, kolom, kunci, data, onClose }: { jenis: 'personel' | 'sotk'; kolom: string[]; kunci: string[]; data: { baris: Record<string, string>[]; nomorAsli: number[]; galat: Galat[] }; onClose: () => void }) {
+  const [sibuk, setSibuk] = useState(false);
+  const [hasil, setHasil] = useState<{ ok: boolean; error?: string; ditambah?: number; galat?: Galat[] } | null>(null);
+  const jalan = async () => {
+    setSibuk(true);
+    const r = jenis === 'personel' ? await repo.imporPersonel(data.baris as never) : await repo.imporSOTK(data.baris as never);
+    setSibuk(false); setHasil(r as typeof hasil);
+  };
+  const sukses = hasil?.ok === true;
+  const daftarGalat = hasil && !hasil.ok && hasil.galat ? hasil.galat : data.galat;
+  return (
+    <Modal open onClose={onClose} wide title={`Impor ${jenis === 'personel' ? 'Personel' : 'SOTK'} dari Excel`}
+      footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>{sukses ? 'Tutup' : 'Batal'}</Button>{!sukses && <Button onClick={jalan} disabled={sibuk || data.galat.length > 0}>{sibuk ? 'Mengimpor…' : `Impor ${data.baris.length} baris`}</Button>}</div>}>
+      <div className="space-y-3 text-2xs">
+        {sukses ? (
+          <div className="rounded-md border border-teal/40 bg-teal/10 px-3 py-2 text-teal">Impor selesai: {hasil?.ditambah ?? 0} baris ditambahkan.</div>
+        ) : (
+          <>
+            <p className="text-mist-dim">{data.baris.length} baris terbaca. Semua baris harus sah; bila ada yang bermasalah, tidak ada data yang disimpan.</p>
+            <div className="overflow-x-auto"><table className="w-full"><TableHead columns={kolom} /><tbody>
+              {data.baris.slice(0, 5).map((b, i) => <tr key={i}>{kunci.map((k) => <td key={k} className="std-row px-3 text-mist">{b[k]}</td>)}</tr>)}
+            </tbody></table></div>
+            {data.baris.length > 5 && <p className="text-mist-dim">… dan {data.baris.length - 5} baris lain.</p>}
+          </>
+        )}
+        {(daftarGalat.length > 0 || (hasil && !hasil.ok)) && (
+          <div className="rounded-md border border-crit/40 bg-crit/10 px-3 py-2 text-crit">
+            {hasil && !hasil.ok && <div>{hasil.error}</div>}
+            <ul className="mt-1 list-disc pl-4">{daftarGalat.slice(0, 20).map((g, i) => <li key={i}>Baris {data.nomorAsli[g.baris - 1] ?? g.baris}: {g.pesan}</li>)}</ul>
+            {daftarGalat.length > 20 && <div className="mt-1">… dan {daftarGalat.length - 20} masalah lain.</div>}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 

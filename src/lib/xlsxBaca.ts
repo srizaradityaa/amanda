@@ -78,6 +78,15 @@ function bacaCsv(teks: string): string[][] {
   return baris;
 }
 
+/** Baca seluruh lembar pertama (xlsx/csv) sebagai tabel teks mentah. */
+export async function bacaTabel(file: File): Promise<string[][]> {
+  const nama = file.name.toLowerCase();
+  const buf = new Uint8Array(await file.arrayBuffer());
+  if (nama.endsWith('.xlsx')) return bacaXlsx(buf);
+  if (nama.endsWith('.csv') || nama.endsWith('.txt')) return bacaCsv(dec.decode(buf));
+  throw new Error('Gunakan berkas Excel (.xlsx) atau CSV.');
+}
+
 /** Baca berkas tabel. Hasil: pasangan { kode, nama } dari dua kolom pertama; baris judul (mengandung "kode") dilewati; baris kosong diabaikan. */
 export async function bacaKodeNama(file: File): Promise<{ baris: { kode: string; nama: string }[]; nomorAsli: number[] }> {
   const nama = file.name.toLowerCase();

@@ -53,6 +53,8 @@ export const server = {
     const r = await jalankan(api.adm_personel_tambah({ p: pecahPersonel(p) }));
     return { ...r, personel: data.masterPersonel.find((x) => x.id === r.id) };
   },
+  imporPersonel: (baris: unknown[]) => jalankan(api.adm_personel_impor({ p_baris: baris })),
+  imporSOTK: (baris: unknown[]) => jalankan(api.adm_sotk_impor({ p_baris: baris })),
   editPersonel: (id: string, p: Partial<MasterPersonel>) => jalankan(api.adm_personel_edit({ p_id: id, p: pecahPersonel(p) })),
   simpanPerubahanPangkat: (id: string, pangkat: string, gd: string, gb: string, tmt: string) =>
     jalankan(api.adm_personel_perubahan_pangkat({ p_id: id, p_pangkat: pangkat, p_gelar_depan: gd, p_gelar_belakang: gb, p_tmt: tmt }), { toast: true }),

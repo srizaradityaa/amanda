@@ -6,7 +6,6 @@ import * as data from '@/data/sampleData';
 import { paguSeksi, paguSubkegiatan, statusSeksi } from '@/data/anggaran';
 import type { AktorAnggaran } from '@/data/anggaran';
 import { repo } from '@/data/repo';
-import { supabase } from '@/lib/supabase';
 import { formatRupiah } from '@/lib/format';
 import { todayWita } from '@/lib/wita';
 import type { BKU, FormDinamis, FieldFormDinamis, Kuitansi, SPJ } from '@/data/types';

@@ -442,15 +442,6 @@ function TikerItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-ink-edge bg-ink px-3 py-2">
-      <div className="text-2xs text-mist-dim">{label}</div>
-      <div className="mt-0.5 text-sm text-mist">{value}</div>
-    </div>
-  );
-}
-
 export function AuditTrail({ events }: { events: AuditEvent[] }) {
   const [q, setQ] = useState('');
   const filtered = events.filter((e) => {

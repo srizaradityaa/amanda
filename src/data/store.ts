@@ -3,6 +3,7 @@
 // Perubahan data selalu lewat RPC (server.ts), lalu segarkan() memuat ulang dan memberi tahu layar.
 import * as data from '@/data/sampleData';
 import { muatAset } from '@/lib/aset';
+import { getSession } from '@/lib/auth';
 import { supabase, modeServer } from '@/lib/supabase';
 import type {
   TahunAnggaran, VersiAlokasiAnggaran, SPJ, DirektoriTransaksionalSPJ, RegisterSK, JendelaAlokasi, FormatNomorVerifikasi,
@@ -65,23 +66,33 @@ if (modeServer) kosongkanDataContoh();
 let berjalan: Promise<void> | null = null;
 
 /** Muat seluruh data yang boleh dilihat sesi ini. Gagal bila tahun anggaran tidak terbaca (sesi tidak sah). */
-export function muatSemua(): Promise<void> {
+/** Tabel master/konfigurasi hanya ditulis Admin. Setelah muat penuh pertama, sesi non-Admin tidak perlu memuatnya ulang tiap simpanan. */
+let sudahPenuh = false;
+
+export function muatSemua(ringan = false): Promise<void> {
   if (!modeServer || !supabase) return Promise.resolve();
   if (berjalan) return berjalan;
+  const lewati = ringan && sudahPenuh;
+  const M = (tabel: string, kolom: string, urut: string[]): Promise<Baris[] | null | undefined> =>
+    lewati ? Promise.resolve(undefined) : ambil(tabel, kolom, urut);
+  const gantiM = <T,>(arr: T[], baris: Baris[] | null | undefined, peta?: (r: Baris) => T) => {
+    if (baris === undefined) return;
+    ganti(arr, ((baris ?? []) as Baris[]).map((r) => (peta ? peta(r) : r)) as T[]);
+  };
   berjalan = (async () => {
     const [
       sotk, personel, pangkat, akun, pengawas, sub, rek, pajak, form, ta, seksi, pemetaan, tugas, delegasi, tugasPengawas, sk,
       versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, token, fmt, dir, dirRef, rekBank, audit, konf, mdok,
     ] = await Promise.all([
-      ambil('sotk', 'id,nama_unit,tmt_mulai,tmt_selesai,dasar_hukum,pengganti_dari_id,status_versi', ['id']),
-      ambil('personel', 'id,gelar_depan,nama,gelar_belakang,nip,nik,pangkat,tmt,no_whatsapp', ['id']),
-      ambil('riwayat_pangkat', 'id,personel_id,pangkat,gelar_depan,gelar_belakang,tmt_mulai,tmt_selesai', ['tmt_mulai', 'id']),
-      ambil('akun_login', 'id,personel_id,username,status,failed_attempts,locked', ['id']),
-      ambil('akun_pengawas', 'id,nama_lengkap,instansi_asal,nomor_surat_tugas,tanggal_surat_tugas,email,tanggal_akhir_akses,status,failed_attempts,locked', ['id']),
-      ambil('subkegiatan', 'id,kode,nama,status', ['kode']),
-      ambil('rekening_belanja', 'id,kode_rekening,nama,status', ['kode_rekening']),
-      ambil('jenis_pajak', 'id,kode,nama_jenis_pajak,status', ['id']),
-      ambil('form_dinamis', 'id,jenis_belanja,versi,fields,blok_berulang,tanggal_dibuat', ['jenis_belanja', 'tanggal_dibuat', 'id']),
+      M('sotk', 'id,nama_unit,tmt_mulai,tmt_selesai,dasar_hukum,pengganti_dari_id,status_versi', ['id']),
+      M('personel', 'id,gelar_depan,nama,gelar_belakang,nip,nik,pangkat,tmt,no_whatsapp', ['id']),
+      M('riwayat_pangkat', 'id,personel_id,pangkat,gelar_depan,gelar_belakang,tmt_mulai,tmt_selesai', ['tmt_mulai', 'id']),
+      M('akun_login', 'id,personel_id,username,status,failed_attempts,locked', ['id']),
+      M('akun_pengawas', 'id,nama_lengkap,instansi_asal,nomor_surat_tugas,tanggal_surat_tugas,email,tanggal_akhir_akses,status,failed_attempts,locked', ['id']),
+      M('subkegiatan', 'id,kode,nama,status', ['kode']),
+      M('rekening_belanja', 'id,kode_rekening,nama,status', ['kode_rekening']),
+      M('jenis_pajak', 'id,kode,nama_jenis_pajak,status', ['id']),
+      M('form_dinamis', 'id,jenis_belanja,versi,fields,blok_berulang,tanggal_dibuat', ['jenis_belanja', 'tanggal_dibuat', 'id']),
       ambil('v_tahun_anggaran', 'id,tahun,pagu_induk,status,mode_apbd_p,pagu_induk_perubahan,tanggal_arsip_terakhir,pernah_transaksi', ['tahun']),
       ambil('seksi_ta', 'id,ta_id,sotka_id:sotk_id,nama_snapshot,tmt_mulai,tmt_selesai,status', ['id']),
       ambil('pemetaan_subkegiatan_ta', 'id,ta_id,seksi_ta_id,subkegiatan_id,kode_snapshot,nama_snapshot', ['kode_snapshot', 'id']),
@@ -106,24 +117,24 @@ export function muatSemua(): Promise<void> {
       ambil('direktori_transaksional_ref', 'direktori_id,spj_id', ['direktori_id', 'spj_id']),
       ambil('direktori_rekening_bank', 'id,account_name,bank_name,account_number,alias,created_at,updated_at', ['account_name', 'id']),
       ambil('audit_event', 'id,ta_id,waktu,aktor_id,aktor_nama_snapshot,aktor_nip_snapshot,aktor_peran_snapshot,entitas,aksi,nilai_sebelum,nilai_sesudah,alasan,otomatis,definitive_officer_id,delegate_officer_id,kuitansi_id,spj_id', ['waktu', 'id']),
-      ambil('konfigurasi', 'kunci,nilai', ['kunci']),
-      ambil('master_dokumen', 'id,jenis,nama_berkas,berkas_key,ukuran,diunggah_pada', ['diunggah_pada', 'id']),
+      M('konfigurasi', 'kunci,nilai', ['kunci']),
+      M('master_dokumen', 'id,jenis,nama_berkas,berkas_key,ukuran,diunggah_pada', ['diunggah_pada', 'id']),
     ]);
 
     // Tahun anggaran wajib terbaca: bila tidak, sesi tidak sah atau jaringan bermasalah.
     if (ta === null) { berjalan = null; throw new Error('Data tidak dapat dimuat dari server. Periksa koneksi atau masuk kembali.'); }
 
     const a = <T,>(x: Baris[] | null): T[] => (x ?? []) as T[];
-    ganti(data.masterSOTK, a(sotk));
-    ganti(data.masterPersonel, a(personel));
-    ganti(data.pangkatHistory, a(pangkat));
-    ganti(data.akunLogin, a<Baris>(akun).map((r) => ({ ...r, password: '' }) as AkunLogin));
-    ganti(data.akunPengawas, a<Baris>(pengawas).map((r) => ({ ...r, password: '' }) as AkunPengawas));
-    ganti(data.masterSubkegiatan, a(sub));
-    ganti(data.masterRekeningBelanja, a(rek));
-    ganti(data.masterJenisPajak, a(pajak));
-    ganti(data.masterDokumen, a(mdok));
-    ganti(data.formDinamis, a(form));
+    gantiM(data.masterSOTK, sotk);
+    gantiM(data.masterPersonel, personel);
+    gantiM(data.pangkatHistory, pangkat);
+    gantiM<AkunLogin>(data.akunLogin, akun, (r) => ({ ...r, password: '' }) as AkunLogin);
+    gantiM<AkunPengawas>(data.akunPengawas, pengawas, (r) => ({ ...r, password: '' }) as AkunPengawas);
+    gantiM(data.masterSubkegiatan, sub);
+    gantiM(data.masterRekeningBelanja, rek);
+    gantiM(data.masterJenisPajak, pajak);
+    gantiM(data.masterDokumen, mdok);
+    gantiM(data.formDinamis, form);
     ganti(data.tahunAnggaran, a<Baris>(ta).map((r) => ({ ...r, pagu_induk: Number(r.pagu_induk ?? 0), pagu_induk_perubahan: r.pagu_induk_perubahan ?? null }) as TahunAnggaran));
     ganti(data.seksiTA, a<SeksiTA>(seksi));
     ganti(data.pemetaanSubkegiatanTA, a(pemetaan));
@@ -156,11 +167,12 @@ export function muatSemua(): Promise<void> {
     ganti(data.direktoriTransaksional, a<Baris>(dir).map((r) => ({ ...r, referensi_spj_ids: refPer.get(r.id) ?? [] }) as DirektoriTransaksionalSPJ));
     ganti(data.rekeningBankDirektori, a<Baris>(rekBank).map((r) => ({ ...r, alias: r.alias ?? null, created_at: keWita(r.created_at), updated_at: keWita(r.updated_at) }) as never));
     ganti(data.auditEvents, a<Baris>(audit).map((r) => ({ ...r, waktu: keWita(r.waktu) }) as never));
-    for (const k of a<Baris>(konf)) {
+    for (const k of a<Baris>(konf ?? [])) {
       if (k.kunci === 'template_kuitansi') Object.assign(data.templateKuitansi, k.nilai);
       if (k.kunci === 'template_verifikasi') Object.assign(data.templateVerifikasi, k.nilai);
     }
-    await muatAset();
+    if (!lewati) await muatAset();
+    sudahPenuh = true;
     beritahu();
   })().finally(() => { berjalan = null; });
   return berjalan;
@@ -169,12 +181,13 @@ export function muatSemua(): Promise<void> {
 /** Muat ulang setelah operasi tulis, lalu beri tahu layar. */
 export async function segarkan(): Promise<void> {
   if (berjalan) { try { await berjalan; } catch { /* muat ulang di bawah */ } }
-  await muatSemua();
+  await muatSemua(getSession()?.active_role !== 'admin');
 }
 
 /** Kosongkan seluruh data di memori (saat keluar), supaya data pengguna sebelumnya tidak tersisa di browser. */
 export function resetData(): void {
   if (!modeServer) return;
+  sudahPenuh = false;
   kosongkanDataContoh();
   beritahu();
 }

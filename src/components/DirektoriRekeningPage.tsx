@@ -37,10 +37,7 @@ export function DirektoriRekeningPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-bold text-mist">Direktori Rekening Bank</h2>
-        <p className="mt-0.5 text-2xs text-mist-dim">
-          Rekening yang dihimpun otomatis dari pengisian SPJ, global lintas seksi. Koreksi dan penggabungan hanya memengaruhi pencarian ke depan; rekening pada SPJ yang sudah tersimpan tidak berubah.
-        </p>
+        <h2 className="flex items-center gap-2 text-lg font-bold text-mist">Direktori Rekening Bank<span title="Rekening yang dihimpun otomatis dari pengisian SPJ, global lintas seksi. Koreksi dan penggabungan hanya memengaruhi pencarian ke depan; rekening pada SPJ yang sudah tersimpan tidak berubah." className="cursor-help text-sm font-normal text-mist-dim">ⓘ</span></h2>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <SearchBox value={q} onChange={setQ} placeholder="Cari nama, alias, bank, atau no. rekening..." />

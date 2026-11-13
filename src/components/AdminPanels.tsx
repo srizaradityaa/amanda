@@ -5,6 +5,7 @@
 
 import { useState, useRef } from 'react';
 import { namaLengkap } from '@/lib/nama';
+import { KELOMPOK_PANGKAT, pangkatBaku } from '@/data/pangkat';
 import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { bacaKodeNama } from '@/lib/xlsxBaca';
@@ -303,7 +304,8 @@ function PersonelModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'
   const save = async () => {
     f.gelar_belakang = f.gelar_belakang.trim().replace(/^[,\s]+/, '');
     if (!f.nama.trim()) return setErr('Nama lengkap wajib diisi.');
-    if (!f.pangkat.trim()) return setErr('Pangkat/golongan wajib diisi.');
+    if (!f.pangkat.trim()) return setErr('Pilih pangkat/golongan.');
+    if (!pangkatBaku(f.pangkat) && (!ex || f.pangkat !== ex.pangkat)) return setErr('Pilih pangkat/golongan dari daftar baku.');
     if (!f.tmt) return setErr('TMT wajib diisi.');
     if (!f.no_whatsapp.trim()) return setErr('Nomor WhatsApp wajib diisi.');
     if (!/^[0-9+]+$/.test(f.no_whatsapp)) return setErr('WhatsApp hanya angka dan +.');
@@ -338,7 +340,11 @@ function PersonelModal({ mode, id, onClose, onSaved }: { mode: 'tambah' | 'edit'
         <Field label="Gelar Depan"><Input value={f.gelar_depan} onChange={(e) => set('gelar_depan', e.target.value)} /></Field>
         <Field label="Nama Lengkap" required><Input value={f.nama} onChange={(e) => set('nama', e.target.value)} /></Field>
         <Field label="Gelar Belakang"><Input value={f.gelar_belakang} onChange={(e) => set('gelar_belakang', e.target.value)} /></Field>
-        <Field label="Pangkat/Golongan" required><Input value={f.pangkat} onChange={(e) => set('pangkat', e.target.value)} /></Field>
+        <Field label="Pangkat/Golongan" required><Select value={f.pangkat} onChange={(e) => set('pangkat', e.target.value)}>
+            <option value="">— Pilih pangkat/golongan —</option>
+            {f.pangkat && !pangkatBaku(f.pangkat) && <option value={f.pangkat}>{f.pangkat} (penulisan lama — pilih yang baku)</option>}
+            {KELOMPOK_PANGKAT.map((k) => <optgroup key={k.label} label={k.label}>{k.nilai.map((n) => <option key={n} value={n}>{n}</option>)}</optgroup>)}
+          </Select></Field>
         <Field label="NIP (angka, opsional bila ada NIK)"><Input className="mono" value={f.nip} onChange={(e) => set('nip', e.target.value)} inputMode="numeric" /></Field>
         <Field label="NIK (angka, wajib bila NIP kosong)"><Input className="mono" value={f.nik} onChange={(e) => set('nik', e.target.value)} inputMode="numeric" /></Field>
         <Field label="TMT" required><Input type="date" value={f.tmt} onChange={(e) => set('tmt', e.target.value)} /></Field>
@@ -500,7 +506,11 @@ function PangkatModal({ personelId, onClose, onSaved }: { personelId: string; on
         <div className="space-y-4">
           <p className="text-2xs text-warn">Pilihan "Simpan sebagai perubahan baru" akan menutup periode lama (H-1) dan membuat entri periode baru. Cetak historis tidak rusak.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Pangkat/Golongan Baru" required><Input value={f.pangkat} onChange={(e) => set('pangkat', e.target.value)} /></Field>
+            <Field label="Pangkat/Golongan Baru" required><Select value={f.pangkat} onChange={(e) => set('pangkat', e.target.value)}>
+            <option value="">— Pilih pangkat/golongan —</option>
+            {f.pangkat && !pangkatBaku(f.pangkat) && <option value={f.pangkat}>{f.pangkat} (penulisan lama — pilih yang baku)</option>}
+            {KELOMPOK_PANGKAT.map((k) => <optgroup key={k.label} label={k.label}>{k.nilai.map((n) => <option key={n} value={n}>{n}</option>)}</optgroup>)}
+          </Select></Field>
             <Field label="TMT Baru" required><Input type="date" value={f.tmt} onChange={(e) => set('tmt', e.target.value)} /></Field>
             <Field label="Gelar Depan"><Input value={f.gelar_depan} onChange={(e) => set('gelar_depan', e.target.value)} /></Field>
             <Field label="Gelar Belakang"><Input value={f.gelar_belakang} onChange={(e) => set('gelar_belakang', e.target.value)} /></Field>
@@ -979,8 +989,7 @@ export function PetaJabatanPage() {
 function PageHeader({ title, desc }: { title: string; desc?: string }) {
   return (
     <div>
-      <h2 className="text-lg font-bold text-mist">{title}</h2>
-      {desc && <p className="mt-0.5 text-2xs text-mist-dim">{desc}</p>}
+      <h2 className="flex items-center gap-2 text-lg font-bold text-mist">{title}{desc && <span title={desc} aria-label={desc} className="cursor-help text-sm font-normal text-mist-dim">ⓘ</span>}</h2>
     </div>
   );
 }

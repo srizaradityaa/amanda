@@ -399,8 +399,7 @@ export function PakpaDashboard() {
 function PageHeader({ title, desc }: { title: string; desc?: string }) {
   return (
     <div>
-      <h2 className="text-lg font-bold text-mist">{title}</h2>
-      {desc && <p className="text-2xs text-mist-dim">{desc}</p>}
+      <h2 className="flex items-center gap-2 text-lg font-bold text-mist">{title}{desc && <span title={desc} aria-label={desc} className="cursor-help text-sm font-normal text-mist-dim">ⓘ</span>}</h2>
     </div>
   );
 }

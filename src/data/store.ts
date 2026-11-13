@@ -3,7 +3,6 @@
 // Perubahan data selalu lewat RPC (server.ts), lalu segarkan() memuat ulang dan memberi tahu layar.
 import * as data from '@/data/sampleData';
 import { muatAset } from '@/lib/aset';
-import { getSession } from '@/lib/auth';
 import { supabase, modeServer } from '@/lib/supabase';
 import type {
   TahunAnggaran, VersiAlokasiAnggaran, SPJ, DirektoriTransaksionalSPJ, RegisterSK, JendelaAlokasi, FormatNomorVerifikasi,
@@ -66,6 +65,11 @@ if (modeServer) kosongkanDataContoh();
 let berjalan: Promise<void> | null = null;
 
 /** Muat seluruh data yang boleh dilihat sesi ini. Gagal bila tahun anggaran tidak terbaca (sesi tidak sah). */
+/** Peran sesi aktif, dibaca langsung dari sessionStorage (tidak mengimpor auth.ts agar tidak membuat impor melingkar). */
+function peranSesi(): string | null {
+  try { return (JSON.parse(sessionStorage.getItem('amanda.session.v1') ?? 'null') as { active_role?: string } | null)?.active_role ?? null; } catch { return null; }
+}
+
 /** Tabel master/konfigurasi hanya ditulis Admin. Setelah muat penuh pertama, sesi non-Admin tidak perlu memuatnya ulang tiap simpanan. */
 let sudahPenuh = false;
 
@@ -181,7 +185,7 @@ export function muatSemua(ringan = false): Promise<void> {
 /** Muat ulang setelah operasi tulis, lalu beri tahu layar. */
 export async function segarkan(): Promise<void> {
   if (berjalan) { try { await berjalan; } catch { /* muat ulang di bawah */ } }
-  await muatSemua(getSession()?.active_role !== 'admin');
+  await muatSemua(peranSesi() !== 'admin');
 }
 
 /** Kosongkan seluruh data di memori (saat keluar), supaya data pengguna sebelumnya tidak tersisa di browser. */

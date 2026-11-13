@@ -4,7 +4,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard, ShieldCheck, FileText, ScrollText, LogOut, Menu, X,
+  LayoutDashboard, ShieldCheck, FileText, ScrollText, LogOut, Menu, X, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { getSession, logout, subscribeSession } from '@/lib/auth';
 import { Logo } from '@/components/Logo';
@@ -22,7 +22,12 @@ export interface NavItem {
   render: () => ReactNode;
   /** Menu khusus (jarang dipakai): tampil terpisah di bawah menu utama. */
   khusus?: boolean;
+  /** Kelompok submenu; item dengan kelompok sama dikumpulkan di bawah satu judul yang bisa dilipat. */
+  grup?: string;
 }
+
+function bacaLocal(k: string): string | null { try { return localStorage.getItem(k); } catch { return null; } }
+function tulisLocal(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* abaikan */ } }
 
 export function DashboardShell({
   nav,
@@ -37,6 +42,11 @@ export function DashboardShell({
 }) {
   const [session, setSession] = useState<SessionPayload | null>(getSession());
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [ciutPref, setCiut] = useState(() => bacaLocal('amanda.sidebar.ciut') === '1');
+  const [tutup, setTutup] = useState<string[]>(() => { try { return JSON.parse(bacaLocal('amanda.sidebar.grup') ?? '[]') as string[]; } catch { return []; } });
+  const ciut = ciutPref && !mobileOpen; // laci menu di ponsel selalu penuh
+  const ubahCiut = () => { setCiut((c) => { tulisLocal('amanda.sidebar.ciut', c ? '0' : '1'); return !c; }); };
+  const ubahGrup = (g: string) => setTutup((t) => { const n = t.includes(g) ? t.filter((x) => x !== g) : [...t, g]; tulisLocal('amanda.sidebar.grup', JSON.stringify(n)); return n; });
 
   useEffect(() => {
     const unsub = subscribeSession(() => setSession(getSession()));
@@ -63,28 +73,61 @@ export function DashboardShell({
         onNavigate(item.id);
         setMobileOpen(false);
       }}
-      className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+      title={ciut ? item.label : undefined}
+      aria-label={item.label}
+      className={`flex w-full items-center ${ciut ? 'justify-center px-0' : 'gap-2.5 px-3'} rounded-md py-2 text-sm font-medium transition-colors ${
         activeId === item.id
           ? 'bg-amber/10 text-amber ring-1 ring-amber/30'
           : 'text-mist-dim hover:bg-ink-edge/40 hover:text-mist'
       }`}
     >
       {item.icon}
-      <span>{item.label}</span>
+      {!ciut && <span>{item.label}</span>}
     </button>
   );
+
+  // Susun menu: item bergrup dikumpulkan di bawah judul grup pada kemunculan pertamanya.
+  const renderDaftar = (items: NavItem[]) => {
+    const sudah = new Set<string>();
+    return items.map((item) => {
+      if (!item.grup) return renderItem(item);
+      if (sudah.has(item.grup)) return null;
+      sudah.add(item.grup);
+      const anggota = items.filter((i) => i.grup === item.grup);
+      const terbuka = ciut || !tutup.includes(item.grup) || anggota.some((a) => a.id === activeId);
+      return (
+        <div key={`g-${item.grup}`} className={ciut ? 'space-y-1 border-y border-ink-edge/60 py-1' : ''}>
+          {!ciut && (
+            <button onClick={() => ubahGrup(item.grup!)} aria-expanded={terbuka}
+              className="flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-mist-dim hover:text-mist">
+              {terbuka ? <ChevronDown size={12} /> : <ChevronRight size={12} />}{item.grup}
+            </button>
+          )}
+          {terbuka && <div className={ciut ? 'space-y-1' : 'ml-2 space-y-1 border-l border-ink-edge pl-1.5'}>{anggota.map(renderItem)}</div>}
+        </div>
+      );
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-ink text-mist lg:h-screen lg:overflow-hidden">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-60 transform border-r border-ink-edge bg-ink-surface transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 ${ciut ? 'lg:w-16' : ''} w-60 transform border-r border-ink-edge bg-ink-surface transition-transform lg:static lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex h-12 items-center gap-2 border-b border-ink-edge px-4">
           <Logo varian="ikon" tinggi={28} />
-          <span className="text-sm font-bold tracking-tight">AMANDA</span>
+          {!ciut && <span className="text-sm font-bold tracking-tight">AMANDA</span>}
+          <button
+            className="ml-auto hidden rounded p-1 text-mist-dim hover:text-mist lg:block"
+            onClick={ubahCiut}
+            aria-label={ciut ? 'Besarkan menu' : 'Kecilkan menu'}
+            title={ciut ? 'Besarkan menu' : 'Kecilkan menu'}
+          >
+            {ciut ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
           <button
             className="ml-auto rounded p-1 text-mist-dim hover:text-mist lg:hidden"
             onClick={() => setMobileOpen(false)}
@@ -95,11 +138,11 @@ export function DashboardShell({
         </div>
         <nav className="flex h-[calc(100%-3rem)] flex-col p-3">
           <div className="space-y-1">
-            {nav.filter((i) => !i.khusus).map((item) => renderItem(item))}
+            {renderDaftar(nav.filter((i) => !i.khusus))}
           </div>
           {nav.some((i) => i.khusus) && (
             <div className="mt-auto space-y-1 border-t border-ink-edge pt-3">
-              <p className="px-3 text-2xs uppercase tracking-wide text-mist-dim">Menu khusus</p>
+              {!ciut && <p className="px-3 text-2xs uppercase tracking-wide text-mist-dim">Lainnya</p>}
               {nav.filter((i) => i.khusus).map((item) => renderItem(item))}
             </div>
           )}

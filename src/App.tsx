@@ -9,6 +9,7 @@ import { ContextSelectPage } from '@/components/ContextSelectPage';
 import { DashboardShell, type NavItem } from '@/components/DashboardShell';
 import { BendaharaDashboard, PptkDashboard, VerifikatorDashboard, PakpaDashboard, AuditTrail } from '@/components/Dashboards';
 import { AdminDasborPage, SOTKPage, PersonelPage, KamusPage, PajakPage, DirektoriPage, PetaJabatanPage } from '@/components/AdminPanels';
+import { TentangPage } from '@/components/TentangPage';
 import { VerifikasiPage } from '@/components/VerifikasiPage';
 import { BKUPage } from '@/components/BKUPage';
 import { AnggaranBendaharaPage } from '@/components/AnggaranBendaharaPage';
@@ -20,7 +21,7 @@ import { repo } from '@/data/repo';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
-import { BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
+import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
 import type { SessionPayload } from '@/data/types';
 
 const TahunAnggaranPage = lazy(() => import('@/components/TAPanels').then((m) => ({ default: m.TahunAnggaranPage })));
@@ -205,18 +206,19 @@ function buildNav(role: string): NavItem[] {
   if (role === 'admin') {
     return [
       { id: 'dashboard', label: 'Dasbor', icon: <LayoutDashboard size={18} />, render: () => <AdminDasborPage /> },
-      { id: 'sotk', label: 'Master SOTK', icon: <Building2 size={18} />, render: () => <SOTKPage /> },
-      { id: 'personel', label: 'Master Personel', icon: <Users size={18} />, render: () => <PersonelPage /> },
-      { id: 'peta-jabatan', label: 'Peta Jabatan', icon: <Users size={18} />, render: () => <PetaJabatanPage /> },
-      { id: 'kamus', label: 'Subkegiatan & Rekening', icon: <Layers size={18} />, render: () => <KamusPage /> },
-      { id: 'pajak', label: 'Jenis Pajak', icon: <FileText size={18} />, render: () => <PajakPage /> },
-      { id: 'form-dinamis', label: 'Form Dinamis', icon: <FileText size={18} />, render: () => <FormBuilderPage /> },
-      { id: 'template-kuitansi', label: 'Template Kuitansi', icon: <FileText size={18} />, render: () => <TemplateKuitansiPage /> },
-      { id: 'template-verifikasi', label: 'Template Verifikasi', icon: <FileText size={18} />, render: () => <TemplateVerifikasiPage /> },
-      { id: 'direktori', label: 'Direktori SPJ', icon: <ScrollIcon size={18} />, render: () => <DirektoriPage /> },
-      { id: 'direktori-rekening', label: 'Direktori Rekening', icon: <Wallet size={18} />, render: () => <DirektoriRekeningPage /> },
+      { id: 'sotk', grup: 'Master Data', label: 'Master SOTK', icon: <Building2 size={18} />, render: () => <SOTKPage /> },
+      { id: 'personel', grup: 'Master Data', label: 'Master Personel', icon: <Users size={18} />, render: () => <PersonelPage /> },
+      { id: 'peta-jabatan', grup: 'Master Data', label: 'Peta Jabatan', icon: <Users size={18} />, render: () => <PetaJabatanPage /> },
+      { id: 'kamus', grup: 'Master Data', label: 'Subkegiatan & Rekening', icon: <Layers size={18} />, render: () => <KamusPage /> },
+      { id: 'pajak', grup: 'Master Data', label: 'Jenis Pajak', icon: <FileText size={18} />, render: () => <PajakPage /> },
+      { id: 'form-dinamis', grup: 'Templat & Formulir', label: 'Form Dinamis', icon: <FileText size={18} />, render: () => <FormBuilderPage /> },
+      { id: 'template-kuitansi', grup: 'Templat & Formulir', label: 'Template Kuitansi', icon: <FileText size={18} />, render: () => <TemplateKuitansiPage /> },
+      { id: 'template-verifikasi', grup: 'Templat & Formulir', label: 'Template Verifikasi', icon: <FileText size={18} />, render: () => <TemplateVerifikasiPage /> },
+      { id: 'direktori', grup: 'Direktori', label: 'Direktori SPJ', icon: <ScrollIcon size={18} />, render: () => <DirektoriPage /> },
+      { id: 'direktori-rekening', grup: 'Direktori', label: 'Direktori Rekening', icon: <Wallet size={18} />, render: () => <DirektoriRekeningPage /> },
       { id: 'tahun-anggaran', label: 'Tahun Anggaran', icon: <CalendarRange size={18} />, render: () => <TahunAnggaranPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
+      { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
   if (role === 'bendahara') {
@@ -228,6 +230,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
+      { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
   if (role === 'pptk') {
@@ -240,6 +243,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
+      { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
   if (role === 'verifikator') {
@@ -251,6 +255,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
+      { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
   if (role === 'pa_kpa') {
@@ -261,6 +266,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
+      { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
   return [];

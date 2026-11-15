@@ -11,14 +11,14 @@ export function buatApi(k: KlienRpc) {
     return data as T;
   };
   return {
-    arsip_bku_daftar: () => panggil('arsip_bku_daftar'),
-    arsip_catat_unduh: (a: { p_jenis: string, p_rujukan: string, p_jumlah: number }) => panggil('arsip_catat_unduh', a),
+    arsip_bku_daftar: (a?: { p_ta?: string | null }) => panggil('arsip_bku_daftar', a),
+    arsip_catat_unduh: (a: { p_jenis: string, p_rujukan: string, p_jumlah: number, p_ta?: string | null }) => panggil('arsip_catat_unduh', a),
     arsip_dokumen_catat: (a: { p_kategori: string, p_nomor: string, p_tanggal: string, p_judul: string, p_keterangan: string, p_key: string, p_nama_asli: string, p_ukuran: number }) => panggil('arsip_dokumen_catat', a),
-    arsip_dokumen_daftar: () => panggil('arsip_dokumen_daftar'),
+    arsip_dokumen_daftar: (a?: { p_ta?: string | null }) => panggil('arsip_dokumen_daftar', a),
     arsip_dokumen_hapus: (a: { p_id: string }) => panggil('arsip_dokumen_hapus', a),
     arsip_dokumen_ubah: (a: { p_id: string, p_nomor: string, p_tanggal: string, p_judul: string, p_keterangan: string }) => panggil('arsip_dokumen_ubah', a),
     arsip_kategori_bawaan: () => panggil('arsip_kategori_bawaan'),
-    arsip_kategori_daftar: () => panggil('arsip_kategori_daftar'),
+    arsip_kategori_daftar: (a?: { p_ta?: string | null }) => panggil('arsip_kategori_daftar', a),
     arsip_kategori_hapus: (a: { p_id: string }) => panggil('arsip_kategori_hapus', a),
     arsip_kategori_simpan: (a: { p_id: string, p_kode: string, p_nama: string, p_deskripsi?: string, p_aktif?: boolean }) => panggil('arsip_kategori_simpan', a),
     adm_akun_buat: (a: { p_personel_id: string, p_sandi: string }) => panggil('adm_akun_buat', a),

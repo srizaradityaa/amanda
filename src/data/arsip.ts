@@ -61,7 +61,11 @@ const demoKategori: KategoriArsip[] = [];
 const demoDokumen: (DokumenArsip & { file: File | null })[] = [];
 let demoSeq = 1;
 
-function taAktif(): string { return getSession()?.active_ta_id ?? ''; }
+// Admin tidak terikat satu TA: TA yang dilihat dipilih di halaman Arsip (khusus baca).
+let taPilihanAdmin: string | null = null;
+export function setTaArsip(id: string | null): void { taPilihanAdmin = id; }
+function taAktif(): string { const s = getSession(); return s?.active_role === 'admin' ? taPilihanAdmin ?? '' : s?.active_ta_id ?? ''; }
+function taParam(): { p_ta: string | null } { return { p_ta: getSession()?.active_role === 'admin' ? taPilihanAdmin : null }; }
 
 // ===== Baca =====
 export async function muatBKU(): Promise<Daftar<ArsipBKU>> {
@@ -85,15 +89,15 @@ export async function muatBKU(): Promise<Daftar<ArsipBKU>> {
     }).sort((a, b) => a.nomor_bku.localeCompare(b.nomor_bku));
     return { ok: true, baris };
   }
-  return panggilDaftar<ArsipBKU>(() => api.arsip_bku_daftar());
+  return panggilDaftar<ArsipBKU>(() => api.arsip_bku_daftar(taParam()));
 }
 export async function muatKategori(): Promise<Daftar<KategoriArsip>> {
   if (!modeServer) return { ok: true, baris: demoKategori.map((c) => ({ ...c, jumlah: demoDokumen.filter((d) => d.kategori_id === c.id).length })) };
-  return panggilDaftar<KategoriArsip>(() => api.arsip_kategori_daftar());
+  return panggilDaftar<KategoriArsip>(() => api.arsip_kategori_daftar(taParam()));
 }
 export async function muatDokumen(): Promise<Daftar<DokumenArsip>> {
   if (!modeServer) return { ok: true, baris: demoDokumen.map((d): DokumenArsip => ({ id: d.id, kategori_id: d.kategori_id, kategori: d.kategori, kategori_kode: d.kategori_kode, nomor: d.nomor, tanggal: d.tanggal, judul: d.judul, keterangan: d.keterangan, nama_asli: d.nama_asli, berkas_key: d.berkas_key, ukuran: d.ukuran, diunggah: d.diunggah, pengunggah: d.pengunggah })) };
-  return panggilDaftar<DokumenArsip>(() => api.arsip_dokumen_daftar());
+  return panggilDaftar<DokumenArsip>(() => api.arsip_dokumen_daftar(taParam()));
 }
 async function panggilDaftar<T>(f: () => Promise<Hasil>): Promise<Daftar<T>> {
   try {
@@ -215,7 +219,7 @@ export async function blobBundelBKU(b: ArsipBKU): Promise<{ blob: Blob; catatan?
 /** Catat unduhan pada jejak audit (Pilar 07 §4.1). Kegagalan mencatat tidak menghalangi unduhan. */
 export async function catatUnduh(jenis: 'BKU_PDF' | 'BKU_ZIP' | 'DOK_PDF' | 'DOK_ZIP', rujukan: string, jumlah: number): Promise<void> {
   if (!modeServer) return;
-  try { await api.arsip_catat_unduh({ p_jenis: jenis, p_rujukan: rujukan, p_jumlah: jumlah }); } catch { /* abaikan */ }
+  try { await api.arsip_catat_unduh({ p_jenis: jenis, p_rujukan: rujukan, p_jumlah: jumlah, ...taParam() }); } catch { /* abaikan */ }
 }
 
 export function simpanBlob(nama: string, blob: Blob): void {

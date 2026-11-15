@@ -223,6 +223,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'template-verifikasi', grup: 'Templat & Formulir', label: 'Template Verifikasi', icon: <FileText size={18} />, render: () => <TemplateVerifikasiPage /> },
       { id: 'direktori', grup: 'Direktori', label: 'Direktori SPJ', icon: <ScrollIcon size={18} />, render: () => <DirektoriPage /> },
       { id: 'direktori-rekening', grup: 'Direktori', label: 'Direktori Rekening', icon: <Wallet size={18} />, render: () => <DirektoriRekeningPage /> },
+      { id: 'arsip', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'tahun-anggaran', label: 'Tahun Anggaran', icon: <CalendarRange size={18} />, render: () => <TahunAnggaranPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },

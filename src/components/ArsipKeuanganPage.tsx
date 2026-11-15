@@ -24,7 +24,12 @@ function useTunda<T>(nilai: T, ms = 300): T {
 
 export function ArsipKeuanganPage() {
   const s = getSession()!;
-  const ta = repo.tahunAnggaranById(s.active_ta_id!);
+  const admin = s.active_role === 'admin';
+  const daftarTA = admin ? repo.tahunAnggaran().slice().sort((a, b) => b.tahun.localeCompare(a.tahun)) : [];
+  const [taAdmin, setTaAdmin] = useState<string>(() => (daftarTA.find((t) => t.status === 'Aktif Penuh') ?? daftarTA[0])?.id ?? '');
+  const taId = admin ? taAdmin : s.active_ta_id!;
+  arsip.setTaArsip(admin ? taId : null);
+  const ta = repo.tahunAnggaranById(taId);
   const tahun = ta?.tahun ?? '';
   const bendahara = s.active_role === 'bendahara';
   const [tab, setTab] = useState<Tab>('bku');
@@ -35,10 +40,20 @@ export function ArsipKeuanganPage() {
   return (
     <div className="space-y-4">
       <Card className="p-5">
-        <SectionTitle title="Arsip Keuangan" desc={`TA ${tahun} • berkas hanya-baca; seluruh unduhan dicatat pada jejak audit`} />
-        <div className="flex gap-2">{tombolTab('bku', 'Arsip SPJ BKU')}{tombolTab('dokumen', 'Dokumen Keuangan (Non-BKU)')}</div>
+        <SectionTitle title="Arsip Keuangan" desc={`TA ${tahun} • berkas hanya-baca${admin ? ' untuk Admin' : ''}; seluruh unduhan dicatat pada jejak audit`} />
+        <div className="flex flex-wrap items-center gap-2">
+          {tombolTab('bku', 'Arsip SPJ BKU')}{tombolTab('dokumen', 'Dokumen Keuangan (Non-BKU)')}
+          {admin && (
+            <label className="ml-auto flex items-center gap-2 text-2xs text-mist-dim">Tahun Anggaran
+              <select value={taAdmin} onChange={(e) => setTaAdmin(e.target.value)} className="rounded-md border border-ink-edge bg-ink px-2 py-1 text-2xs text-mist">
+                {daftarTA.map((t) => <option key={t.id} value={t.id}>{t.tahun} ({t.status})</option>)}
+              </select>
+            </label>
+          )}
+        </div>
       </Card>
-      {tab === 'bku' ? <TabBKU tahun={tahun} /> : <TabDokumen tahun={tahun} bendahara={bendahara} />}
+      {!taId ? <Card className="p-5 text-sm text-mist-dim">Belum ada Tahun Anggaran.</Card>
+        : tab === 'bku' ? <TabBKU key={taId} tahun={tahun} /> : <TabDokumen key={taId} tahun={tahun} bendahara={bendahara} />}
     </div>
   );
 }

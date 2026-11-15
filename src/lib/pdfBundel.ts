@@ -35,7 +35,7 @@ function rp(n: number): string { return 'Rp ' + Math.round(n).toString().replace
 /** Huruf standar PDF (WinAnsi) tidak memuat semua karakter: ganti yang umum, buang sisanya. */
 function aman(s: string): string {
   return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/•/g, '*').replace(/✓/g, 'v')
-    .replace(/[\r\n\t]+/g, ' ').replace(/[^\x20-\x7E -ÿ]/g, '?');
+    .replace(/[\r\n\t]+/g, ' ').replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
 }
 
 const A4: [number, number] = [595.28, 841.89];

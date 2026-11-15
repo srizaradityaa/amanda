@@ -1,7 +1,7 @@
 // SPJ-01, SPJ-02, SPJ-03, SPJ-04, BNT-04 — Halaman SPJ untuk PPTK (D02 §5, D01 §9, D03 §10)
 import { useReducer, useState } from 'react';
 import {
-  Button, Card, StatusBadge, Field, Input, Select, Modal,
+  Button, Card, StatusBadge, Field, Select, Modal,
   useToast, SearchBox, FilterSelect, EmptyState,
 } from '@/components/ui';
 import { repo } from '@/data/repo';

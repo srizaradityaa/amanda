@@ -16,6 +16,7 @@ const PERAN_LABEL: Record<string, string> = {
   pptk: 'PPTK / Seksi',
   verifikator: 'Verifikator',
   pa_kpa: 'PA/KPA',
+  pengelola_arsip: 'Pengelola Arsip',
 };
 
 function peranLabel(p: PeranPenugasan): string {

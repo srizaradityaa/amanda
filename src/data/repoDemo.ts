@@ -776,7 +776,7 @@ export const repoDemo = {
   tambahPenugasan: (ta_id: string, peran: PeranPenugasan, personel_id: string, seksi_ta_id: string | null, tmt_mulai: string, provisional: boolean): { ok: boolean; error?: string } => {
     const ta = data.tahunAnggaran.find((t) => t.id === ta_id);
     if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
-    if (ta.status !== 'Draft') return { ok: false, error: 'Penugasan hanya bisa ditambah pada TA Draft.' };
+    if (peran === 'pengelola_arsip' ? ta.status === 'Arsip Read-Only' : ta.status !== 'Draft') return { ok: false, error: peran === 'pengelola_arsip' ? 'Penugasan tidak dapat ditambah pada TA Arsip Read-Only.' : 'Penugasan hanya bisa ditambah pada TA Draft.' };
     const per = data.masterPersonel.find((p) => p.id === personel_id);
     if (!per) return { ok: false, error: 'Personel tidak ditemukan.' };
     // PEN-04: Bendahara ≠ PPTK pada TA yang sama (termasuk Plh./Plt.)

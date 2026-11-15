@@ -21,7 +21,7 @@ import { repo } from '@/data/repo';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
-import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet } from 'lucide-react';
+import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet, Archive } from 'lucide-react';
 import type { SessionPayload } from '@/data/types';
 
 const TahunAnggaranPage = lazy(() => import('@/components/TAPanels').then((m) => ({ default: m.TahunAnggaranPage })));
@@ -34,6 +34,7 @@ const LaporanKustomPage = lazy(() => import('@/components/LaporanKustomPage').th
 const KeaslianPage = lazy(() => import('@/components/KeaslianPage').then((m) => ({ default: m.KeaslianPage })));
 const TemplateVerifikasiPage = lazy(() => import('@/components/TemplateVerifikasiPage').then((m) => ({ default: m.TemplateVerifikasiPage })));
 const DirektoriRekeningPage = lazy(() => import('@/components/DirektoriRekeningPage').then((m) => ({ default: m.DirektoriRekeningPage })));
+const ArsipKeuanganPage = lazy(() => import('@/components/ArsipKeuanganPage').then((m) => ({ default: m.ArsipKeuanganPage })));
 const DrilldownPage = lazy(() => import('@/components/DrilldownPage').then((m) => ({ default: m.DrilldownPage })));
 
 type View = 'login' | 'context' | 'app' | 'public';
@@ -232,6 +233,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'dashboard', label: 'Dasbor', icon: <LayoutDashboard size={18} />, render: () => <BendaharaDashboard /> },
       { id: 'anggaran', label: 'Anggaran', icon: <Wallet size={18} />, render: () => <AnggaranBendaharaPage /> },
       { id: 'bku', label: 'BKU', icon: <BookOpen size={18} />, render: () => <BKUPage /> },
+      { id: 'arsip', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'rincian', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
@@ -257,6 +259,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'dashboard', label: 'Dasbor', icon: <LayoutDashboard size={18} />, render: () => <VerifikatorDashboard /> },
       { id: 'verifikasi', label: 'Verifikasi SPJ', icon: <ScrollText size={18} />, render: () => <VerifikasiPage /> },
       { id: 'bku', label: 'BKU', icon: <BookOpen size={18} />, render: () => <BKUPage /> },
+      { id: 'arsip', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'rincian', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
@@ -272,6 +275,12 @@ function buildNav(role: string): NavItem[] {
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
+      { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
+    ];
+  }
+  if (role === 'pengelola_arsip') {
+    return [
+      { id: 'dashboard', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }

@@ -334,14 +334,15 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
   const delAktif = repo._allDelegasi(taId).filter((d) => d.status === 'Delegasi Aktif');
   const seksiTA = repo.seksiTAByTA(taId);
 
-  type Slot = { kunci: string; peran: PeranPenugasan; label: string; lingkup: string; seksiId: string | null };
+  type Slot = { kunci: string; peran: PeranPenugasan; label: string; lingkup: string; seksiId: string | null; opsional?: boolean };
   const slot: Slot[] = [
     { kunci: 'pa', peran: 'pa_kpa', label: 'PA/KPA', lingkup: 'Instansi', seksiId: null },
     { kunci: 'bend', peran: 'bendahara', label: 'Bendahara', lingkup: 'Instansi', seksiId: null },
     { kunci: 'ver', peran: 'verifikator', label: 'Verifikator', lingkup: 'Instansi', seksiId: null },
+    { kunci: 'arsip', peran: 'pengelola_arsip', label: 'Pengelola Arsip', lingkup: 'Instansi (opsional)', seksiId: null, opsional: true },
     ...seksiTA.map((sk) => ({ kunci: `pptk-${sk.id}`, peran: 'pptk' as PeranPenugasan, label: 'PPTK', lingkup: sk.nama_snapshot, seksiId: sk.id as string | null })),
   ];
-  const kosong = slot.filter((x) => !tgs.some((t) => t.peran === x.peran && (t.seksi_ta_id ?? null) === x.seksiId) && !delAktif.some((d) => d.peran_digantikan === x.peran && (d.seksi_ta_id ?? null) === x.seksiId)).length
+  const kosong = slot.filter((x) => !x.opsional).filter((x) => !tgs.some((t) => t.peran === x.peran && (t.seksi_ta_id ?? null) === x.seksiId) && !delAktif.some((d) => d.peran_digantikan === x.peran && (d.seksi_ta_id ?? null) === x.seksiId)).length
     ;
   const ikon = 'rounded p-1 text-mist-dim hover:text-mist';
 
@@ -353,7 +354,7 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
     const sks = def ? repo.skByPenugasan(def.id) : [];
     const dasar = `${i % 2 ? 'bg-ink-surface/40' : ''}`;
     return (
-      <tr key={x.kunci} className={`${dasar} ${del ? 'border-l-2 border-l-amber' : !def ? 'border-l-2 border-l-crit' : 'border-l-2 border-l-transparent'}`}>
+      <tr key={x.kunci} className={`${dasar} ${del ? 'border-l-2 border-l-amber' : !def && !x.opsional ? 'border-l-2 border-l-crit' : 'border-l-2 border-l-transparent'}`}>
         <td className="px-3 py-2 font-medium text-mist">{x.label}</td>
         <td className="px-3 py-2 text-mist-dim">{x.lingkup}</td>
         <td className="px-3 py-2">
@@ -367,23 +368,23 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
               {nonActive && <span className="inline-flex items-center gap-1 text-warn"><AlertTriangle size={12} /> NON-ACTIVE</span>}
             </div>
           ) : (
-            <span className="inline-flex items-center gap-1 font-semibold text-crit"><AlertTriangle size={12} /> KOSONG: belum ditugaskan</span>
+            x.opsional ? <span className="text-mist-dim">Belum ditugaskan (opsional)</span> : <span className="inline-flex items-center gap-1 font-semibold text-crit"><AlertTriangle size={12} /> KOSONG: belum ditugaskan</span>
           )}
         </td>
         <td className="px-3 py-2">
-          {del ? <StatusBadge kind="warn" label="Dijabat Plh./Plt." /> : def ? (def.provisional ? <StatusBadge kind="warn" label="Provisional" /> : <StatusBadge kind="ok" label="Final" />) : <StatusBadge kind="crit" label="Kosong" />}
+          {del ? <StatusBadge kind="warn" label="Dijabat Plh./Plt." /> : def ? (def.provisional ? <StatusBadge kind="warn" label="Provisional" /> : <StatusBadge kind="ok" label="Final" />) : x.opsional ? <StatusBadge kind="neutral" label="Opsional" /> : <StatusBadge kind="crit" label="Kosong" />}
         </td>
         <td className="px-3 py-2 mono whitespace-nowrap text-mist-dim">{def ? `${formatTanggalPendek(def.tmt_mulai)} — sekarang` : '—'}</td>
         <td className="px-3 py-2 text-mist-dim">{sks.length > 0 ? sks.map((sk) => <div key={sk.id} className="whitespace-nowrap">{sk.nomor_sk || 'Nomor SK belum ada'}</div>) : '—'}</td>
         <td className="px-3 py-2">
           <div className="flex gap-1">
-            {!def && isDraft && <Button className="px-2 py-0.5 text-2xs" onClick={() => setAddModal({ peran: x.peran, seksiId: x.seksiId ?? undefined })}><Plus size={12} /> Tugaskan</Button>}
-            {!def && !isDraft && !del && <span className="text-mist-dim">Isi lewat Plh./Plt.</span>}
+            {!def && (isDraft || (x.opsional && !isArsip)) && <Button className="px-2 py-0.5 text-2xs" onClick={() => setAddModal({ peran: x.peran, seksiId: x.seksiId ?? undefined })}><Plus size={12} /> Tugaskan</Button>}
+            {!def && !isDraft && !del && !x.opsional && <span className="text-mist-dim">Isi lewat Plh./Plt.</span>}
             <button onClick={() => setRiwayat({ peran: x.peran, seksiId: x.seksiId, label: `${x.label} — ${x.lingkup}` })} className={ikon} title="Riwayat jabatan ini"><CalendarClock size={14} /></button>
             {def && <button onClick={() => setSkModal({ penugasanId: def.id })} className={ikon} title="SK"><FileText size={14} /></button>}
             {def && !isArsip && <button onClick={() => setGantiModal({ penugasanId: def.id })} className={`${ikon} hover:text-amber`} title="Ganti Pejabat"><UserPlus size={14} /></button>}
             {del && !isArsip && <button onClick={() => setCabutModal({ delegasiId: del.id })} className={`${ikon} hover:text-crit`} title="Cabut Plh./Plt. dini"><XCircle size={14} /></button>}
-            {def && isDraft && <button onClick={async () => { await repo.hapusPenugasan(def.id); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus"><Trash2 size={14} /></button>}
+            {def && (isDraft) && <button onClick={async () => { await repo.hapusPenugasan(def.id); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus"><Trash2 size={14} /></button>}
           </div>
         </td>
       </tr>
@@ -893,6 +894,7 @@ function peranLabel(p: string): string {
     case 'bendahara': return 'Bendahara';
     case 'verifikator': return 'Verifikator';
     case 'pptk': return 'PPTK';
+    case 'pengelola_arsip': return 'Pengelola Arsip';
     default: return p;
   }
 }

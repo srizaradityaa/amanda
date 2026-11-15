@@ -64,6 +64,7 @@ const CAKUPAN: Record<Role, TingkatDrill | null> = {
   pa_kpa: 'subkegiatan',
   pptk: 'rekening',
   admin: null,
+  pengelola_arsip: null,
 };
 
 function izinkan(aktor: AktorAnggaran, tingkat: TingkatDrill, seksi_ta_id?: string): string | null {

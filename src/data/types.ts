@@ -9,7 +9,8 @@ export type Role =
   | 'bendahara'
   | 'pptk'
   | 'verifikator'
-  | 'pa_kpa';
+  | 'pa_kpa'
+  | 'pengelola_arsip';
 
 export type ActorType = 'internal';
 
@@ -195,7 +196,7 @@ export interface PemetaanSubkegiatanTA {
   nama_snapshot: string;
 }
 
-export type PeranPenugasan = 'pa_kpa' | 'bendahara' | 'verifikator' | 'pptk';
+export type PeranPenugasan = 'pa_kpa' | 'bendahara' | 'verifikator' | 'pptk' | 'pengelola_arsip';
 
 export interface PenugasanTA {
   id: string;
@@ -434,7 +435,8 @@ export type AuditAksi =
   | 'aksi_administratif'
   | 'efisiensi_spd'
   | 'kenaikan_spd'
-  | 'pergeseran_spd';
+  | 'pergeseran_spd'
+  | 'aksi_arsip';
 
 export interface AuditEvent {
   id: string;

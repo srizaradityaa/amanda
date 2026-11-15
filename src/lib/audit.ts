@@ -50,6 +50,7 @@ function peranLabel(role: string): string {
     case 'pptk': return 'PPTK/Seksi';
     case 'verifikator': return 'Verifikator';
     case 'pa_kpa': return 'PA/KPA';
+    case 'pengelola_arsip': return 'Pengelola Arsip';
     default: return role;
   }
 }

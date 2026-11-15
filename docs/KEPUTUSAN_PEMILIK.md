@@ -23,3 +23,9 @@ Keputusan pemilik: satu orang dilarang merangkap jabatan pada TA yang sama (PA/K
 
 ## Peran Pengawas/Auditor dihapus (2026-11-13)
 Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; pemantauan publik tetap lewat Portal Publik dan halaman Keaslian. Dampak terhadap dokumen acuan: Dokumen 01 §8–9 (akun dan jejak unduhan Pengawas), Dokumen 03 §7 (workflow Pengawas), Dokumen 04 (akun Pengawas), Dokumen 05 §2 (kolom Pengawas) dan skenario H, serta login dengan email tidak berlaku lagi. Migrasi 0018 menghapus tabel `akun_pengawas`, `penugasan_pengawas_ta`, tujuh fungsi `adm_pengawas_*`/`pengawas_catat_aksi`, dan jalur login email. Login kini hanya NIP/NIK. Entri audit lama bernilai `aksi_pengawas` tetap diperbolehkan oleh batasan tabel agar riwayat tidak rusak.
+
+## Modul Arsip Keuangan dan WhatsApp (2026-11-15)
+- **Arsip dahulu, WhatsApp ditunda:** dokumen Pilar 01–08 dan draf Arsip SPJ BKU v7.0 dipakai untuk modul Arsip. Seluruh fitur WhatsApp Bot (tombol interaktif, notifikasi 09:00) ditunda karena memerlukan WhatsApp Business API berbayar.
+- **Tanpa Auditor/Pengawas:** baris Auditor pada Pilar 05 dan draf Arsip diabaikan; peran itu sudah dihapus total. Akses Arsip: Pengelola Arsip, Bendahara, Verifikator (lihat/unduh); hanya Bendahara yang mengelola kategori dan dokumen Non-BKU.
+- **Pengelola Arsip** (peran opsional, instansi) dapat ditugaskan pada TA Draft maupun TA yang sedang berjalan (bukan TA Arsip Read-Only). Larangan rangkap jabatan tetap berlaku. Migrasi `penugasan_pengelola_arsip_ta_berjalan` (docs/migrasi/0021).
+- **Unduhan:** PDF tunggal berisi lampiran SPJ (nama berkas `[No_BKU_sanitasi].pdf`) dan ZIP massal + manifest Excel dirakit di peramban. Penggabungan Lembar Verifikasi + lampiran dalam satu PDF belum ada karena memerlukan pustaka `pdf-lib`; lembar verifikasi tetap dicetak dari menu Verifikasi. Admin belum dapat membuka Arsip karena sesi Admin tidak terikat satu TA.

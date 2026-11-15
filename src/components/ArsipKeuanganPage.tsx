@@ -104,15 +104,17 @@ function TabBKU({ tahun }: { tahun: string }) {
   const reset = () => { setCari(''); setFSeksi(''); setDari(''); setSampai(''); };
 
   const unduhSatu = async (b: ArsipBKU) => {
-    const blob = await arsip.blobLampiranBKU(b);
-    if (!blob) { tampilkanGalat('Lampiran SPJ untuk BKU ini tidak tersedia.'); return; }
-    arsip.simpanBlob(arsip.namaBerkasBKU(b.nomor_bku), blob);
-    void arsip.catatUnduh('BKU_PDF', b.nomor_bku, 1);
+    try {
+      const { blob, catatan } = await arsip.blobBundelBKU(b);
+      arsip.simpanBlob(arsip.namaBerkasBKU(b.nomor_bku), blob);
+      void arsip.catatUnduh('BKU_PDF', b.nomor_bku, 1);
+      if (catatan) tampilkanInfo(catatan);
+    } catch { tampilkanGalat('Gagal merakit berkas PDF. Coba lagi.'); }
   };
   const unduhZip = async (daftar: ArsipBKU[]) => {
     const r = await arsip.unduhZipBKU(daftar, tahun);
     if (!r.ok) { tampilkanGalat(r.error ?? 'Gagal membuat ZIP.'); return; }
-    tampilkanInfo(r.dilewati?.length ? `ZIP berisi ${r.jumlah} berkas. ${r.dilewati.length} BKU tanpa lampiran dilewati.` : `ZIP berisi ${r.jumlah} berkas diunduh.`);
+    tampilkanInfo(r.dilewati?.length ? `ZIP berisi ${r.jumlah} berkas. ${r.dilewati.length} BKU hanya memuat Lembar Verifikasi (lampiran tidak tersedia/tidak dapat digabung).` : `ZIP berisi ${r.jumlah} berkas diunduh.`);
   };
 
   return (
@@ -146,7 +148,7 @@ function TabBKU({ tahun }: { tahun: string }) {
                 <td className="px-4 py-2 mono text-mist">{b.nomor_bku}</td>
                 <td className="px-4 py-2"><div className="flex flex-wrap gap-1.5">
                   <Button variant="ghost" onClick={() => setDetail(b)}><Eye size={14} /> Lihat Detail</Button>
-                  <Button variant="secondary" disabled={!b.lampiran_nama} onClick={() => unduhSatu(b)}><Download size={14} /> Unduh PDF</Button>
+                  <Button variant="secondary" onClick={() => unduhSatu(b)}><Download size={14} /> Unduh PDF</Button>
                 </div></td>
               </tr>
             ))}</tbody>
@@ -157,7 +159,7 @@ function TabBKU({ tahun }: { tahun: string }) {
       {detail && (
         <Modal open onClose={() => setDetail(null)} title={`Arsip BKU ${detail.nomor_bku}`} wide
           footer={<div className="flex justify-end gap-2">
-            <Button variant="secondary" disabled={!detail.lampiran_nama} onClick={() => { setLihat(detail); setDetail(null); }}><Eye size={14} /> Pratinjau Lampiran</Button>
+            <Button variant="secondary" onClick={() => { setLihat(detail); setDetail(null); }}><Eye size={14} /> Pratinjau PDF</Button>
             <Button variant="ghost" onClick={() => setDetail(null)}>Tutup</Button></div>}>
           <Baris label="No. BKU" nilai={detail.nomor_bku} mono />
           <Baris label="Tanggal BKU" nilai={formatTanggalPendek(detail.tanggal_bku)} />
@@ -171,7 +173,7 @@ function TabBKU({ tahun }: { tahun: string }) {
           <Baris label="Lampiran" nilai={detail.lampiran_nama ? `${detail.lampiran_nama}${detail.lampiran_ukuran ? ` (${formatUkuran(detail.lampiran_ukuran)})` : ''}` : null} />
         </Modal>
       )}
-      {lihat && <PratinjauPdf judul={`Lampiran ${lihat.nomor_bku}`} ambil={async () => { const b = await arsip.blobLampiranBKU(lihat); if (b) void arsip.catatUnduh('BKU_PDF', `${lihat.nomor_bku} (pratinjau)`, 1); return b; }} onClose={() => setLihat(null)} />}
+      {lihat && <PratinjauPdf judul={`Arsip BKU ${lihat.nomor_bku}`} ambil={async () => { try { const { blob } = await arsip.blobBundelBKU(lihat); void arsip.catatUnduh('BKU_PDF', `${lihat.nomor_bku} (pratinjau)`, 1); return blob; } catch { return null; } }} onClose={() => setLihat(null)} />}
     </Card>
   );
 }

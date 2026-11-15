@@ -8,6 +8,8 @@ import { BUCKET_ARSIP, BUCKET_LAMPIRAN, unggah, hapus as hapusObjek, unduh as un
 import { getSession } from '@/lib/auth';
 import { repo } from '@/data/repo';
 import { buatXlsx, zipSimpan } from '@/lib/xlsx';
+import { bangunBundel, type DataLembar, type HasilBundel } from '@/lib/pdfBundel';
+import { urlBerkasSesi } from '@/lib/berkas';
 
 const api = buatApi(supabase as never);
 const GALAT_UMUM = 'Layanan tidak tersedia. Periksa koneksi lalu coba lagi.';
@@ -20,6 +22,11 @@ export interface ArsipBKU {
   id: string; spj_id: string; nomor_bku: string; tanggal_bku: string; seksi: string; subkegiatan: string; uraian: string;
   bruto: number; pajak: number; nomor_verifikasi: string | null;
   lampiran_key: string | null; lampiran_nama: string | null; lampiran_ukuran: number | null;
+  // data Lembar Verifikasi (halaman 1 bundel PDF)
+  token?: string | null; tanggal_verifikasi?: string | null; verifikator_nama?: string | null; verifikator_nip?: string | null;
+  jenis_belanja?: string; penerima?: string; kode_rekening?: string; tahun?: string;
+  rekening_penerima?: { account_name: string; bank_name: string; account_number: string }[];
+  rincian_pajak?: { nama: string; nominal: number }[];
 }
 export interface KategoriArsip { id: string; kode: string; nama: string; deskripsi: string; aktif: boolean; jumlah: number }
 export interface DokumenArsip {
@@ -64,7 +71,11 @@ export async function muatBKU(): Promise<Daftar<ArsipBKU>> {
     const baris = repo.bkuByTA(ta).filter((b) => b.status === 'Aktif').map((b): ArsipBKU => {
       const k = kui.find((q) => q.id === b.kuitansi_id); const sp = repo.spjByTA(ta).find((x) => x.id === b.spj_id);
       const pm = pem.find((p) => p.id === k?.pemetaan_subkegiatan_id);
+      const sesi = getSession(); const cetak = sesi ? repo.dataCetakVerifikasi(b.spj_id, sesi) : null; const c = cetak && cetak.ok ? cetak.data : null;
       return {
+        token: c?.token ?? null, tanggal_verifikasi: c?.tanggal_verifikasi ?? null, verifikator_nama: c?.verifikator_nama ?? null, verifikator_nip: c?.verifikator_nip ?? null,
+        jenis_belanja: c?.jenis_belanja ?? '', penerima: c?.penerima ?? '', kode_rekening: c?.kode_rekening ?? '', tahun: c?.ta_tahun ?? '',
+        rekening_penerima: c?.rekening_penerima ?? [], rincian_pajak: c?.pajak ?? [],
         id: b.id, spj_id: b.spj_id, nomor_bku: b.nomor_bku, tanggal_bku: b.tanggal_bku,
         seksi: seksi.find((s) => s.id === k?.seksi_ta_id)?.nama_snapshot ?? '', subkegiatan: pm ? `${pm.kode_snapshot} ${pm.nama_snapshot}` : '',
         uraian: k?.uraian ?? '', bruto: k?.bruto ?? 0, pajak: (sp?.entri_pajak ?? []).reduce((a, e) => a + e.nominal, 0),
@@ -178,6 +189,29 @@ export async function blobDokumen(d: DokumenArsip): Promise<Blob | null> {
   return ambilBlob(BUCKET_ARSIP, d.berkas_key);
 }
 
+const KUNCI_LOGO = 'tplver-logo'; const KUNCI_STEMPEL = 'tplver-stempel';
+async function bacaGambarSesi(kunci: string): Promise<Uint8Array | null> {
+  try { const u = urlBerkasSesi(kunci); if (!u) return null; const r = await fetch(u); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch { return null; }
+}
+/** Rakit bundel PDF arsip: halaman 1 Lembar Verifikasi + lampiran SPJ (Pilar 02 §1.1). */
+export async function bundelBKU(b: ArsipBKU): Promise<HasilBundel> {
+  const lamp = await blobLampiranBKU(b);
+  const lampBytes = lamp ? new Uint8Array(await lamp.arrayBuffer()) : null;
+  const [logo, stempel] = await Promise.all([bacaGambarSesi(KUNCI_LOGO), bacaGambarSesi(KUNCI_STEMPEL)]);
+  const d: DataLembar = {
+    nomor_bku: b.nomor_bku, nomor_verifikasi: b.nomor_verifikasi, token: b.token ?? null, tanggal_verifikasi: b.tanggal_verifikasi ?? null,
+    verifikator_nama: b.verifikator_nama ?? null, verifikator_nip: b.verifikator_nip ?? null, tahun: b.tahun ?? '', seksi: b.seksi, subkegiatan: b.subkegiatan,
+    kode_rekening: b.kode_rekening ?? '', uraian: b.uraian, jenis_belanja: b.jenis_belanja ?? '', penerima: b.penerima ?? '', bruto: b.bruto,
+    rekening_penerima: b.rekening_penerima ?? [], rincian_pajak: b.rincian_pajak ?? [],
+  };
+  const url = b.token ? `${window.location.origin}${window.location.pathname}#/keaslian/${b.token}` : null;
+  return bangunBundel(d, repo.templateVerifikasi(), url, lampBytes, logo, stempel);
+}
+export async function blobBundelBKU(b: ArsipBKU): Promise<{ blob: Blob; catatan?: string }> {
+  const h = await bundelBKU(b);
+  return { blob: new Blob([h.bytes as BlobPart], { type: 'application/pdf' }), catatan: h.catatan };
+}
+
 /** Catat unduhan pada jejak audit (Pilar 07 §4.1). Kegagalan mencatat tidak menghalangi unduhan. */
 export async function catatUnduh(jenis: 'BKU_PDF' | 'BKU_ZIP' | 'DOK_PDF' | 'DOK_ZIP', rujukan: string, jumlah: number): Promise<void> {
   if (!modeServer) return;
@@ -201,17 +235,14 @@ export async function unduhZipBKU(pilih: ArsipBKU[], tahun: string): Promise<Has
     const manifest: (string | number | null)[][] = [['No', 'No. BKU', 'Tanggal BKU', 'Seksi / Unit Kerja', 'Subkegiatan', 'Uraian Transaksi', 'Nilai Bruto (Rp)', 'Potongan Pajak (Rp)', 'Nilai Netto (Rp)', 'Nama Berkas PDF']];
     let total = 0; let no = 0;
     for (const b of pilih) {
-      const blob = await blobLampiranBKU(b);
-      let nama = '(tanpa lampiran)';
-      if (blob) {
-        total += blob.size;
-        if (total > MAKS_BYTE_ZIP) return { ok: false, error: 'Total ukuran melebihi 400 MB. Pilih lebih sedikit berkas.' };
-        nama = namaUnik(namaBerkasBKU(b.nomor_bku), dipakai);
-        berkas.push({ nama, isi: new Uint8Array(await blob.arrayBuffer()) });
-      } else dilewati.push(b.nomor_bku);
+      const h = await bundelBKU(b);
+      total += h.bytes.length;
+      if (total > MAKS_BYTE_ZIP) return { ok: false, error: 'Total ukuran melebihi 400 MB. Pilih lebih sedikit berkas.' };
+      const nama = namaUnik(namaBerkasBKU(b.nomor_bku), dipakai);
+      berkas.push({ nama, isi: h.bytes });
+      if (!h.lampiranMenyatu) dilewati.push(b.nomor_bku);
       manifest.push([++no, b.nomor_bku, tglDMY(b.tanggal_bku), b.seksi, b.subkegiatan, b.uraian, b.bruto, b.pajak, b.bruto - b.pajak, nama]);
     }
-    if (berkas.length === 0) return { ok: false, error: 'Tidak ada lampiran yang dapat diunduh pada baris terpilih.', dilewati };
     const xlsx = buatXlsx([{ nama: 'Daftar Arsip BKU', baris: manifest, tebal: [0] }]);
     const zip = zipSimpan([{ nama: '00_DAFTAR_ARSIP_BKU.xlsx', isi: xlsx }, ...berkas]);
     simpanBlob(`ARSIP_SPJ_BKU_${tahun}_${stempelWaktu()}.zip`, new Blob([zip as BlobPart], { type: 'application/zip' }));

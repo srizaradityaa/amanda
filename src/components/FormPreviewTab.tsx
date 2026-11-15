@@ -1,7 +1,8 @@
 // TPL-03 — Pratinjau Langsung Form Dinamis (Admin). Hanya memori browser; tidak menyimpan apa pun.
 // D01 §9 poin 11; D03 §2.4. Cek bentrok memakai data contoh terisolasi (I-64e).
 import { useState } from 'react';
-import { Card, Button, Field, Input } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
+import { IsianField } from '@/components/IsianField';
 import { repo } from '@/data/repo';
 import type { FieldFormDinamis, BlokBerulangFormDinamis } from '@/data/types';
 import { Plus, Trash2, TriangleAlert } from 'lucide-react';
@@ -176,16 +177,4 @@ export function FormPreviewTab({ fields, blok }: { fields: FieldFormDinamis[]; b
       </div>
     </div>
   );
-}
-
-function IsianField({ f, value, onChange }: { f: FieldFormDinamis; value: string; onChange: (v: string) => void }) {
-  const label = f.wajib ? `${f.label} *` : f.label;
-  if (f.tipe === 'area') {
-    return <Field label={label}><textarea className="w-full rounded-md border border-ink-edge bg-ink px-3 py-2 text-2xs text-mist" rows={3} value={value} onChange={(e) => onChange(e.target.value)} /></Field>;
-  }
-  if (f.tipe === 'file') {
-    return <Field label={label}><p className="text-2xs text-mist-dim">Unggah berkas belum tersedia pada pratinjau.</p></Field>;
-  }
-  const type = f.tipe === 'angka' ? 'number' : f.tipe === 'tanggal' ? 'date' : 'text';
-  return <Field label={label}><Input type={type} value={value} onChange={(e) => onChange(e.target.value)} /></Field>;
 }

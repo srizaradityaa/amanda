@@ -30,3 +30,8 @@ Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; p
 - **Pengelola Arsip** (peran opsional, instansi) dapat ditugaskan pada TA Draft maupun TA yang sedang berjalan (bukan TA Arsip Read-Only). Larangan rangkap jabatan tetap berlaku. Migrasi `penugasan_pengelola_arsip_ta_berjalan` (docs/migrasi/0021).
 - **Unduhan:** setiap BKU diunduh sebagai satu PDF bundel (halaman 1 Lembar Verifikasi hitam-putih + QR keaslian, halaman berikutnya lampiran SPJ), bernama `[No_BKU_sanitasi].pdf`; ZIP massal memuat `00_DAFTAR_ARSIP_BKU.xlsx`. Berkas dirakit di peramban dengan `pdf-lib` saat diunduh (tidak disimpan permanen, tanpa hash SHA-256). Workflow build memakai `npm install` (bukan `npm ci`) agar paket baru terpasang otomatis.
 - **Admin boleh melihat dan mengunduh Arsip** (hanya baca) pada TA mana pun, dengan pemilih TA di halaman Arsip (disetujui pemilik, migrasi 0023).
+
+## Formulir Dinamis: jenis isian lengkap (2026-11-16)
+- Permintaan pemilik: Admin dapat memilih banyak jenis isian seperti Google Formulir.
+- Jenis isian: jawaban singkat, paragraf, angka, pilihan ganda, kotak centang, drop-down, skala linier (0/1 sampai 2–10), rating (3–10 bintang), kisi pilihan ganda, petak kotak centang, tanggal, waktu. Tipe "Upload file" lama tetap terbaca tetapi tidak ditawarkan untuk field baru (berkas diunggah di langkah Lampiran).
+- Field dapat diubah setelah dibuat. Teks pilihan, baris, kolom tidak boleh memuat `;` `:` `|` dan tidak boleh kembar. Jawaban disimpan sebagai teks, sehingga tidak perlu migrasi basis data dan form lama tetap berlaku.

@@ -126,7 +126,12 @@ export type SystemTag =
   | '[SYS_END_DATE]'
   | null;
 
-export type TipeField = 'teks' | 'angka' | 'tanggal' | 'area' | 'file';
+export type TipeField =
+  | 'teks' | 'area' | 'angka' | 'tanggal' | 'waktu'
+  | 'pilihan' | 'kotak' | 'dropdown'
+  | 'skala' | 'rating'
+  | 'kisi_pilihan' | 'kisi_kotak'
+  | 'file';
 
 export interface FieldFormDinamis {
   id: string;
@@ -135,6 +140,18 @@ export interface FieldFormDinamis {
   urutan: number;
   wajib: boolean;
   system_tag: SystemTag;
+  /** Teks bantuan di bawah label (opsional). */
+  bantuan?: string;
+  /** Pilihan untuk tipe pilihan, kotak, dropdown. */
+  opsi?: string[];
+  /** Baris dan kolom untuk tipe kisi_pilihan dan kisi_kotak. */
+  baris?: string[];
+  kolom?: string[];
+  /** Skala linier: awal 0 atau 1, akhir 2–10, dengan label ujung opsional. */
+  skala_min?: number;
+  skala_maks?: number;
+  label_min?: string;
+  label_maks?: string;
 }
 
 export interface BlokBerulangFormDinamis {

@@ -17,6 +17,7 @@ import { simpanBerkasSesi, hapusBerkasSesi, formatUkuran } from '@/lib/berkas';
 import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
 import { modeServer } from '@/lib/supabase';
 import { RekeningPenerimaPanel, barisDariSPJ, type BarisRekening } from '@/components/RekeningPenerimaPanel';
+import { IsianField } from '@/components/IsianField';
 import type { SPJ, Kuitansi, SessionPayload, FormDinamis, FieldFormDinamis } from '@/data/types';
 import { ScrollText, Plus, Trash2, Send, Clock as Unlock, Lock, Eye, Pencil, Printer, Circle as XCircle } from 'lucide-react';
 
@@ -578,24 +579,11 @@ function createBlokRow(blokId: string, fields: FieldFormDinamis[]): Record<strin
   return row;
 }
 
-// Render field tunggal Form Dinamis
+// Render field tunggal Form Dinamis (semua tipe ada di IsianField)
 function FieldDinamis({ field, value, onChange, disabled }: {
   field: FieldFormDinamis; value: string; onChange: (v: string) => void; disabled: boolean;
 }) {
-  return (
-    <Field label={field.label} required={field.wajib}>
-      {field.tipe === 'area' ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}
-          className="w-full rounded-md border border-ink-edge bg-ink px-3 py-2 text-sm text-mist focus-visible:outline-amber focus-visible:outline-2" rows={3} />
-      ) : field.tipe === 'tanggal' ? (
-        <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} />
-      ) : field.tipe === 'angka' ? (
-        <Input type="text" inputMode="numeric" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} />
-      ) : (
-        <Input value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} />
-      )}
-    </Field>
-  );
+  return <IsianField f={field} value={value} onChange={onChange} disabled={disabled} />;
 }
 
 // BNT-04: Catat pasangan NIP/NIK + nama dari jawaban ke Direktori Transaksional

@@ -15,7 +15,7 @@ import type {
   TokenVerifikasiSPJ, FormatNomorVerifikasi, TemplateVerifikasi,
 } from '@/data/types';
 import { tambahHari, todayWita, nowWita } from '@/lib/wita';
-import { validasiTagSistem, versiBerikutnya } from '@/lib/formDinamis';
+import { validasiTagSistem, validasiFieldForm, versiBerikutnya } from '@/lib/formDinamis';
 import { recordAudit, purgeAuditForKuitansi, purgeAuditForSPJ, purgeAuditForTA } from '@/lib/audit';
 import { gerbangStatus, sisaSpdBebas } from '@/data/anggaran';
 import { MB, ekstensiBerkas, hapusBerkasSesi } from '@/lib/berkas';
@@ -343,6 +343,8 @@ export const repoDemo = {
     if (blok && (!blok.nama.trim() || blok.fields.length === 0)) return { ok: false, error: 'Blok berulang wajib memiliki nama dan minimal satu field.' };
     const tagErr = validasiTagSistem(fields, blok);
     if (tagErr) return { ok: false, error: tagErr };
+    const isiErr = validasiFieldForm(fields) ?? (blok ? validasiFieldForm(blok.fields) : null);
+    if (isiErr) return { ok: false, error: isiErr };
     const versi = versiBerikutnya(repoDemo.formTerbaru(nama)?.versi);
     data.formDinamis.push({ id: `fd-${Date.now()}`, jenis_belanja: nama, versi, fields, blok_berulang: blok, tanggal_dibuat: todayWita() });
     return { ok: true, versi };

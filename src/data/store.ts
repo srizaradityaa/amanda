@@ -53,7 +53,7 @@ function ganti<T>(arr: T[], baris: T[]) { arr.splice(0, arr.length, ...baris); }
 export function kosongkanDataContoh(): void {
   for (const arr of [
     data.masterSOTK, data.masterPersonel, data.pangkatHistory, data.akunLogin, data.masterSubkegiatan,
-    data.masterRekeningBelanja, data.masterDokumen, data.masterJenisPajak, data.formDinamis, data.tahunAnggaran, data.seksiTA, data.pemetaanSubkegiatanTA,
+    data.masterRekeningBelanja, data.masterDokumen, data.masterJenisPajak, data.formDinamis, data.tahunAnggaran, data.seksiTA, data.pemetaanSubkegiatanTA, data.subkegiatanTA,
     data.penugasanTA, data.penugasanDelegasi, data.registerSK, data.versiAlokasiAnggaran, data.jendelaAlokasi,
     data.ledgerSPD, data.alokasiSubkegiatan, data.alokasiRekening, data.kuitansi, data.spj, data.bku, data.tokenVerifikasi,
     data.formatNomorVerifikasi, data.direktoriTransaksional, data.rekeningBankDirektori, data.auditEvents,
@@ -85,7 +85,7 @@ export function muatSemua(ringan = false): Promise<void> {
   };
   berjalan = (async () => {
     const [
-      sotk, personel, pangkat, akun, sub, rek, pajak, form, ta, seksi, pemetaan, tugas, delegasi, sk,
+      sotk, personel, pangkat, akun, sub, rek, pajak, form, ta, seksi, pemetaan, kolam, tugas, delegasi, sk,
       versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, token, fmt, dir, dirRef, rekBank, audit, konf, mdok,
     ] = await Promise.all([
       M('sotk', 'id,nama_unit,tmt_mulai,tmt_selesai,dasar_hukum,pengganti_dari_id,status_versi', ['id']),
@@ -99,6 +99,7 @@ export function muatSemua(ringan = false): Promise<void> {
       ambil('v_tahun_anggaran', 'id,tahun,pagu_induk,status,mode_apbd_p,pagu_induk_perubahan,tanggal_arsip_terakhir,pernah_transaksi', ['tahun']),
       ambil('seksi_ta', 'id,ta_id,sotka_id:sotk_id,nama_snapshot,tmt_mulai,tmt_selesai,status', ['id']),
       ambil('pemetaan_subkegiatan_ta', 'id,ta_id,seksi_ta_id,subkegiatan_id,kode_snapshot,nama_snapshot', ['kode_snapshot', 'id']),
+      ambil('subkegiatan_ta', 'id,ta_id,subkegiatan_id,kode_snapshot,nama_snapshot', ['kode_snapshot', 'id']),
       ambil('penugasan_ta', 'id,ta_id,peran,personel_id,seksi_ta_id,tmt_mulai,tmt_selesai,provisional,nama_snapshot,nip_snapshot', ['tmt_mulai', 'id']),
       ambil('penugasan_delegasi', 'id,ta_id,personel_pengganti_id,peran_digantikan,seksi_ta_id,tanggal_mulai,tanggal_berakhir,status,alasan_pencabutan,definitive_officer_id,nama_snapshot,nip_snapshot', ['tanggal_mulai', 'id']),
       ambil('register_sk', 'id,penugasan_id,nomor_sk,tanggal_sk,berkas_key,berkas_nama,berkas_ukuran,provisional', ['tanggal_sk', 'id']),
@@ -139,6 +140,7 @@ export function muatSemua(ringan = false): Promise<void> {
     ganti(data.tahunAnggaran, a<Baris>(ta).map((r) => ({ ...r, pagu_induk: Number(r.pagu_induk ?? 0), pagu_induk_perubahan: r.pagu_induk_perubahan ?? null }) as TahunAnggaran));
     ganti(data.seksiTA, a<SeksiTA>(seksi));
     ganti(data.pemetaanSubkegiatanTA, a(pemetaan));
+    ganti(data.subkegiatanTA, a(kolam));
     ganti(data.penugasanTA, a(tugas));
     ganti(data.penugasanDelegasi, a(delegasi));
     ganti(data.registerSK, a<Baris>(sk).map(({ berkas_nama, ...r }) => ({ ...r, berkas: berkas_nama ?? null }) as RegisterSK));

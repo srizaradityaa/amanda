@@ -2,7 +2,7 @@
 // Master Global tanpa nominal; tiap TA snapshot operasional terisolasi.
 // Lapisan akses data ini bentuknya mengikuti D04 agar mudah diganti backend di Tahap B.
 
-import type {
+import type { SubkegiatanTA,
   MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin,
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
@@ -194,6 +194,11 @@ export const pemetaanSubkegiatanTA: PemetaanSubkegiatanTA[] = [
   // TA 2024 (Masa Transisi)
   { id: 'pem-2024-1', ta_id: 'ta-2024', seksi_ta_id: 'sek-2024-1', subkegiatan_id: 'sub-1', kode_snapshot: '2.01.2.06.01.01', nama_snapshot: 'Perencanaan, Penganggaran, dan Evaluasi Kinerja' },
 ];
+
+// Kolam subkegiatan TA: semua subkegiatan yang sudah terkait seksi otomatis ada di kolam.
+export const subkegiatanTA: SubkegiatanTA[] = pemetaanSubkegiatanTA.map((p) => ({
+  id: `skt-${p.id}`, ta_id: p.ta_id, subkegiatan_id: p.subkegiatan_id, kode_snapshot: p.kode_snapshot, nama_snapshot: p.nama_snapshot,
+}));
 
 export const penugasanTA: PenugasanTA[] = [
   // PA/KPA instansi — personel p-1

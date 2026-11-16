@@ -7,7 +7,7 @@ import { namaLengkap } from '@/lib/nama';
 import type {
   MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin,
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
-  TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
+  TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, SubkegiatanTA, PenugasanTA, PenugasanDelegasi,
   RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
   Kuitansi, SPJ, BKU, AuditEvent, PeranPenugasan,
   DirektoriTransaksionalSPJ, DirektoriRekeningBank, RekeningPenerimaSPJ, AccountStatus, TAStatus,
@@ -360,6 +360,8 @@ export const repoDemo = {
     data.seksiTA.find((s) => s.id === id),
   pemetaanByTA: (ta_id: string): PemetaanSubkegiatanTA[] =>
     data.pemetaanSubkegiatanTA.filter((p) => p.ta_id === ta_id),
+  subkegiatanTAByTA: (ta_id: string): SubkegiatanTA[] =>
+    data.subkegiatanTA.filter((p) => p.ta_id === ta_id),
   pemetaanBySeksi: (seksi_ta_id: string): PemetaanSubkegiatanTA[] =>
     data.pemetaanSubkegiatanTA.filter((p) => p.seksi_ta_id === seksi_ta_id),
 
@@ -666,6 +668,7 @@ export const repoDemo = {
     // hapus data terkait (seksi, pemetaan, penugasan)
     removeAll(data.seksiTA, (s) => s.ta_id === id);
     removeAll(data.pemetaanSubkegiatanTA, (p) => p.ta_id === id);
+    removeAll(data.subkegiatanTA, (p) => p.ta_id === id);
     removeAll(data.penugasanTA, (t) => t.ta_id === id);
     removeAll(data.penugasanDelegasi, (d) => d.ta_id === id);
     removeAll(data.tahunAnggaran, (t) => t.id === id);
@@ -750,6 +753,7 @@ export const repoDemo = {
       for (const p of pems) {
         const idP = `pem-${ta_id_baru}-${Date.now()}-${count}-${p.subkegiatan_id}`;
         data.pemetaanSubkegiatanTA.push({ id: idP, ta_id: ta_id_baru, seksi_ta_id: idS, subkegiatan_id: p.subkegiatan_id, kode_snapshot: p.kode_snapshot, nama_snapshot: p.nama_snapshot });
+        if (!data.subkegiatanTA.some((k) => k.ta_id === ta_id_baru && k.subkegiatan_id === p.subkegiatan_id)) data.subkegiatanTA.push({ id: `skt-${idP}`, ta_id: ta_id_baru, subkegiatan_id: p.subkegiatan_id, kode_snapshot: p.kode_snapshot, nama_snapshot: p.nama_snapshot });
       }
       count++;
     }
@@ -967,6 +971,7 @@ export const repoDemo = {
     removeAll(data.ledgerSPD, (l) => l.ta_id === ta_id);
     removeAll(data.jendelaAlokasi, (j) => j.ta_id === ta_id);
     removeAll(data.pemetaanSubkegiatanTA, (p) => p.ta_id === ta_id);
+    removeAll(data.subkegiatanTA, (p) => p.ta_id === ta_id);
     removeAll(data.seksiTA, (x) => x.ta_id === ta_id);
     removeAll(data.penugasanTA, (t) => t.ta_id === ta_id);
     removeAll(data.penugasanDelegasi, (d) => d.ta_id === ta_id);

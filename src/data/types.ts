@@ -203,6 +203,15 @@ export interface SeksiTA {
   status: 'Aktif' | 'Diarsipkan';
 }
 
+/** Subkegiatan yang sudah ditarik (snapshot) dari kamus ke satu TA; belum tentu sudah dikaitkan ke seksi. */
+export interface SubkegiatanTA {
+  id: string;
+  ta_id: string;
+  subkegiatan_id: string;
+  kode_snapshot: string;
+  nama_snapshot: string;
+}
+
 export interface PemetaanSubkegiatanTA {
   id: string;
   ta_id: string;

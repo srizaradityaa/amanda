@@ -526,18 +526,45 @@ function bolehUbahPenempatan(ta_id: string, aktor: AktorAnggaran): string | null
   return null;
 }
 
+export function tarikSubkegiatanDemo(ta_id: string, subkegiatan_ids: string[], aktor: AktorAnggaran): Hasil {
+  const e = bolehUbahPenempatan(ta_id, aktor);
+  if (e) return { ok: false, error: e };
+  if (subkegiatan_ids.length === 0) return { ok: false, error: 'Pilih minimal satu subkegiatan.' };
+  let n = 0;
+  for (const id of subkegiatan_ids) {
+    const sub = data.masterSubkegiatan.find((x) => x.id === id && x.status === 'Aktif');
+    if (!sub) return { ok: false, error: 'Subkegiatan tidak ditemukan atau nonaktif.' };
+    if (data.subkegiatanTA.some((x) => x.ta_id === ta_id && x.subkegiatan_id === id)) continue;
+    data.subkegiatanTA.push({ id: `skt-${ta_id}-${id}`, ta_id, subkegiatan_id: id, kode_snapshot: sub.kode, nama_snapshot: sub.nama });
+    n += 1;
+  }
+  recordAudit({ ta_id, entitas: 'Subkegiatan TA', aksi: 'aksi_administratif', nilai_sesudah: `Menarik ${n} subkegiatan dari kamus ke TA` });
+  return { ok: true };
+}
+
+export function buangSubkegiatanDemo(ta_id: string, subkegiatan_id: string, aktor: AktorAnggaran): Hasil {
+  const e = bolehUbahPenempatan(ta_id, aktor);
+  if (e) return { ok: false, error: e };
+  const i = data.subkegiatanTA.findIndex((x) => x.ta_id === ta_id && x.subkegiatan_id === subkegiatan_id);
+  if (i < 0) return { ok: false, error: 'Subkegiatan tidak ada di TA ini.' };
+  if (pemetaanOfTA(ta_id).some((p) => p.subkegiatan_id === subkegiatan_id)) return { ok: false, error: 'Subkegiatan ini masih terkait dengan seksi. Lepaskan dari seksi dulu.' };
+  const [r] = data.subkegiatanTA.splice(i, 1);
+  recordAudit({ ta_id, entitas: `Subkegiatan ${r.kode_snapshot}`, aksi: 'aksi_administratif', nilai_sebelum: 'Ada di TA', nilai_sesudah: 'Dibuang dari TA' });
+  return { ok: true };
+}
+
 export function tempatkanSubkegiatanDemo(ta_id: string, seksi_ta_id: string, subkegiatan_id: string, aktor: AktorAnggaran): Hasil {
   const e = bolehUbahPenempatan(ta_id, aktor);
   if (e) return { ok: false, error: e };
   const seksi = data.seksiTA.find((x) => x.id === seksi_ta_id && x.ta_id === ta_id && x.status === 'Aktif');
   if (!seksi) return { ok: false, error: 'Seksi tidak ditemukan pada TA ini.' };
-  const sub = data.masterSubkegiatan.find((x) => x.id === subkegiatan_id && x.status === 'Aktif');
-  if (!sub) return { ok: false, error: 'Subkegiatan tidak ditemukan atau nonaktif.' };
+  const kolam = data.subkegiatanTA.find((x) => x.ta_id === ta_id && x.subkegiatan_id === subkegiatan_id);
+  if (!kolam) return { ok: false, error: 'Tarik subkegiatan ke TA terlebih dahulu sebelum mengaitkannya ke seksi.' };
   if (pemetaanOfTA(ta_id).some((p) => p.subkegiatan_id === subkegiatan_id)) {
     return { ok: false, error: 'Subkegiatan ini sudah dimiliki seksi lain di TA ini. Satu subkegiatan hanya untuk satu seksi.' };
   }
-  data.pemetaanSubkegiatanTA.push({ id: `pem-${ta_id}-${Date.now()}`, ta_id, seksi_ta_id, subkegiatan_id, kode_snapshot: sub.kode, nama_snapshot: sub.nama });
-  recordAudit({ ta_id, entitas: `Subkegiatan ${sub.kode}`, aksi: 'aksi_administratif', nilai_sesudah: `Ditempatkan pada seksi ${seksi.nama_snapshot}` });
+  data.pemetaanSubkegiatanTA.push({ id: `pem-${ta_id}-${Date.now()}`, ta_id, seksi_ta_id, subkegiatan_id, kode_snapshot: kolam.kode_snapshot, nama_snapshot: kolam.nama_snapshot });
+  recordAudit({ ta_id, entitas: `Subkegiatan ${kolam.kode_snapshot}`, aksi: 'aksi_administratif', nilai_sesudah: `Dikaitkan dengan seksi ${seksi.nama_snapshot}` });
   return { ok: true };
 }
 
@@ -550,13 +577,16 @@ export function lepasSubkegiatanDemo(pemetaan_id: string, aktor: AktorAnggaran):
   if (data.ledgerSPD.some((l) => alokasiRekByPemetaan(pemetaan_id).some((a) => a.id === l.alokasi_rekening_id))) {
     return { ok: false, error: 'SPD subkegiatan ini sudah terbit dan tidak dapat dihapus. Nolkan pagunya bila tidak dipakai.' };
   }
+  if (data.alokasiSubkegiatan.some((a) => a.pemetaan_subkegiatan_id === pemetaan_id && a.pagu > 0)) {
+    return { ok: false, error: 'Subkegiatan ini sudah punya pagu. Nolkan pagunya dulu sebelum dilepas dari seksi.' };
+  }
   const idxRek = (arr: { pemetaan_subkegiatan_id: string }[]) => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i].pemetaan_subkegiatan_id === pemetaan_id) arr.splice(i, 1); };
   idxRek(data.alokasiRekening);
   idxRek(data.alokasiSubkegiatan);
   const i = data.pemetaanSubkegiatanTA.findIndex((x) => x.id === pemetaan_id);
   if (i >= 0) data.pemetaanSubkegiatanTA.splice(i, 1);
   hitungUlangInduk(p.ta_id);
-  recordAudit({ ta_id: p.ta_id, entitas: `Subkegiatan ${p.kode_snapshot}`, aksi: 'aksi_administratif', nilai_sebelum: 'Pada seksi', nilai_sesudah: 'Dihapus dari seksi' });
+  recordAudit({ ta_id: p.ta_id, entitas: `Subkegiatan ${p.kode_snapshot}`, aksi: 'aksi_administratif', nilai_sebelum: 'Pada seksi', nilai_sesudah: 'Dilepas dari seksi' });
   return { ok: true };
 }
 
@@ -594,3 +624,5 @@ export const aktifkanApbdP = mut(aktifkanApbdPDemo, server.aktifkanApbdP);
 export const koreksiPaguApbdP = mut(koreksiPaguApbdPDemo, server.koreksiPaguApbdP);
 export const tempatkanSubkegiatan = mut(tempatkanSubkegiatanDemo, server.tempatkanSubkegiatan);
 export const lepasSubkegiatan = mut(lepasSubkegiatanDemo, server.lepasSubkegiatan);
+export const tarikSubkegiatan = mut(tarikSubkegiatanDemo, server.tarikSubkegiatan);
+export const buangSubkegiatan = mut(buangSubkegiatanDemo, server.buangSubkegiatan);

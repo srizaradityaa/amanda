@@ -12,7 +12,7 @@ import { AdminDasborPage, SOTKPage, PersonelPage, KamusPage, PajakPage, Direktor
 import { TentangPage } from '@/components/TentangPage';
 import { VerifikasiPage } from '@/components/VerifikasiPage';
 import { BKUPage } from '@/components/BKUPage';
-import { AnggaranBendaharaPage } from '@/components/AnggaranBendaharaPage';
+import { PersiapanPage, SubkegiatanPage, PaguPage, SahkanSpdPage } from '@/components/AnggaranMenuBendahara';
 import { AnggaranPptkPage } from '@/components/AnggaranPptkPage';
 import { KuitansiPage } from '@/components/KuitansiPage';
 import { SPJPage } from '@/components/SPJPage';
@@ -232,7 +232,10 @@ function buildNav(role: string): NavItem[] {
   if (role === 'bendahara') {
     return [
       { id: 'dashboard', label: 'Dasbor', icon: <LayoutDashboard size={18} />, render: () => <BendaharaDashboard /> },
-      { id: 'anggaran', label: 'Anggaran', icon: <Wallet size={18} />, render: () => <AnggaranBendaharaPage /> },
+      { id: 'persiapan', label: 'Persiapan', icon: <Wallet size={18} />, render: () => <PersiapanPage /> },
+      { id: 'subkegiatan', label: 'Subkegiatan', icon: <Layers size={18} />, render: () => <SubkegiatanPage /> },
+      { id: 'pagu', label: 'Pagu', icon: <Wallet size={18} />, render: () => <PaguPage /> },
+      { id: 'sahkan-spd', label: 'Sahkan dan SPD', icon: <Wallet size={18} />, render: () => <SahkanSpdPage /> },
       { id: 'bku', label: 'BKU', icon: <BookOpen size={18} />, render: () => <BKUPage /> },
       { id: 'arsip', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'rincian', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },

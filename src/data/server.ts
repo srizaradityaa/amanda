@@ -179,6 +179,8 @@ export const server = {
   // ------------------------- Tahap 3: anggaran, SPD, BKU -------------------------
   aturJendela: (ta: string, tutup_wita: string, _a?: unknown) => jalankan(api.bend_jendela_atur({ p_ta: ta, p_tutup: tutup_wita })),
   tempatkanSubkegiatan: (ta: string, seksi: string, sub: string, _a?: unknown) => jalankan(api.bend_pemetaan_tambah({ p_ta: ta, p_seksi: seksi, p_sub: sub })),
+  tarikSubkegiatan: (ta: string, subs: string[], _a?: unknown) => jalankan(api.bend_subkegiatan_tarik({ p_ta: ta, p_subs: subs })),
+  buangSubkegiatan: (ta: string, sub: string, _a?: unknown) => jalankan(api.bend_subkegiatan_buang({ p_ta: ta, p_sub: sub })),
   lepasSubkegiatan: (id: string, _a?: unknown) => jalankan(api.bend_pemetaan_hapus({ p_id: id })),
   simpanAlokasiSubkegiatan: (ta: string, pagu: Record<string, number>, _a?: unknown) => jalankan(api.bend_alokasi_sub_simpan({ p_ta: ta, p_pagu: pagu })),
   simpanAlokasiRekening: (ta: string, pemetaan: string, baris: { rekening_id: string; pagu: number }[], _a?: unknown) =>

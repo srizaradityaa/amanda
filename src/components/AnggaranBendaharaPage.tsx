@@ -86,15 +86,9 @@ function KesiapanPanel({ ta_id }: { ta_id: string }) {
         </tbody>
         <tfoot>
           <tr className="border-t border-ink-line font-medium">
-            <td className="py-2 text-mist">Total Instansi (terhadap Pagu Induk)</td>
-            <td className="mono tnum text-mist">{formatRupiah(repo.tahunAnggaranById(ta_id)?.pagu_induk ?? 0)}</td>
-            <td>
-              {anggaran.selisihAlokasiInstansi(ta_id) === 0 ? (
-                <span className="text-ok">Seimbang</span>
-              ) : (
-                <span className="text-crit">Belum Seimbang</span>
-              )}
-            </td>
+            <td className="py-2 text-mist">Pagu Induk (otomatis dari total subkegiatan)</td>
+            <td className="mono tnum text-mist">{formatRupiah(anggaran.paguIndukAktif(ta_id))}</td>
+            <td />
           </tr>
         </tfoot>
       </table>
@@ -104,95 +98,144 @@ function KesiapanPanel({ ta_id }: { ta_id: string }) {
 
 function AlokasiSubkegiatanPanel({ ta_id, aktor, onChanged }: { ta_id: string; aktor: NonNullable<ReturnType<typeof aktorSesi>>; onChanged: () => void }) {
   const pemetaan = repo.pemetaanByTA(ta_id);
+  const seksi = repo.seksiTAByTA(ta_id).filter((x) => x.status === 'Aktif');
   const toast = useToast();
-  const [draft, setDraft] = useState<Record<string, number>>(() =>
-    Object.fromEntries(pemetaan.map((p) => [p.id, anggaran.paguSubkegiatan(p.id)])),
-  );
+  const [draft, setDraft] = useState<Record<string, number>>({});
   const [err, setErr] = useState<string | null>(null);
-  const induk = repo.tahunAnggaranById(ta_id)?.pagu_induk ?? 0;
-  const total = pemetaan.reduce((s, p) => s + (draft[p.id] ?? 0), 0);
-  const selisih = induk - total;
-  const terkunci = anggaran.sudahDisahkan(ta_id) || !anggaran.jendelaTerbuka(ta_id);
   const [buka, setBuka] = useState<Record<string, boolean>>({});
-  const melebihi = selisih < 0;
+  const [tambah, setTambah] = useState<string | null>(null);
+  const terkunci = anggaran.sudahDisahkan(ta_id) || !anggaran.jendelaTerbuka(ta_id);
+  const nilai = (id: string) => draft[id] ?? anggaran.paguSubkegiatan(id);
+  const total = pemetaan.reduce((t, p) => t + nilai(p.id), 0);
+
   const simpan = async () => {
-    if (melebihi) { setErr(`Total pagu subkegiatan melebihi Pagu Induk (selisih -${formatRupiah(-selisih)}). Kurangi dulu sebelum menyimpan.`); return; }
-    const payload = Object.fromEntries(pemetaan.map((p) => [p.id, draft[p.id] ?? 0]));
+    const payload = Object.fromEntries(pemetaan.map((p) => [p.id, nilai(p.id)]));
     const hasil = await anggaran.simpanAlokasiSubkegiatan(ta_id, payload, aktor);
     if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
     setErr(null);
     toast.notify('Tersimpan');
     onChanged();
   };
+  const lepas = async (id: string) => {
+    const hasil = await anggaran.lepasSubkegiatan(id, aktor);
+    if (!hasil.ok) { setErr(hasil.error ?? 'Gagal'); return; }
+    setErr(null);
+    setDraft((d) => { const n = { ...d }; delete n[id]; return n; });
+    onChanged();
+  };
+
   return (
     <Panel>
-      <SectionTitle title="Alokasi Pagu Subkegiatan" desc="Total pagu subkegiatan tidak boleh melebihi Pagu Induk dan harus tepat sama (selisih Rp 0) sebelum Sahkan. Klik baris untuk melihat rekening belanja." />
-      <table className="w-full text-sm">
-        <thead className="text-left text-mist-dim">
-          <tr><th className="py-2">Subkegiatan</th><th>Seksi</th><th className="text-right">Pagu (Rp)</th></tr>
-        </thead>
-        <tbody>
-          {pemetaan.map((p) => {
-            const rek = anggaran.rekeningPemetaan(p.id);
-            const terbuka = !!buka[p.id];
-            return (
-              <Fragment key={p.id}>
-                <tr className="pro-row border-t border-ink-line">
-                  <td className="py-1.5 text-mist">
-                    <button type="button" className="mr-2 text-mist-dim hover:text-mist" aria-expanded={terbuka} onClick={() => setBuka((b) => ({ ...b, [p.id]: !b[p.id] }))}>{terbuka ? '▾' : '▸'}</button>
-                    <span className="mono">{p.kode_snapshot}</span> {p.nama_snapshot}
-                    <span className="ml-2 text-2xs text-mist-dim">({rek.length} rekening)</span>
-                  </td>
-                  <td className="text-mist-dim">{repo.seksiTAById(p.seksi_ta_id)?.nama_snapshot}</td>
-                  <td className="text-right">
-                    <RupiahInput
-                      className="w-44"
-                      disabled={terkunci}
-                      value={draft[p.id] ?? 0}
-                      onChange={(n) => setDraft((d) => ({ ...d, [p.id]: n }))}
-                    />
-                  </td>
-                </tr>
-                {terbuka && (
-                  <tr className="bg-ink/40">
-                    <td colSpan={3} className="px-6 py-2">
-                      {rek.length === 0 ? (
-                        <p className="text-2xs text-mist-dim">PPTK belum mengisi rekening belanja.</p>
-                      ) : (
-                        <table className="w-full text-2xs">
-                          <tbody>
-                            {rek.map((r) => (
-                              <tr key={r.id} className="border-t border-ink-line/60">
-                                <td className="py-1 text-mist"><span className="mono">{r.kode_rekening_snapshot}</span> {r.nama_rekening_snapshot}</td>
-                                <td className="mono tnum text-right text-mist">{formatRupiah(r.pagu)}</td>
-                              </tr>
-                            ))}
-                            <tr className="border-t border-ink-line font-medium">
-                              <td className="py-1 text-mist-dim">Total rekening</td>
-                              <td className={`mono tnum text-right ${anggaran.totalRekeningPemetaan(p.id) === anggaran.paguSubkegiatan(p.id) ? 'text-ok' : 'text-warn'}`}>{formatRupiah(anggaran.totalRekeningPemetaan(p.id))}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            );
-          })}
-        </tbody>
-      </table>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
-        <p className="text-mist-dim">
-          Pagu Induk <span className="mono tnum text-mist">{formatRupiah(induk)}</span> · Total <span className="mono tnum text-mist">{formatRupiah(total)}</span> · Selisih{' '}
-          <span className={`mono tnum ${selisih === 0 ? 'text-ok' : 'text-crit'}`}>{selisih < 0 ? `-${formatRupiah(-selisih)}` : formatRupiah(selisih)}</span>
-        </p>
-        <Button variant="primary" onClick={simpan} disabled={terkunci || melebihi}>Simpan Alokasi</Button>
+      <SectionTitle title="Subkegiatan dan Pagu per Seksi" desc="Tempatkan subkegiatan pada seksi (satu subkegiatan hanya untuk satu seksi), lalu isi pagunya. Pagu Induk dihitung otomatis dari total semua subkegiatan. Klik panah untuk melihat rekening belanja." />
+      {seksi.length === 0 && <p className="py-3 text-sm text-mist-dim">Belum ada seksi pada TA ini. Admin perlu menambah seksi lebih dulu.</p>}
+      <div className="space-y-4">
+        {seksi.map((sk) => {
+          const pems = pemetaan.filter((p) => p.seksi_ta_id === sk.id);
+          const subtotal = pems.reduce((t, p) => t + nilai(p.id), 0);
+          return (
+            <div key={sk.id} className="rounded-md border border-ink-line">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-line bg-ink/40 px-3 py-2">
+                <span className="text-sm font-medium text-mist">{sk.nama_snapshot} <span className="ml-1 text-2xs font-normal text-mist-dim">({pems.length} subkegiatan)</span></span>
+                <span className="mono tnum text-sm text-mist">{formatRupiah(subtotal)}</span>
+              </div>
+              <table className="w-full text-sm">
+                <tbody>
+                  {pems.length === 0 && (
+                    <tr><td className="px-3 py-3 text-2xs text-mist-dim">Belum ada subkegiatan pada seksi ini.</td></tr>
+                  )}
+                  {pems.map((p) => {
+                    const rek = anggaran.rekeningPemetaan(p.id);
+                    const terbuka = !!buka[p.id];
+                    return (
+                      <Fragment key={p.id}>
+                        <tr className="pro-row border-t border-ink-line first:border-t-0">
+                          <td className="px-3 py-1.5 text-mist">
+                            <button type="button" className="mr-2 text-mist-dim hover:text-mist" aria-expanded={terbuka} onClick={() => setBuka((b) => ({ ...b, [p.id]: !b[p.id] }))}>{terbuka ? '▾' : '▸'}</button>
+                            <span className="mono">{p.kode_snapshot}</span> {p.nama_snapshot}
+                            <span className="ml-2 text-2xs text-mist-dim">({rek.length} rekening)</span>
+                          </td>
+                          <td className="w-48 text-right">
+                            <RupiahInput className="w-44" disabled={terkunci} value={nilai(p.id)} onChange={(n) => setDraft((d) => ({ ...d, [p.id]: n }))} />
+                          </td>
+                          <td className="w-16 pr-3 text-right">
+                            {!terkunci && <button type="button" className="text-2xs text-crit hover:underline" onClick={() => { void lepas(p.id); }}>Hapus</button>}
+                          </td>
+                        </tr>
+                        {terbuka && (
+                          <tr className="bg-ink/40">
+                            <td colSpan={3} className="px-6 py-2">
+                              {rek.length === 0 ? (
+                                <p className="text-2xs text-mist-dim">PPTK belum mengisi rekening belanja.</p>
+                              ) : (
+                                <table className="w-full text-2xs">
+                                  <tbody>
+                                    {rek.map((r) => (
+                                      <tr key={r.id} className="border-t border-ink-line/60">
+                                        <td className="py-1 text-mist"><span className="mono">{r.kode_rekening_snapshot}</span> {r.nama_rekening_snapshot}</td>
+                                        <td className="mono tnum text-right text-mist">{formatRupiah(r.pagu)}</td>
+                                      </tr>
+                                    ))}
+                                    <tr className="border-t border-ink-line font-medium">
+                                      <td className="py-1 text-mist-dim">Total rekening</td>
+                                      <td className={`mono tnum text-right ${anggaran.totalRekeningPemetaan(p.id) === nilai(p.id) ? 'text-ok' : 'text-warn'}`}>{formatRupiah(anggaran.totalRekeningPemetaan(p.id))}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!terkunci && (
+                <div className="border-t border-ink-line px-3 py-2">
+                  <Button variant="ghost" className="text-2xs" onClick={() => setTambah(sk.id)}>+ Tambah subkegiatan</Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-      {melebihi && <p className="mt-2 text-xs text-crit">Total melebihi Pagu Induk. Penyimpanan ditolak sampai selisih tidak minus.</p>}
-      {terkunci && <p className="mt-2 text-xs text-mist-dim">Alokasi terkunci: jendela tertutup atau sudah disahkan.</p>}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <p className="text-mist-dim">Pagu Induk (otomatis) <span className="mono tnum text-mist">{formatRupiah(total)}</span></p>
+        <Button variant="primary" onClick={simpan} disabled={terkunci || pemetaan.length === 0}>Simpan Pagu</Button>
+      </div>
+      {terkunci && <p className="mt-2 text-xs text-mist-dim">Terkunci: jendela alokasi tertutup atau sudah disahkan. Buka jendela waktu untuk menambah subkegiatan atau mengubah pagu.</p>}
       <ErrorLine msg={err} />
+      {tambah && <TambahSubkegiatanModal ta_id={ta_id} seksiId={tambah} aktor={aktor} onClose={() => setTambah(null)} onSaved={() => { setTambah(null); onChanged(); }} />}
     </Panel>
+  );
+}
+
+function TambahSubkegiatanModal({ ta_id, seksiId, aktor, onClose, onSaved }: { ta_id: string; seksiId: string; aktor: NonNullable<ReturnType<typeof aktorSesi>>; onClose: () => void; onSaved: () => void }) {
+  const [cari, setCari] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const sudah = new Set(repo.pemetaanByTA(ta_id).map((p) => p.subkegiatan_id));
+  const q = cari.trim().toLowerCase();
+  const daftar = repo.masterSubkegiatan().filter((x) => x.status === 'Aktif' && !sudah.has(x.id) && (!q || `${x.kode} ${x.nama}`.toLowerCase().includes(q)));
+  const nama = repo.seksiTAById(seksiId)?.nama_snapshot ?? '';
+  const pilih = async (subId: string) => {
+    const r = await anggaran.tempatkanSubkegiatan(ta_id, seksiId, subId, aktor);
+    if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
+    onSaved();
+  };
+  return (
+    <Modal open onClose={onClose} title={`Tambah subkegiatan: ${nama}`} footer={<Button variant="ghost" onClick={onClose}>Tutup</Button>}>
+      <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode atau nama subkegiatan" aria-label="Cari subkegiatan" autoFocus />
+      <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
+        {daftar.length === 0 && <p className="py-3 text-2xs text-mist-dim">{q ? 'Tidak ada subkegiatan yang cocok.' : 'Semua subkegiatan aktif sudah dimiliki seksi.'}</p>}
+        {daftar.slice(0, 50).map((x) => (
+          <button key={x.id} type="button" onClick={() => { void pilih(x.id); }} className="block w-full rounded border border-ink-line px-3 py-2 text-left text-sm text-mist hover:bg-ink/60">
+            <span className="mono">{x.kode}</span> {x.nama}
+          </button>
+        ))}
+        {daftar.length > 50 && <p className="py-1 text-2xs text-mist-dim">Menampilkan 50 pertama. Persempit dengan kata kunci.</p>}
+      </div>
+      <ErrorLine msg={err} />
+    </Modal>
   );
 }
 
@@ -212,7 +255,7 @@ function SahkanPanel({ ta_id, aktor, onChanged }: { ta_id: string; aktor: NonNul
     <Panel>
       <SectionTitle
         title={ta?.mode_apbd_p ? 'Sahkan ulang APBD-P' : 'Sahkan Alokasi'}
-        desc={ta?.mode_apbd_p ? 'Sahkan ulang menyesuaikan SPD ke pagu perubahan. Tombol aktif bila semua seksi Tuntas dan selisih Rp 0.' : 'Sahkan menerbitkan SPD 100% pagu. Tombol ini aktif bila semua seksi Tuntas dan selisih Rp 0.'}
+        desc={ta?.mode_apbd_p ? 'Sahkan ulang menyesuaikan SPD ke pagu perubahan. Tombol berhasil bila semua seksi Tuntas.' : 'Sahkan menerbitkan SPD 100% pagu. Berhasil bila ada pagu subkegiatan dan semua seksi Tuntas.'}
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-mist">

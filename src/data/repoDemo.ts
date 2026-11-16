@@ -671,10 +671,6 @@ export const repoDemo = {
     removeAll(data.tahunAnggaran, (t) => t.id === id);
     return { ok: true };
   },
-  editPaguInduk: (ta_id: string, pagu_induk: number): void => {
-    const ta = data.tahunAnggaran.find((t) => t.id === ta_id);
-    if (ta && ta.status === 'Draft') ta.pagu_induk = pagu_induk;
-  },
 
   // ===== TA-01 — Siklus status TA manual =====
   ubahStatusTA: (ta_id: string, status: TAStatus): { ok: boolean; error?: string } => {
@@ -701,20 +697,19 @@ export const repoDemo = {
   // ===== TA-05 — Checklist kesiapan =====
   checklistKesiapan: (ta_id: string) => {
     const ta = data.tahunAnggaran.find((t) => t.id === ta_id);
-    if (!ta) return { lengkap: false, items: [] as { label: string; ok: boolean }[] };
+    if (!ta) return { lengkap: false, items: [] as { label: string; ok: boolean; saran?: boolean }[] };
     const seksiTA = data.seksiTA.filter((s) => s.ta_id === ta_id && s.status === 'Aktif');
-    const pemetaan = data.pemetaanSubkegiatanTA.filter((p) => p.ta_id === ta_id);
     const tgs = data.penugasanTA.filter((t) => t.ta_id === ta_id && t.tmt_selesai === null);
-    const items: { label: string; ok: boolean }[] = [
-      { label: 'Pagu Induk > 0', ok: ta.pagu_induk > 0 },
-      { label: 'Seluruh seksi terpetakan (ada pemetaan)', ok: seksiTA.length > 0 && seksiTA.every((s) => pemetaan.some((p) => p.seksi_ta_id === s.id)) },
+    const menunggu = tgs.filter((t) => t.provisional).length;
+    const items: { label: string; ok: boolean; saran?: boolean }[] = [
+      { label: 'Seluruh seksi terdaftar (minimal satu seksi aktif)', ok: seksiTA.length > 0 },
       { label: 'Penugasan PA/KPA', ok: tgs.some((t) => t.peran === 'pa_kpa') },
       { label: 'Penugasan Bendahara', ok: tgs.some((t) => t.peran === 'bendahara') },
       { label: 'Penugasan Verifikator', ok: tgs.some((t) => t.peran === 'verifikator') },
       { label: 'Penugasan PPTK untuk setiap seksi', ok: seksiTA.length > 0 && seksiTA.every((s) => tgs.some((t) => t.peran === 'pptk' && t.seksi_ta_id === s.id)) },
-      { label: 'SK atau penugasan provisional', ok: tgs.every((t) => data.registerSK.some((sk) => sk.penugasan_id === t.id) || t.provisional) },
+      { label: menunggu > 0 ? `${menunggu} penugasan masih menunggu SK (boleh dilengkapi nanti)` : 'SK seluruh penugasan lengkap', ok: menunggu === 0, saran: true },
     ];
-    return { lengkap: items.every((i) => i.ok), items };
+    return { lengkap: items.every((i) => i.ok || i.saran), items };
   },
 
   // ===== TA-04 — Snapshot seksi & pemetaan subkegiatan TA =====
@@ -740,19 +735,6 @@ export const repoDemo = {
     removeAll(data.seksiTA, (s) => s.id === seksi_ta_id);
     return { ok: true };
   },
-  tambahPemetaan: (ta_id: string, seksi_ta_id: string, subkegiatan_id: string): { ok: boolean; error?: string } => {
-    const sub = data.masterSubkegiatan.find((s) => s.id === subkegiatan_id && s.status === 'Aktif');
-    if (!sub) return { ok: false, error: 'Subkegiatan tidak ditemukan atau nonaktif.' };
-    // C-14: satu subkegiatan hanya satu seksi per TA
-    if (data.pemetaanSubkegiatanTA.find((p) => p.ta_id === ta_id && p.subkegiatan_id === subkegiatan_id)) return { ok: false, error: 'Subkegiatan ini sudah dipetakan ke seksi lain di TA ini. Satu subkegiatan hanya untuk satu seksi per TA.' };
-    const id = `pem-${ta_id}-${Date.now()}`;
-    data.pemetaanSubkegiatanTA.push({ id, ta_id, seksi_ta_id, subkegiatan_id, kode_snapshot: sub.kode, nama_snapshot: sub.nama });
-    return { ok: true };
-  },
-  hapusPemetaan: (pemetaan_id: string): void => {
-    removeAll(data.pemetaanSubkegiatanTA, (p) => p.id === pemetaan_id);
-  },
-
   // ===== TA-03 — Salin Struktur terbatas =====
   salinStruktur: (ta_id_baru: string, ta_id_lama: string): { ok: boolean; error?: string; count?: number } => {
     const taBaru = data.tahunAnggaran.find((t) => t.id === ta_id_baru);
@@ -775,7 +757,7 @@ export const repoDemo = {
   },
 
   // ===== PEN-01 — Penugasan PA/KPA, Bendahara, Verifikator, PPTK =====
-  tambahPenugasan: (ta_id: string, peran: PeranPenugasan, personel_id: string, seksi_ta_id: string | null, tmt_mulai: string, provisional: boolean): { ok: boolean; error?: string } => {
+  tambahPenugasan: (ta_id: string, peran: PeranPenugasan, personel_id: string, seksi_ta_id: string | null, tmt_mulai: string, _provisional?: boolean): { ok: boolean; error?: string } => {
     const ta = data.tahunAnggaran.find((t) => t.id === ta_id);
     if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
     if (peran === 'pengelola_arsip' ? ta.status === 'Arsip Read-Only' : ta.status !== 'Draft') return { ok: false, error: peran === 'pengelola_arsip' ? 'Penugasan tidak dapat ditambah pada TA Arsip Read-Only.' : 'Penugasan hanya bisa ditambah pada TA Draft.' };
@@ -799,7 +781,7 @@ export const repoDemo = {
     if (lama) {
       lama.tmt_selesai = tambahHari(tmt_mulai, -1);
     }
-    data.penugasanTA.push({ id, ta_id, peran, personel_id, seksi_ta_id, tmt_mulai, tmt_selesai: null, provisional, nama_snapshot: nama, nip_snapshot: nip });
+    data.penugasanTA.push({ id, ta_id, peran, personel_id, seksi_ta_id, tmt_mulai, tmt_selesai: null, provisional: true, nama_snapshot: nama, nip_snapshot: nip });
     return { ok: true };
   },
   hapusPenugasan: (penugasan_id: string): { ok: boolean; error?: string } => {
@@ -848,23 +830,19 @@ export const repoDemo = {
   },
 
   // ===== PEN-02 — Register SK =====
-  tambahSK: (penugasan_id: string, nomor_sk: string, tanggal_sk: string, berkas: string | null, provisional: boolean, berkas_ukuran: number | null = null, _file?: File | null): { ok: boolean; error?: string; id?: string } => {
-    // SK final wajib lengkap (nomor, tanggal, berkas). SK provisional boleh dilengkapi kemudian (D03 §2.2 poin 5).
-    if (!provisional) {
-      if (!nomor_sk.trim()) return { ok: false, error: 'SK final wajib memiliki nomor SK. Centang Provisional bila SK menyusul.' };
-      if (!tanggal_sk) return { ok: false, error: 'SK final wajib memiliki tanggal SK. Centang Provisional bila SK menyusul.' };
-      if (!berkas) return { ok: false, error: 'SK final wajib memiliki berkas SK. Centang Provisional bila SK menyusul.' };
-    }
+  tambahSK: (penugasan_id: string, nomor_sk: string, tanggal_sk: string, berkas: string | null, _provisional?: boolean, berkas_ukuran: number | null = null, _file?: File | null): { ok: boolean; error?: string; id?: string } => {
+    // Nomor, tanggal, dan berkas SK semuanya boleh menyusul (keputusan pemilik 2026-11-16). SK dianggap lengkap bila ketiganya terisi.
     const eb = repoDemo.validasiBerkasSK(berkas, berkas_ukuran);
     if (eb) return { ok: false, error: eb };
     const id = `sk-${Date.now()}`;
-    data.registerSK.push({ id, penugasan_id, nomor_sk, tanggal_sk, berkas, berkas_ukuran, provisional });
-    // jika SK final, hapus flag provisional di penugasan
-    if (!provisional) {
-      const t = data.penugasanTA.find((x) => x.id === penugasan_id);
-      if (t) t.provisional = false;
-    }
+    const menyusul = !nomor_sk.trim() || !tanggal_sk || !berkas;
+    data.registerSK.push({ id, penugasan_id, nomor_sk: nomor_sk.trim(), tanggal_sk, berkas, berkas_ukuran, provisional: menyusul });
+    repoDemo._segarkanSKPenugasan(penugasan_id);
     return { ok: true, id };
+  },
+  _segarkanSKPenugasan: (penugasan_id: string): void => {
+    const t = data.penugasanTA.find((x) => x.id === penugasan_id);
+    if (t) t.provisional = !data.registerSK.some((k) => k.penugasan_id === penugasan_id && !k.provisional);
   },
 
   // PEN-02 — Berkas SK: PDF atau gambar (JPG/PNG), maksimal 5 MB (batas operasional Tahap A; dokumen tidak menetapkan).
@@ -880,25 +858,16 @@ export const repoDemo = {
     if (session.active_role !== 'admin') return { ok: false, error: 'Hanya Admin yang dapat mengelola Register SK.' };
     const sk = data.registerSK.find((x) => x.id === sk_id);
     if (!sk) return { ok: false, error: 'SK tidak ditemukan.' };
-    if (!patch.provisional) {
-      if (!patch.nomor_sk.trim()) return { ok: false, error: 'SK final wajib memiliki nomor SK.' };
-      if (!patch.tanggal_sk) return { ok: false, error: 'SK final wajib memiliki tanggal SK.' };
-      const adaBerkas = patch.berkas === 'hapus' ? false : patch.berkas ? true : !!sk.berkas;
-      if (!adaBerkas) return { ok: false, error: 'SK final wajib memiliki berkas SK.' };
-    }
     if (patch.berkas && patch.berkas !== 'hapus') {
       const eb = repoDemo.validasiBerkasSK(patch.berkas.nama, patch.berkas.ukuran);
       if (eb) return { ok: false, error: eb };
     }
     sk.nomor_sk = patch.nomor_sk.trim();
     sk.tanggal_sk = patch.tanggal_sk;
-    sk.provisional = patch.provisional;
     if (patch.berkas === 'hapus') { sk.berkas = null; sk.berkas_ukuran = null; }
     else if (patch.berkas) { sk.berkas = patch.berkas.nama; sk.berkas_ukuran = patch.berkas.ukuran; }
-    if (!sk.provisional) {
-      const t = data.penugasanTA.find((x) => x.id === sk.penugasan_id);
-      if (t) t.provisional = false;
-    }
+    sk.provisional = !sk.nomor_sk || !sk.tanggal_sk || !sk.berkas;
+    repoDemo._segarkanSKPenugasan(sk.penugasan_id);
     return { ok: true };
   },
   skByPenugasan: (penugasan_id: string): RegisterSK[] =>

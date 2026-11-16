@@ -3,11 +3,9 @@
 
 import { useState } from 'react';
 import { namaLengkap } from '@/lib/nama';
-import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, TableHead, ProtectedNotice, RupiahInput, useToast } from '@/components/ui';
+import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, TableHead, ProtectedNotice, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
-import { EditPaguModal } from '@/components/EditPaguModal';
 import { ApbdPModal } from '@/components/ApbdPModal';
-import * as anggaran from '@/data/anggaran';
 import { recordAudit } from '@/lib/audit';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
 import { simpanBerkasSesi, hapusBerkasSesi } from '@/lib/berkas';
@@ -28,24 +26,17 @@ export function TahunAnggaranPage() {
   const [statusModal, setStatusModal] = useState<{ taId: string } | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ taId: string } | null>(null);
   const [retensiModal, setRetensiModal] = useState<{ taId: string } | null>(null);
-  const [apbdpModal, setApbdpModal] = useState<{ taId: string; koreksi?: boolean } | null>(null);
-  const [paguModal, setPaguModal] = useState<{ taId: string } | null>(null);
+  const [apbdpModal, setApbdpModal] = useState<{ taId: string } | null>(null);
   const refresh = () => setList([...repo.tahunAnggaran()]);
 
   const tombolAksi = (ta: TahunAnggaran) => (
     <>
       <Button variant="ghost" className="text-2xs" onClick={() => setStatusModal({ taId: ta.id })}><CalendarClock size={12} /> Ubah Status</Button>
       {ta.status === 'Draft' && !ta.pernah_transaksi && (
-        <Button variant="ghost" className="text-2xs" onClick={() => setPaguModal({ taId: ta.id })}><Pencil size={12} /> Ubah Pagu</Button>
-      )}
-      {ta.status === 'Draft' && !ta.pernah_transaksi && (
         <Button variant="danger" className="text-2xs" onClick={() => setDeleteModal({ taId: ta.id })}><Trash2 size={12} /> Hapus</Button>
       )}
       {ta.status === 'Aktif Penuh' && !ta.mode_apbd_p && (
         <Button variant="ghost" className="text-2xs" onClick={() => setApbdpModal({ taId: ta.id })}><CalendarClock size={12} /> Aktifkan APBD-P</Button>
-      )}
-      {ta.status === 'Aktif Penuh' && ta.mode_apbd_p && !anggaran.sudahDisahkan(ta.id) && (
-        <Button variant="ghost" className="text-2xs" onClick={() => setApbdpModal({ taId: ta.id, koreksi: true })}><Pencil size={12} /> Koreksi Pagu APBD-P</Button>
       )}
       {ta.status === 'Arsip Read-Only' && repo.isRetensiLewat(ta.id) && (
         <Button variant="danger" className="text-2xs" onClick={() => setRetensiModal({ taId: ta.id })}><Trash2 size={12} /> Hapus (Retensi)</Button>
@@ -72,7 +63,7 @@ export function TahunAnggaranPage() {
                   <StatusBadge kind={taStatusKind(ta.status)} label={ta.status} />
                 </div>
                 <div className="mt-3 space-y-1 text-2xs text-mist-dim">
-                  <Row label="Pagu Induk" value={formatRupiah(ta.pagu_induk)} mono />
+                  <Row label="Pagu Induk (otomatis)" value={formatRupiah(ta.pagu_induk)} mono />
                   <Row label="APBD-P" value={ta.mode_apbd_p ? 'Aktif' : 'Tidak'} />
                   <Row label="Pernah transaksi" value={ta.pernah_transaksi ? 'Ya' : 'Tidak'} />
                   <Row label="Arsip terakhir" value={formatTanggal(ta.tanggal_arsip_terakhir)} />
@@ -88,9 +79,8 @@ export function TahunAnggaranPage() {
       {createModal && <CreateTAModal onClose={() => setCreateModal(false)} onSaved={refresh} />}
       {statusModal && <StatusModal taId={statusModal.taId} onClose={() => setStatusModal(null)} onSaved={refresh} />}
       {deleteModal && <DeleteTAModal taId={deleteModal.taId} onClose={() => setDeleteModal(null)} onSaved={() => { setWsId(null); refresh(); }} />}
-      {paguModal && <EditPaguModal taId={paguModal.taId} onClose={() => setPaguModal(null)} onSaved={() => { setPaguModal(null); refresh(); }} />}
       {retensiModal && <RetensiModal taId={retensiModal.taId} onClose={() => setRetensiModal(null)} onSaved={() => { setWsId(null); refresh(); }} />}
-      {apbdpModal && <ApbdPModal taId={apbdpModal.taId} koreksi={apbdpModal.koreksi} onClose={() => setApbdpModal(null)} onSaved={() => { setApbdpModal(null); refresh(); }} />}
+      {apbdpModal && <ApbdPModal taId={apbdpModal.taId} onClose={() => setApbdpModal(null)} onSaved={() => { setApbdpModal(null); refresh(); }} />}
     </div>
   );
 }
@@ -105,7 +95,6 @@ function taStatusKind(s: TAStatus): 'ok' | 'warn' | 'neutral' | 'crit' {
 function CreateTAModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [tahun, setTahun] = useState('');
   const toast = useToast();
-  const [pagu, setPagu] = useState(0);
   const [salinDari, setSalinDari] = useState('');
   const [err, setErr] = useState('');
   const taList = repo.tahunAnggaran();
@@ -113,8 +102,7 @@ function CreateTAModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const save = async () => {
     if (!tahun.trim()) return setErr('Tahun wajib diisi.');
     if (!/^\d{4}$/.test(tahun.trim())) return setErr('Tahun harus 4 digit angka.');
-    if (pagu <= 0) return setErr('Pagu Induk harus lebih dari 0.');
-    const r = await repo.buatTA(tahun.trim(), pagu);
+    const r = await repo.buatTA(tahun.trim(), 0);
     if (!r.ok || !r.ta) return setErr(r.error ?? 'Gagal.');
     recordAudit({ ta_id: r.ta.id, entitas: `TA ${tahun.trim()}`, aksi: 'aksi_administratif', nilai_sesudah: 'TA Draft dibuat' });
     if (salinDari) {
@@ -130,8 +118,8 @@ function CreateTAModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       footer={<div className="flex justify-end gap-2">{err && <span className="mr-auto text-2xs text-crit">{err}</span>}<Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={save}>Buat</Button></div>}>
       <div className="space-y-4">
         <Field label="Tahun Anggaran" required><Input className="mono" value={tahun} onChange={(e) => setTahun(e.target.value)} inputMode="numeric" placeholder="2028" /></Field>
-        <Field label="Pagu Induk (Rupiah)" required hint="Bilangan bulat rupiah tanpa sen"><RupiahInput value={pagu} onChange={setPagu} /></Field>
-        <Field label="Salin Struktur dari TA Sebelumnya (opsional)" hint="Hanya menyalin seksi aktif & pemetaan subkegiatan. Pagu, SK, dan mutasi tidak disalin.">
+        <p className="text-2xs text-mist-dim">Pagu Induk tidak perlu diisi. Nilainya dihitung otomatis dari total pagu subkegiatan yang diisi Bendahara.</p>
+        <Field label="Salin Struktur dari TA Sebelumnya (opsional)" hint="Hanya menyalin seksi aktif dan penempatan subkegiatan. Pagu, SK, dan mutasi tidak disalin.">
           <Select value={salinDari} onChange={(e) => setSalinDari(e.target.value)}>
             <option value="">Tidak salin</option>
             {taList.map((t) => <option key={t.id} value={t.id}>TA {t.tahun} — {t.status}</option>)}
@@ -205,7 +193,7 @@ function ChecklistDisplay({ taId }: { taId: string }) {
       <p className="text-2xs font-semibold text-mist">Checklist Kesiapan (otomatis dari data)</p>
       {ck.items.map((item, i) => (
         <div key={i} className="flex items-center gap-2 text-2xs">
-          {item.ok ? <CheckCircle2 size={14} className="text-ok" /> : <XCircle size={14} className="text-crit" />}
+          {item.ok ? <CheckCircle2 size={14} className="text-ok" /> : item.saran ? <AlertTriangle size={14} className="text-warn" /> : <XCircle size={14} className="text-crit" />}
           <span className={item.ok ? 'text-mist-dim' : 'text-mist'}>{item.label}</span>
         </div>
       ))}
@@ -306,7 +294,7 @@ function RingkasanTA({ ta }: { ta: TahunAnggaran }) {
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {kartu('Pagu Induk', formatRupiah(ta.pagu_induk), true)}
+        {kartu('Pagu Induk (otomatis dari subkegiatan)', formatRupiah(ta.pagu_induk), true)}
         {kartu('APBD-P', ta.mode_apbd_p ? 'Aktif' : 'Tidak')}
         {kartu('Pernah transaksi', ta.pernah_transaksi ? 'Ya' : 'Tidak')}
         {kartu('Arsip terakhir', formatTanggal(ta.tanggal_arsip_terakhir))}
@@ -372,7 +360,7 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
           )}
         </td>
         <td className="px-3 py-2">
-          {del ? <StatusBadge kind="warn" label="Dijabat Plh./Plt." /> : def ? (def.provisional ? <StatusBadge kind="warn" label="Provisional" /> : <StatusBadge kind="ok" label="Final" />) : x.opsional ? <StatusBadge kind="neutral" label="Opsional" /> : <StatusBadge kind="crit" label="Kosong" />}
+          {del ? <StatusBadge kind="warn" label="Dijabat Plh./Plt." /> : def ? (def.provisional ? <StatusBadge kind="warn" label="SK menyusul" /> : <StatusBadge kind="ok" label="SK lengkap" />) : x.opsional ? <StatusBadge kind="neutral" label="Opsional" /> : <StatusBadge kind="crit" label="Kosong" />}
         </td>
         <td className="px-3 py-2 mono whitespace-nowrap text-mist-dim">{def ? `${formatTanggalPendek(def.tmt_mulai)} — sekarang` : '—'}</td>
         <td className="px-3 py-2 text-mist-dim">{sks.length > 0 ? sks.map((sk) => <div key={sk.id} className="whitespace-nowrap">{sk.nomor_sk || 'Nomor SK belum ada'}</div>) : '—'}</td>
@@ -448,17 +436,16 @@ function SeksiTab({ taId, isDraft }: { taId: string; isDraft: boolean; isArsip: 
                 </div>
                 {pems.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    <p className="text-2xs text-mist-dim">Pemetaan Subkegiatan:</p>
+                    <p className="text-2xs text-mist-dim">Subkegiatan milik seksi ini (ditempatkan Bendahara):</p>
                     {pems.map((p) => (
                       <div key={p.id} className="flex items-center justify-between rounded border border-ink-edge bg-ink px-2 py-1 text-2xs">
                         <span className="mono text-mist">{p.kode_snapshot}</span>
                         <span className="text-mist-dim">{p.nama_snapshot}</span>
-                        {isDraft && <button onClick={async () => { await repo.hapusPemetaan(p.id); setRefresh((r) => r + 1); }} className="text-2xs text-crit hover:underline">Lepas</button>}
                       </div>
                     ))}
                   </div>
                 )}
-                {isDraft && <AddPemetaanInline seksiId={s.id} taId={taId} onAdded={() => setRefresh((r) => r + 1)} />}
+                {pems.length === 0 && <p className="mt-2 text-2xs text-mist-dim">Belum ada subkegiatan. Bendahara menempatkan subkegiatan pada seksi ini.</p>}
               </Card>
             );
           })}
@@ -492,31 +479,6 @@ function AddSeksiModal({ taId, onClose, onSaved }: { taId: string; onClose: () =
       </Field>
       <p className="mt-3 text-2xs text-mist-dim">Nama unit disalin sebagai snapshot. Perubahan Master SOTK setelah ini tidak mengubah snapshot TA.</p>
     </Modal>
-  );
-}
-
-function AddPemetaanInline({ seksiId, taId, onAdded }: { seksiId: string; taId: string; onAdded: () => void }) {
-  const [subId, setSubId] = useState('');
-  const [err, setErr] = useState('');
-  const sudahDipetakan = repo.pemetaanByTA(taId).map((p) => p.subkegiatan_id);
-  const subs = repo.masterSubkegiatan().filter((s) => s.status === 'Aktif' && !sudahDipetakan.includes(s.id));
-  const add = async () => {
-    if (!subId) return setErr('Pilih subkegiatan.');
-    const r = await repo.tambahPemetaan(taId, seksiId, subId);
-    if (!r.ok) return setErr(r.error ?? 'Gagal.');
-    setSubId(''); setErr('');
-    onAdded();
-  };
-  return (
-    <div className="mt-2 flex items-end gap-2">
-      <Select value={subId} onChange={(e) => setSubId(e.target.value)} aria-label="Subkegiatan">
-        <option value="">+ Petakan subkegiatan...</option>
-        {subs.map((s) => <option key={s.id} value={s.id}>{s.kode} — {s.nama}</option>)}
-      </Select>
-      <Button variant="secondary" className="text-2xs" onClick={add}>Petakan</Button>
-      {err && <span className="text-2xs text-crit">{err}</span>}
-      {subs.length === 0 && <span className="text-2xs text-mist-dim">Semua subkegiatan aktif sudah dipetakan.</span>}
-    </div>
   );
 }
 
@@ -556,7 +518,6 @@ function AddPenugasanModal({ taId, peran, seksiAwal, onClose, onSaved }: { taId:
   const [personelId, setPersonelId] = useState('');
   const [seksiId, setSeksiId] = useState(seksiAwal ?? '');
   const [tmt, setTmt] = useState(todayWita());
-  const [provisional, setProvisional] = useState(false);
   const [err, setErr] = useState('');
   const personel = repo.masterPersonel();
   const seksiTA = repo.seksiTAByTA(taId);
@@ -565,10 +526,10 @@ function AddPenugasanModal({ taId, peran, seksiAwal, onClose, onSaved }: { taId:
   const save = async () => {
     if (!personelId) return setErr('Pilih personel.');
     if (needsSeksi && !seksiId) return setErr('PPTK wajib memiliki seksi.');
-    const r = await repo.tambahPenugasan(taId, peran, personelId, needsSeksi ? seksiId : null, tmt, provisional);
+    const r = await repo.tambahPenugasan(taId, peran, personelId, needsSeksi ? seksiId : null, tmt);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     const per = repo.personelById(personelId)!;
-    recordAudit({ ta_id: taId, entitas: `Penugasan ${peranLabel(peran)}: ${per.nama}`, aksi: 'aksi_administratif', nilai_sesudah: `TMT ${tmt}${provisional ? ' (provisional)' : ''}` });
+    recordAudit({ ta_id: taId, entitas: `Penugasan ${peranLabel(peran)}: ${per.nama}`, aksi: 'aksi_administratif', nilai_sesudah: `TMT ${tmt} (SK menyusul)` });
     onSaved();
   };
 
@@ -591,10 +552,7 @@ function AddPenugasanModal({ taId, peran, seksiAwal, onClose, onSaved }: { taId:
           </Field>
         )}
         <Field label="TMT Mulai" required><Input type="date" value={tmt} onChange={(e) => setTmt(e.target.value)} /></Field>
-        <label className="flex items-center gap-2 text-2xs text-mist-dim">
-          <input type="checkbox" checked={provisional} onChange={(e) => setProvisional(e.target.checked)} />
-          Penugasan Provisional (SK dilengkapi kemudian)
-        </label>
+        <p className="text-2xs text-mist-dim">Nomor, tanggal, dan berkas SK tidak wajib sekarang. Lengkapi kapan saja lewat tombol SK pada penugasan ini.</p>
         <p className="text-2xs text-mist-dim">Jika sudah ada penugasan untuk peran+seksi yang sama, penugasan lama otomatis berakhir H-1 dari TMT baru (mutasi).</p>
       </div>
     </Modal>
@@ -646,8 +604,7 @@ function GantiPejabatModal({ penugasanId, taId, onClose, onSaved }: { penugasanI
 
 function SKModal({ penugasanId, onClose, onSaved }: { penugasanId: string; onClose: () => void; onSaved: () => void }) {
   const [nomor, setNomor] = useState('');
-  const [tanggal, setTanggal] = useState(todayWita());
-  const [provisional, setProvisional] = useState(false);
+  const [tanggal, setTanggal] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [err, setErr] = useState('');
   const [, setTick] = useState(0);
@@ -661,11 +618,13 @@ function SKModal({ penugasanId, onClose, onSaved }: { penugasanId: string; onClo
   };
 
   const save = async () => {
-    const r = await repo.tambahSK(penugasanId, nomor, tanggal, file ? file.name : null, provisional, file ? file.size : null, file);
+    if (!nomor.trim() && !tanggal && !file) return setErr('Isi minimal satu: nomor, tanggal, atau berkas SK. Penugasan boleh tanpa SK dulu, tidak perlu ditambahkan di sini.');
+    const lengkap = !!(nomor.trim() && tanggal && file);
+    const r = await repo.tambahSK(penugasanId, nomor, tanggal, file ? file.name : null, !lengkap, file ? file.size : null, file);
     if (!r.ok) return setErr(r.error ?? 'Gagal.');
     if (file && r.id) simpanBerkasSesi(r.id, file);
-    recordAudit({ ta_id: null, entitas: `SK: ${nomor || '(belum ada nomor)'}`, aksi: 'aksi_administratif', nilai_sesudah: `Tanggal ${tanggal}${provisional ? ' (provisional)' : ' (final)'}${file ? `, berkas ${file.name}` : ''}` });
-    setNomor(''); setProvisional(false); setFile(null); setErr('');
+    recordAudit({ ta_id: null, entitas: `SK: ${nomor || '(belum ada nomor)'}`, aksi: 'aksi_administratif', nilai_sesudah: `Tanggal ${tanggal || '—'}${lengkap ? ' (lengkap)' : ' (menyusul)'}${file ? `, berkas ${file.name}` : ''}` });
+    setNomor(''); setTanggal(''); setFile(null); setErr('');
     notify('Tersimpan');
     onSaved();
   };
@@ -682,15 +641,12 @@ function SKModal({ penugasanId, onClose, onSaved }: { penugasanId: string; onClo
         )}
         <div className="space-y-3 rounded-md border border-ink-edge bg-ink p-3">
           <p className="text-2xs font-semibold text-mist">Tambah SK</p>
-          <Field label="Nomor SK" required={!provisional}><Input value={nomor} onChange={(e) => setNomor(e.target.value)} /></Field>
-          <Field label="Tanggal SK" required={!provisional}><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
-          <Field label="Berkas SK" hint="PDF, JPG, atau PNG, maksimal 5 MB. SK final wajib berkas; SK Provisional boleh menyusul.">
+          <p className="text-2xs text-mist-dim">Semua kolom boleh dikosongkan dan dilengkapi nanti. SK dianggap lengkap bila nomor, tanggal, dan berkas sudah terisi.</p>
+          <Field label="Nomor SK"><Input value={nomor} onChange={(e) => setNomor(e.target.value)} /></Field>
+          <Field label="Tanggal SK"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
+          <Field label="Berkas SK" hint="PDF, JPG, atau PNG, maksimal 5 MB.">
             <UnggahBerkas nama={file?.name ?? null} accept=".pdf,.jpg,.jpeg,.png" onPilih={pilihFile} onHapus={() => setFile(null)} />
           </Field>
-          <label className="flex items-center gap-2 text-2xs text-mist-dim">
-            <input type="checkbox" checked={provisional} onChange={(e) => setProvisional(e.target.checked)} />
-            SK Provisional (nomor, tanggal, dan berkas boleh menyusul)
-          </label>
           {err && <p className="text-2xs text-crit">{err}</p>}
           <Button onClick={save}><Plus size={14} /> Tambah SK</Button>
         </div>
@@ -705,7 +661,6 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
   const [edit, setEdit] = useState(false);
   const [nomor, setNomor] = useState(sk.nomor_sk);
   const [tanggal, setTanggal] = useState(sk.tanggal_sk);
-  const [provisional, setProvisional] = useState(sk.provisional);
   const [file, setFile] = useState<File | null>(null);
   const [hapusBerkas, setHapusBerkas] = useState(false);
   const [err, setErr] = useState('');
@@ -723,11 +678,12 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
     const sesi = getSession();
     if (!sesi) return;
     const berkas = file ? { nama: file.name, ukuran: file.size, file } : hapusBerkas ? ('hapus' as const) : null;
-    const r = await repo.lengkapiSK(sk.id, { nomor_sk: nomor, tanggal_sk: tanggal, provisional, berkas }, sesi);
+    const lengkap = !!(nomor.trim() && tanggal && namaTampil);
+    const r = await repo.lengkapiSK(sk.id, { nomor_sk: nomor, tanggal_sk: tanggal, provisional: !lengkap, berkas }, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal.'); return; }
     if (file) simpanBerkasSesi(sk.id, file);
     if (hapusBerkas) hapusBerkasSesi(sk.id);
-    recordAudit({ ta_id: null, entitas: `SK: ${nomor || '(belum ada nomor)'}`, aksi: 'aksi_administratif', nilai_sebelum: `${sk.nomor_sk}${sk.provisional ? ' (provisional)' : ''}`, nilai_sesudah: `${nomor}${provisional ? ' (provisional)' : ' (final)'}${file ? `, berkas ${file.name}` : ''}` });
+    recordAudit({ ta_id: null, entitas: `SK: ${nomor || '(belum ada nomor)'}`, aksi: 'aksi_administratif', nilai_sebelum: `${sk.nomor_sk}${sk.provisional ? ' (menyusul)' : ''}`, nilai_sesudah: `${nomor}${lengkap ? ' (lengkap)' : ' (menyusul)'}${file ? `, berkas ${file.name}` : ''}` });
     setErr(''); setEdit(false); setFile(null); setHapusBerkas(false);
     notify('Tersimpan');
     onChanged();
@@ -738,7 +694,7 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <span className="mono text-mist">{sk.nomor_sk || 'Nomor SK belum ada'}</span>
-          <span className="ml-2 text-mist-dim">{formatTanggalPendek(sk.tanggal_sk)} {sk.provisional && '(Provisional)'}</span>
+          <span className="ml-2 text-mist-dim">{sk.tanggal_sk ? formatTanggalPendek(sk.tanggal_sk) : 'Tanggal belum ada'} {sk.provisional && '(menyusul)'}</span>
         </div>
         <div className="flex items-center gap-2">
           {sk.berkas ? (
@@ -760,22 +716,18 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
       {edit && (
         <div className="mt-3 space-y-3 border-t border-ink-edge pt-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Nomor SK" required={!provisional}><Input value={nomor} onChange={(e) => setNomor(e.target.value)} /></Field>
-            <Field label="Tanggal SK" required={!provisional}><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
+            <Field label="Nomor SK"><Input value={nomor} onChange={(e) => setNomor(e.target.value)} /></Field>
+            <Field label="Tanggal SK"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
           </div>
-          <Field label="Berkas SK" required={!provisional} hint="PDF, JPG, atau PNG, maksimal 5 MB. Wajib bila SK final.">
+          <Field label="Berkas SK" hint="PDF, JPG, atau PNG, maksimal 5 MB.">
             <UnggahBerkas nama={namaTampil} accept=".pdf,.jpg,.jpeg,.png" label="Pilih berkas"
               onPilih={pilihFile}
               onHapus={() => { setFile(null); setHapusBerkas(true); }}
               onBuka={() => { void bukaSK(sk.id, sk.berkas_key); }} bisaBuka={!file && !hapusBerkas && bisaBukaSK(sk.id, sk.berkas_key)} />
           </Field>
-          <label className="flex items-center gap-2 text-mist-dim">
-            <input type="checkbox" checked={provisional} onChange={(e) => setProvisional(e.target.checked)} />
-            SK Provisional
-          </label>
           {err && <p className="text-crit">{err}</p>}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => { setEdit(false); setErr(''); setFile(null); setHapusBerkas(false); setNomor(sk.nomor_sk); setTanggal(sk.tanggal_sk); setProvisional(sk.provisional); }}>Batal</Button>
+            <Button variant="ghost" onClick={() => { setEdit(false); setErr(''); setFile(null); setHapusBerkas(false); setNomor(sk.nomor_sk); setTanggal(sk.tanggal_sk); }}>Batal</Button>
             <Button variant="primary" onClick={simpan}>Simpan</Button>
           </div>
         </div>

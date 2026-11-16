@@ -125,7 +125,6 @@ export const server = {
     return { ...r, count: Number(r.jumlah ?? 0) };
   },
   hapusTA: (id: string, _s?: SessionPayload) => jalankan(api.adm_ta_hapus({ p_id: id })),
-  editPaguInduk: (ta: string, pagu: number) => jalankan(api.adm_ta_edit_pagu({ p_ta: ta, p_pagu: pagu }), { toast: true }),
   ubahStatusTA: (ta: string, status: TAStatus) => jalankan(api.adm_ta_ubah_status({ p_ta: ta, p_status: status })),
   async hapusTARetensi(ta: string, kode: string, _s?: SessionPayload) {
     const r = await jalankan(api.adm_ta_hapus_retensi({ p_ta: ta, p_kode: kode }));
@@ -139,26 +138,24 @@ export const server = {
     return { ...r, seksi: data.seksiTA.find((s) => s.id === r.id) };
   },
   hapusSeksiTA: (seksi: string) => jalankan(api.adm_seksi_hapus({ p_seksi: seksi })),
-  tambahPemetaan: (ta: string, seksi: string, sub: string) => jalankan(api.adm_pemetaan_tambah({ p_ta: ta, p_seksi: seksi, p_sub: sub })),
-  hapusPemetaan: (id: string) => jalankan(api.adm_pemetaan_hapus({ p_id: id }), { toast: true }),
-  tambahPenugasan: (ta: string, peran: PeranPenugasan, personel: string, seksi: string | null, tmt: string, provisional: boolean) =>
-    jalankan(api.adm_penugasan_tambah({ p_ta: ta, p_peran: peran, p_personel: personel, p_seksi: seksi as string, p_tmt: tmt, p_provisional: provisional })),
+  tambahPenugasan: (ta: string, peran: PeranPenugasan, personel: string, seksi: string | null, tmt: string, _provisional?: boolean) =>
+    jalankan(api.adm_penugasan_tambah({ p_ta: ta, p_peran: peran, p_personel: personel, p_seksi: seksi as string, p_tmt: tmt })),
   hapusPenugasan: (id: string) => jalankan(api.adm_penugasan_hapus({ p_id: id }), { toast: true }),
   gantiPejabatDefinitif: (id: string, pengganti: string, tmt: string) => jalankan(api.adm_penugasan_ganti({ p_id: id, p_pengganti: pengganti, p_tmt: tmt })),
 
   // ------------------------- SK (berkas di bucket `sk`) -------------------------
-  async tambahSK(penugasan: string, nomor: string, tanggal: string, berkas: string | null, provisional: boolean, berkas_ukuran: number | null = null, file?: File | null) {
-    let kunci = '', nama = '';
+  async tambahSK(penugasan: string, nomor: string, tanggal: string, berkas: string | null, provisional: boolean | undefined, berkas_ukuran: number | null = null, file?: File | null) {
+    let kunci: string | null = null, nama: string | null = null;
     if (berkas && file && supabase) {
       nama = file.name;
       kunci = `${penugasan}/${Date.now()}-${file.name.normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(0, 100)}`;
       const u = await unggah(supabase as never, BUCKET_SK, kunci, file);
       if (!u.ok) return { ok: false, error: u.error ?? 'Gagal mengunggah berkas SK.' } as Hasil & { id?: string };
     }
-    return jalankan(api.adm_sk_tambah({ p_penugasan: penugasan, p_nomor: nomor, p_tanggal: tanggal, p_berkas_key: kunci, p_berkas_nama: nama, p_berkas_ukuran: ukuran(berkas_ukuran) ?? 0, p_provisional: provisional }));
+    return jalankan(api.adm_sk_tambah({ p_penugasan: penugasan, p_nomor: nomor, p_tanggal: tanggal || null, p_berkas_key: kunci, p_berkas_nama: nama, p_berkas_ukuran: nama ? (ukuran(berkas_ukuran) ?? 0) : null, p_provisional: provisional ?? false }));
   },
   async lengkapiSK(id: string, patch: { nomor_sk: string; tanggal_sk: string; provisional: boolean; berkas?: { nama: string; ukuran: number; file?: File } | 'hapus' | null }, _s?: SessionPayload) {
-    const dasar = { p_id: id, p_nomor: patch.nomor_sk, p_tanggal: patch.tanggal_sk, p_provisional: patch.provisional };
+    const dasar = { p_id: id, p_nomor: patch.nomor_sk, p_tanggal: patch.tanggal_sk || null, p_provisional: patch.provisional };
     const b = patch.berkas;
     if (b === 'hapus') return jalankan(api.adm_sk_lengkapi({ ...dasar, p_berkas: 'hapus' }));
     if (b && typeof b === 'object') {
@@ -181,6 +178,8 @@ export const server = {
 
   // ------------------------- Tahap 3: anggaran, SPD, BKU -------------------------
   aturJendela: (ta: string, tutup_wita: string, _a?: unknown) => jalankan(api.bend_jendela_atur({ p_ta: ta, p_tutup: tutup_wita })),
+  tempatkanSubkegiatan: (ta: string, seksi: string, sub: string, _a?: unknown) => jalankan(api.bend_pemetaan_tambah({ p_ta: ta, p_seksi: seksi, p_sub: sub })),
+  lepasSubkegiatan: (id: string, _a?: unknown) => jalankan(api.bend_pemetaan_hapus({ p_id: id })),
   simpanAlokasiSubkegiatan: (ta: string, pagu: Record<string, number>, _a?: unknown) => jalankan(api.bend_alokasi_sub_simpan({ p_ta: ta, p_pagu: pagu })),
   simpanAlokasiRekening: (ta: string, pemetaan: string, baris: { rekening_id: string; pagu: number }[], _a?: unknown) =>
     jalankan(api.pptk_alokasi_rek_simpan({ p_ta: ta, p_pemetaan: pemetaan, p_baris: baris })),

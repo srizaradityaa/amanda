@@ -94,6 +94,15 @@ export function totalRekeningPemetaan(pemetaan_id: string): number {
   return alokasiRekByPemetaan(pemetaan_id).reduce((s, a) => s + a.pagu, 0);
 }
 
+// Pagu Induk = total pagu subkegiatan semua seksi (otomatis). Berhenti diperbarui setelah Sahkan.
+export function hitungUlangInduk(ta_id: string): void {
+  const ta = taById(ta_id);
+  if (!ta || sudahDisahkan(ta_id)) return;
+  const total = data.alokasiSubkegiatan.filter((a) => a.ta_id === ta_id).reduce((s, a) => s + a.pagu, 0);
+  if (ta.mode_apbd_p) ta.pagu_induk_perubahan = total;
+  else ta.pagu_induk = total;
+}
+
 export function selisihAlokasiInstansi(ta_id: string): number {
   if (!taById(ta_id)) return 0;
   const total = data.alokasiSubkegiatan.filter((a) => a.ta_id === ta_id).reduce((s, a) => s + a.pagu, 0);
@@ -201,22 +210,14 @@ export function simpanAlokasiSubkegiatanDemo(ta_id: string, pagu_per_pemetaan: R
       return { ok: false, error: `Pagu subkegiatan tidak boleh di bawah realisasi BKU dan komitmen kuitansi aktif (${formatRupiah(terpakai)}).` };
     }
   }
-  // Selisih tidak boleh minus: total subkegiatan tidak boleh melebihi Pagu Induk (berlaku juga untuk simpan sebagian).
-  const totalBaru = pemetaanOfTA(ta_id).reduce(
-    (s, p) => s + (p.id in pagu_per_pemetaan ? pagu_per_pemetaan[p.id] : (alokasiSubByPemetaan(p.id)?.pagu ?? 0)),
-    0,
-  );
-  const induk = paguIndukAktif(ta_id);
-  if (totalBaru > induk) {
-    return { ok: false, error: `Total pagu subkegiatan ${formatRupiah(totalBaru)} melebihi Pagu Induk ${formatRupiah(induk)} (selisih -${formatRupiah(totalBaru - induk)}). Kurangi pagu subkegiatan sebelum menyimpan.` };
-  }
   for (const [pemetaan_id, pagu] of Object.entries(pagu_per_pemetaan)) {
     const existing = alokasiSubByPemetaan(pemetaan_id);
     if (existing) existing.pagu = pagu;
     else data.alokasiSubkegiatan.push({ id: `as-${ta_id}-${pemetaan_id}`, ta_id, pemetaan_subkegiatan_id: pemetaan_id, pagu });
   }
+  hitungUlangInduk(ta_id);
   catatVersi(ta_id, aktor, 'Penyimpanan alokasi pagu subkegiatan');
-  recordAudit({ ta_id, entitas: `Alokasi subkegiatan TA ${ta.tahun}`, aksi: 'aksi_administratif', nilai_sesudah: `Selisih ${formatRupiah(selisihAlokasiInstansi(ta_id))}` });
+  recordAudit({ ta_id, entitas: `Alokasi subkegiatan TA ${ta.tahun}`, aksi: 'aksi_administratif', nilai_sesudah: `Pagu Induk otomatis ${formatRupiah(paguIndukAktif(ta_id))}` });
   return { ok: true };
 }
 
@@ -290,8 +291,9 @@ export function sahkanAlokasiDemo(ta_id: string, aktor: AktorAnggaran): Hasil {
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
   if (aktor.peran !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat menekan Sahkan.' };
   if (sudahDisahkan(ta_id)) return { ok: false, error: 'Alokasi TA ini sudah disahkan.' };
-  const selisih = selisihAlokasiInstansi(ta_id);
-  if (selisih !== 0) return { ok: false, error: `Selisih alokasi subkegiatan ${formatRupiah(selisih)}. Sahkan hanya bisa bila selisih tepat Rp 0.` };
+  if (data.alokasiSubkegiatan.filter((a) => a.ta_id === ta_id).reduce((t, a) => t + a.pagu, 0) <= 0) {
+    return { ok: false, error: 'Belum ada pagu subkegiatan. Tempatkan subkegiatan pada seksi dan isi pagunya sebelum Sahkan.' };
+  }
   const g = gerbangStatus(ta_id);
   if (g.seksiBelum.length > 0) {
     return { ok: false, error: `Seksi belum seimbang: ${g.seksiBelum.map((s) => s.nama).join(', ')}.` };
@@ -485,19 +487,16 @@ export function geserSPDDemo(
 
 // ===== APBD-P (TA-09) dan pembanding pagu murni (SPD-04) =====
 
-export function aktifkanApbdPDemo(ta_id: string, pagu_perubahan: number, aktor: AktorAnggaran): Hasil {
+export function aktifkanApbdPDemo(ta_id: string, _pagu: number, aktor: AktorAnggaran): Hasil {
   const ta = taById(ta_id);
   if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
   if (aktor.peran !== 'admin') return { ok: false, error: 'Hanya Admin yang dapat mengaktifkan APBD-P.' };
   if (ta.status !== 'Aktif Penuh') return { ok: false, error: 'APBD-P hanya dapat diaktifkan pada TA Aktif Penuh.' };
   if (ta.mode_apbd_p) return { ok: false, error: 'APBD-P pada TA ini sudah aktif.' };
   if (!sudahDisahkan(ta_id)) return { ok: false, error: 'Alokasi murni belum disahkan. APBD-P diaktifkan setelah Sahkan murni.' };
-  if (!Number.isInteger(pagu_perubahan) || pagu_perubahan <= 0) {
-    return { ok: false, error: 'Pagu Induk perubahan harus bilangan bulat rupiah lebih dari nol.' };
-  }
   ta.mode_apbd_p = true;
-  ta.pagu_induk_perubahan = pagu_perubahan;
   for (const a of data.alokasiRekening.filter((x) => x.ta_id === ta_id)) a.disahkan = false;
+  hitungUlangInduk(ta_id);
   const j = data.jendelaAlokasi.find((x) => x.ta_id === ta_id);
   if (j) j.tutup_wita = null;
   recordAudit({
@@ -505,29 +504,59 @@ export function aktifkanApbdPDemo(ta_id: string, pagu_perubahan: number, aktor: 
     entitas: `TA ${ta.tahun}`,
     aksi: 'alokasi_apbd_p',
     nilai_sebelum: `Pagu Induk ${formatRupiah(ta.pagu_induk)}`,
-    nilai_sesudah: `Pagu Induk APBD-P ${formatRupiah(pagu_perubahan)}`,
+    nilai_sesudah: 'APBD-P diaktifkan; Pagu Induk mengikuti total pagu subkegiatan',
   });
   return { ok: true };
 }
 
-// Koreksi Pagu Induk perubahan oleh Admin: hanya selama APBD-P belum disahkan ulang (keputusan pemilik).
-export function koreksiPaguApbdPDemo(ta_id: string, pagu_baru: number, aktor: AktorAnggaran): Hasil {
+// Pagu Induk APBD-P dihitung otomatis; tidak ada lagi koreksi manual oleh Admin.
+export function koreksiPaguApbdPDemo(_ta_id: string, _pagu: number, _aktor: AktorAnggaran): Hasil {
+  return { ok: false, error: 'Pagu Induk APBD-P dihitung otomatis dari total pagu subkegiatan. Ubah pagu subkegiatan oleh Bendahara.' };
+}
+
+// ===== Penempatan subkegiatan ke seksi oleh Bendahara =====
+
+function bolehUbahPenempatan(ta_id: string, aktor: AktorAnggaran): string | null {
   const ta = taById(ta_id);
-  if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
-  if (aktor.peran !== 'admin') return { ok: false, error: 'Hanya Admin yang dapat mengoreksi Pagu Induk APBD-P.' };
-  if (!ta.mode_apbd_p) return { ok: false, error: 'APBD-P belum aktif pada TA ini.' };
-  if (sudahDisahkan(ta_id)) return { ok: false, error: 'APBD-P sudah disahkan ulang. Pagu Induk perubahan tidak dapat dikoreksi lagi.' };
-  if (!Number.isInteger(pagu_baru) || pagu_baru <= 0) return { ok: false, error: 'Pagu Induk perubahan harus bilangan bulat rupiah lebih dari nol.' };
-  const lama = ta.pagu_induk_perubahan ?? 0;
-  if (pagu_baru === lama) return { ok: false, error: 'Nilai sama dengan Pagu Induk perubahan saat ini.' };
-  ta.pagu_induk_perubahan = pagu_baru;
-  recordAudit({
-    ta_id,
-    entitas: `TA ${ta.tahun}`,
-    aksi: 'alokasi_apbd_p',
-    nilai_sebelum: `Pagu Induk APBD-P ${formatRupiah(lama)}`,
-    nilai_sesudah: `Pagu Induk APBD-P ${formatRupiah(pagu_baru)} (koreksi sebelum Sahkan ulang)`,
-  });
+  if (!ta) return 'TA tidak ditemukan.';
+  if (aktor.peran !== 'bendahara') return 'Hanya Bendahara Pengeluaran yang dapat menempatkan subkegiatan ke seksi.';
+  if (ta.status === 'Arsip Read-Only' || ta.status === 'Masa Transisi') return 'Subkegiatan tidak dapat diubah pada TA ini.';
+  if (!jendelaTerbuka(ta_id)) return 'Jendela input alokasi tertutup. Bendahara perlu membuka kembali jendela waktu.';
+  if (sudahDisahkan(ta_id)) return 'Alokasi TA ini sudah disahkan dan subkegiatan tidak dapat diubah.';
+  return null;
+}
+
+export function tempatkanSubkegiatanDemo(ta_id: string, seksi_ta_id: string, subkegiatan_id: string, aktor: AktorAnggaran): Hasil {
+  const e = bolehUbahPenempatan(ta_id, aktor);
+  if (e) return { ok: false, error: e };
+  const seksi = data.seksiTA.find((x) => x.id === seksi_ta_id && x.ta_id === ta_id && x.status === 'Aktif');
+  if (!seksi) return { ok: false, error: 'Seksi tidak ditemukan pada TA ini.' };
+  const sub = data.masterSubkegiatan.find((x) => x.id === subkegiatan_id && x.status === 'Aktif');
+  if (!sub) return { ok: false, error: 'Subkegiatan tidak ditemukan atau nonaktif.' };
+  if (pemetaanOfTA(ta_id).some((p) => p.subkegiatan_id === subkegiatan_id)) {
+    return { ok: false, error: 'Subkegiatan ini sudah dimiliki seksi lain di TA ini. Satu subkegiatan hanya untuk satu seksi.' };
+  }
+  data.pemetaanSubkegiatanTA.push({ id: `pem-${ta_id}-${Date.now()}`, ta_id, seksi_ta_id, subkegiatan_id, kode_snapshot: sub.kode, nama_snapshot: sub.nama });
+  recordAudit({ ta_id, entitas: `Subkegiatan ${sub.kode}`, aksi: 'aksi_administratif', nilai_sesudah: `Ditempatkan pada seksi ${seksi.nama_snapshot}` });
+  return { ok: true };
+}
+
+export function lepasSubkegiatanDemo(pemetaan_id: string, aktor: AktorAnggaran): Hasil {
+  const p = data.pemetaanSubkegiatanTA.find((x) => x.id === pemetaan_id);
+  if (!p) return { ok: false, error: 'Subkegiatan pada seksi tidak ditemukan.' };
+  const e = bolehUbahPenempatan(p.ta_id, aktor);
+  if (e) return { ok: false, error: e };
+  if (data.kuitansi.some((k) => k.pemetaan_subkegiatan_id === pemetaan_id)) return { ok: false, error: 'Subkegiatan ini sudah dipakai kuitansi dan tidak dapat dihapus.' };
+  if (data.ledgerSPD.some((l) => alokasiRekByPemetaan(pemetaan_id).some((a) => a.id === l.alokasi_rekening_id))) {
+    return { ok: false, error: 'SPD subkegiatan ini sudah terbit dan tidak dapat dihapus. Nolkan pagunya bila tidak dipakai.' };
+  }
+  const idxRek = (arr: { pemetaan_subkegiatan_id: string }[]) => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i].pemetaan_subkegiatan_id === pemetaan_id) arr.splice(i, 1); };
+  idxRek(data.alokasiRekening);
+  idxRek(data.alokasiSubkegiatan);
+  const i = data.pemetaanSubkegiatanTA.findIndex((x) => x.id === pemetaan_id);
+  if (i >= 0) data.pemetaanSubkegiatanTA.splice(i, 1);
+  hitungUlangInduk(p.ta_id);
+  recordAudit({ ta_id: p.ta_id, entitas: `Subkegiatan ${p.kode_snapshot}`, aksi: 'aksi_administratif', nilai_sebelum: 'Pada seksi', nilai_sesudah: 'Dihapus dari seksi' });
   return { ok: true };
 }
 
@@ -563,3 +592,5 @@ export const aturSPDFinal = mut(aturSPDFinalDemo, server.aturSPDFinal);
 export const geserSPD = mut(geserSPDDemo, server.geserSPD);
 export const aktifkanApbdP = mut(aktifkanApbdPDemo, server.aktifkanApbdP);
 export const koreksiPaguApbdP = mut(koreksiPaguApbdPDemo, server.koreksiPaguApbdP);
+export const tempatkanSubkegiatan = mut(tempatkanSubkegiatanDemo, server.tempatkanSubkegiatan);
+export const lepasSubkegiatan = mut(lepasSubkegiatanDemo, server.lepasSubkegiatan);

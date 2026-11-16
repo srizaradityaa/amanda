@@ -332,7 +332,6 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
   ];
   const kosong = slot.filter((x) => !x.opsional).filter((x) => !tgs.some((t) => t.peran === x.peran && (t.seksi_ta_id ?? null) === x.seksiId) && !delAktif.some((d) => d.peran_digantikan === x.peran && (d.seksi_ta_id ?? null) === x.seksiId)).length
     ;
-  const ikon = 'rounded p-1 text-mist-dim hover:text-mist';
 
   const barisSlot = (x: Slot, i: number) => {
     const def = tgs.find((t) => t.peran === x.peran && (t.seksi_ta_id ?? null) === x.seksiId);

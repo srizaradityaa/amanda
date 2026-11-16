@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { namaLengkap } from '@/lib/nama';
-import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, TableHead, ProtectedNotice, useToast } from '@/components/ui';
+import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, TableHead, ProtectedNotice, TombolIkon, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { ApbdPModal } from '@/components/ApbdPModal';
 import { recordAudit } from '@/lib/audit';
@@ -368,11 +368,11 @@ function MatriksPenugasan({ taId, isDraft, isArsip }: { taId: string; isDraft: b
           <div className="flex gap-1">
             {!def && (isDraft || (x.opsional && !isArsip)) && <Button className="px-2 py-0.5 text-2xs" onClick={() => setAddModal({ peran: x.peran, seksiId: x.seksiId ?? undefined })}><Plus size={12} /> Tugaskan</Button>}
             {!def && !isDraft && !del && !x.opsional && <span className="text-mist-dim">Isi lewat Plh./Plt.</span>}
-            <button onClick={() => setRiwayat({ peran: x.peran, seksiId: x.seksiId, label: `${x.label} — ${x.lingkup}` })} className={ikon} title="Riwayat jabatan ini"><CalendarClock size={14} /></button>
-            {def && <button onClick={() => setSkModal({ penugasanId: def.id })} className={ikon} title="SK"><FileText size={14} /></button>}
-            {def && !isArsip && <button onClick={() => setGantiModal({ penugasanId: def.id })} className={`${ikon} hover:text-amber`} title="Ganti Pejabat"><UserPlus size={14} /></button>}
-            {del && !isArsip && <button onClick={() => setCabutModal({ delegasiId: del.id })} className={`${ikon} hover:text-crit`} title="Cabut Plh./Plt. dini"><XCircle size={14} /></button>}
-            {def && (isDraft) && <button onClick={async () => { await repo.hapusPenugasan(def.id); setRefresh((r) => r + 1); }} className={`${ikon} hover:text-crit`} title="Hapus"><Trash2 size={14} /></button>}
+            <TombolIkon ikon={CalendarClock} label="Riwayat jabatan ini" variant="ghost" onClick={() => setRiwayat({ peran: x.peran, seksiId: x.seksiId, label: `${x.label} — ${x.lingkup}` })} />
+            {def && <TombolIkon ikon={FileText} label="SK" variant="ghost" onClick={() => setSkModal({ penugasanId: def.id })} />}
+            {def && !isArsip && <TombolIkon ikon={UserPlus} label="Ganti Pejabat" variant="ghost" onClick={() => setGantiModal({ penugasanId: def.id })} />}
+            {del && !isArsip && <TombolIkon ikon={XCircle} label="Cabut Plh./Plt. dini" variant="danger" onClick={() => setCabutModal({ delegasiId: del.id })} />}
+            {def && (isDraft) && <TombolIkon ikon={Trash2} label="Hapus" variant="danger" onClick={async () => { await repo.hapusPenugasan(def.id); setRefresh((r) => r + 1); }} />}
           </div>
         </td>
       </tr>
@@ -432,7 +432,7 @@ function SeksiTab({ taId, isDraft }: { taId: string; isDraft: boolean; isArsip: 
                     <span className="text-sm text-mist">{s.nama_snapshot}</span>
                     <span className="ml-2 text-2xs text-mist-dim">(snapshot dari Master SOTK)</span>
                   </div>
-                  {isDraft && <button onClick={async () => { await repo.hapusSeksiTA(s.id); setRefresh((r) => r + 1); }} className="text-2xs text-crit hover:underline">Hapus</button>}
+                  {isDraft && <TombolIkon ikon={Trash2} label="Hapus seksi" variant="danger" onClick={async () => { await repo.hapusSeksiTA(s.id); setRefresh((r) => r + 1); }} />}
                 </div>
                 {pems.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -703,14 +703,14 @@ function SKRow({ sk, onChanged }: { sk: RegisterSK; onChanged: () => void }) {
               {bisaBukaSK(sk.id, sk.berkas_key)
                 ? (
                   <>
-                    <button onClick={() => { void bukaSK(sk.id, sk.berkas_key); }} className="text-teal hover:underline">Buka SK</button>
-                    <button onClick={() => { void unduhSK(sk.id, sk.berkas_key, sk.berkas ?? 'SK'); }} className="text-teal hover:underline">Unduh</button>
+                    <Button variant="secondary" onClick={() => { void bukaSK(sk.id, sk.berkas_key); }}>Buka SK</Button>
+                    <Button variant="ghost" onClick={() => { void unduhSK(sk.id, sk.berkas_key, sk.berkas ?? 'SK'); }}>Unduh</Button>
                   </>
                 )
                 : <span className="text-mist-dim">Berkas hanya terbuka pada sesi unggah</span>}
             </>
           ) : <span className="text-warn">Berkas belum diunggah</span>}
-          {!edit && <button onClick={() => setEdit(true)} className="rounded p-1 text-mist-dim hover:text-mist" title="Lengkapi / ubah SK"><Pencil size={13} /></button>}
+          {!edit && <TombolIkon ikon={Pencil} label="Lengkapi / ubah SK" variant="ghost" onClick={() => setEdit(true)} />}
         </div>
       </div>
       {edit && (

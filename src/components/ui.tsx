@@ -1,8 +1,8 @@
 // UIX-05 — Komponen UI dasar tema Treasury (D03 §1).
 // Status wajib ikon/teks, bukan hanya warna. Kontras WCAG AA. Cincin fokus amber.
 
-import { type ReactNode, type InputHTMLAttributes, forwardRef, useEffect, useState, createContext, useContext, useCallback, useMemo } from 'react';
-import { TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Info, Circle as XCircle, Lock, ShieldCheck, X, Search, CircleCheck } from 'lucide-react';
+import { type ReactNode, type InputHTMLAttributes, Children, isValidElement, forwardRef, useEffect, useState, createContext, useContext, useCallback, useMemo } from 'react';
+import { TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Info, Circle as XCircle, Lock, ShieldCheck, X, Search, CircleCheck, Plus, Save, Trash2, Unlink, Link2, Pencil, Copy, Check, Send, Undo2, RotateCcw, Download, Upload, Printer, ArrowDownToLine, Eye, ArrowRight, ArrowLeft, Settings2, LogIn, LogOut, type LucideIcon } from 'lucide-react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
@@ -41,6 +41,71 @@ export function IconLabel({ icon, children }: { icon: ReactNode; children: React
   );
 }
 
+/** Tooltip cepat: muncul saat kursor menyentuh atau saat tombol difokus keyboard. */
+export function Tip({ teks, children }: { teks: string; children: ReactNode }) {
+  return (
+    <span className="group relative inline-flex">
+      {children}
+      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink-edge px-2 py-1 text-2xs font-medium text-mist opacity-0 shadow-lg ring-1 ring-black/40 transition-opacity duration-100 group-hover:opacity-100 group-focus-within:opacity-100">{teks}</span>
+    </span>
+  );
+}
+
+const IKON_OTOMATIS: [RegExp, LucideIcon][] = [
+  [/^(\+ )?(tambah|buat|baru|rekening baru)/, Plus],
+  [/simpan|terapkan/, Save],
+  [/hapus|buang/, Trash2],
+  [/^lepas/, Unlink],
+  [/kaitkan/, Link2],
+  [/ubah|edit|koreksi/, Pencil],
+  [/salin/, Copy],
+  [/setuju|sahkan|aktifkan|catat|tuntas|verifikasi/, Check],
+  [/ajukan|kirim/, Send],
+  [/kembalikan/, Undo2],
+  [/cabut/, RotateCcw],
+  [/unduh|ekspor|download/, Download],
+  [/unggah|upload/, Upload],
+  [/cetak/, Printer],
+  [/tarik/, ArrowDownToLine],
+  [/buka|lihat|detail|pratinjau/, Eye],
+  [/cari/, Search],
+  [/lanjut|berikutnya/, ArrowRight],
+  [/^(‹ )?kembali|sebelumnya/, ArrowLeft],
+  [/batal|tutup/, X],
+  [/atur|pengaturan/, Settings2],
+  [/masuk/, LogIn],
+  [/keluar/, LogOut],
+];
+
+function teksTombol(c: ReactNode): string {
+  if (typeof c === 'string' || typeof c === 'number') return String(c);
+  if (Array.isArray(c)) return c.map(teksTombol).join('');
+  return '';
+}
+
+function sudahAdaIkon(c: ReactNode): boolean {
+  return Children.toArray(c).some((x) => isValidElement(x) && typeof (x.props as { size?: unknown }).size !== 'undefined');
+}
+
+function pilihIkon(children: ReactNode): ReactNode {
+  if (sudahAdaIkon(children)) return null;
+  const t = teksTombol(children).trim().toLowerCase();
+  const hit = IKON_OTOMATIS.find(([re]) => re.test(t));
+  if (!hit) return null;
+  const Ikon = hit[1];
+  return <Ikon size={16} aria-hidden />;
+}
+
+export type VarianTombol = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+
+const GAYA_TOMBOL: Record<VarianTombol, string> = {
+  primary: 'bg-gradient-to-b from-amber to-amber/80 text-amber-ink shadow-md shadow-amber/20 hover:brightness-110 hover:-translate-y-px',
+  success: 'bg-gradient-to-b from-ok to-ok/80 text-ink shadow-md shadow-ok/20 hover:brightness-110 hover:-translate-y-px',
+  secondary: 'border border-teal/60 bg-teal/5 text-teal hover:border-teal hover:bg-teal/15',
+  ghost: 'border border-ink-edge text-mist hover:border-mist-dim/50 hover:bg-ink-edge/60',
+  danger: 'border border-crit/50 bg-crit/5 text-crit hover:border-crit hover:bg-crit/15',
+};
+
 export function Button({
   children,
   onClick,
@@ -48,26 +113,46 @@ export function Button({
   type = 'button',
   disabled = false,
   className = '',
+  ikon,
+  tip,
 }: {
   children: ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: VarianTombol;
   type?: 'button' | 'submit';
   disabled?: boolean;
   className?: string;
+  /** Ikon khusus; `false` menonaktifkan ikon otomatis. */
+  ikon?: ReactNode | false;
+  /** Teks bantu saat kursor menyentuh tombol (juga saat tombol nonaktif). */
+  tip?: string;
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-amber focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  const variants = {
-    primary: 'bg-amber text-amber-ink hover:bg-amber/90',
-    secondary: 'border border-teal text-teal hover:bg-teal/10',
-    ghost: 'text-mist hover:bg-ink-edge/50',
-    danger: 'border border-crit/50 text-crit hover:bg-crit/10',
-  } as const;
-  return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${variants[variant]} ${className}`}>
+    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150 active:translate-y-0 active:scale-[.98] focus-visible:outline-amber focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:brightness-100';
+  const ik = ikon === false ? null : (ikon ?? pilihIkon(children));
+  const tombol = (
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${GAYA_TOMBOL[variant]} ${className}`}>
+      {ik}
       {children}
     </button>
+  );
+  return tip ? <Tip teks={tip}>{tombol}</Tip> : tombol;
+}
+
+/** Tombol hanya-ikon untuk aksi di baris tabel; selalu bertooltip dan beraria-label. */
+export function TombolIkon({ ikon: Ikon, label, onClick, variant = 'ghost', disabled = false }: {
+  ikon: LucideIcon;
+  label: string;
+  onClick?: () => void;
+  variant?: VarianTombol;
+  disabled?: boolean;
+}) {
+  return (
+    <Tip teks={label}>
+      <button type="button" aria-label={label} onClick={onClick} disabled={disabled} className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-amber focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${GAYA_TOMBOL[variant]}`}>
+        <Ikon size={16} aria-hidden />
+      </button>
+    </Tip>
   );
 }
 

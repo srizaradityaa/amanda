@@ -3,7 +3,7 @@ import { useReducer, useState } from 'react';
 import {
   Button, Card, StatusBadge, Field, Input, Select, RupiahInput, Modal,
   useToast, SearchBox, FilterSelect, EmptyState,
-  usePaging, Pager } from '@/components/ui';
+  usePaging, Pager, TombolIkon, Tip } from '@/components/ui';
 import { repo } from '@/data/repo';
 import * as anggaran from '@/data/anggaran';
 import { formatRupiah, terbilang } from '@/lib/format';
@@ -138,28 +138,22 @@ function KuitansiContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setCetakKuitansi(k)} className="rounded p-1 text-mist-dim hover:text-amber" title="Cetak F4">
-                            <Printer size={14} />
-                          </button>
+                          <TombolIkon ikon={Printer} label="Cetak F4" variant="ghost" onClick={() => setCetakKuitansi(k)} />
                           {bisaEdit && (
-                            <button onClick={() => { setEditKuitansi(k); setShowForm(true); setErr(null); }} className="rounded p-1 text-mist-dim hover:text-teal" title="Edit">
-                              <Pencil size={14} />
-                            </button>
+                            <TombolIkon ikon={Pencil} label="Edit" variant="secondary" onClick={() => { setEditKuitansi(k); setShowForm(true); setErr(null); }} />
                           )}
                           {bisaBatal && (
-                            <button onClick={async () => {
+                            <TombolIkon ikon={XCircle} label="Batalkan kuitansi" variant="danger" onClick={async () => {
                               if (confirm('Batalkan kuitansi ini? Data akan dihapus tanpa jejak.')) {
                                 const r = await repo.batalkanKuitansi(k.id, sesi);
                                 if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
                                 notify('Tersimpan');
                                 onChanged();
                               }
-                            }} className="rounded p-1 text-mist-dim hover:text-crit" title="Batalkan">
-                              <XCircle size={14} />
-                            </button>
+                            }} />
                           )}
                           {k.status === 'Terkunci' && (
-                            <span className="text-mist-dim" title="Terkunci — lepaskan SPJ untuk mengubah"><Lock size={14} /></span>
+                            <Tip teks="Terkunci. Lepaskan SPJ untuk mengubah"><span className="inline-flex h-8 w-8 items-center justify-center text-mist-dim"><Lock size={16} /></span></Tip>
                           )}
                         </div>
                       </td>

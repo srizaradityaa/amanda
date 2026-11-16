@@ -110,7 +110,9 @@ export async function bangunBundel(d: DataLembar, tpl: TemplateVerifikasi, urlKe
 
   // ----- Pita status + nomor -----
   kotak(M, y - 22, isi, 22, 1.2);
-  teks('TERVERIFIKASI', M + 10, y - 15, tebal, 10);
+  // tanda centang digambar dengan garis (huruf standar PDF tidak memuat karakter centang)
+  garis(M + 10, y - 12, M + 14, y - 16.5, 1.6); garis(M + 14, y - 16.5, M + 21, y - 7.5, 1.6);
+  teks('TERVERIFIKASI', M + 27, y - 15, tebal, 10);
   const noVer = d.nomor_verifikasi ?? '-';
   kanan(noVer, W - M - 10, y - 15, mono, 11);
   kanan(`${tpl.label_nomor}:`, W - M - 10 - mono.widthOfTextAtSize(aman(noVer), 11) - 6, y - 14.5, reg, 8.5);
@@ -150,15 +152,20 @@ export async function bangunBundel(d: DataLembar, tpl: TemplateVerifikasi, urlKe
   // ----- Dua kolom: pengesahan (QR) | penerima dan perhitungan -----
   const wKiri = isi * 0.34; const xKanan = M + wKiri;
   // kolom kanan: ukur dulu
-  const aKanan: { t: string; f: typeof reg; s: number; x: number; kanan?: string; garisAtas?: boolean }[] = [];
-  aKanan.push({ t: tpl.label_penerima, f: tebal, s: 9.5, x: 12 });
+  const wLabelK = 66; const wNilaiK = (isi - wKiri) - 12 - wLabelK - 10 - 12;
   const rek = d.rekening_penerima.length ? d.rekening_penerima : [{ account_name: d.penerima, bank_name: '-', account_number: '-' }];
+  const barisRek: { label: string; potong: string[]; mono: boolean }[] = [];
   for (const r of rek) {
-    aKanan.push({ t: `Nama : ${r.account_name}`, f: reg, s: 9, x: 12 }); aKanan.push({ t: `Bank : ${r.bank_name}`, f: reg, s: 9, x: 12 }); aKanan.push({ t: `No. Rekening : ${r.account_number}`, f: mono, s: 9, x: 12 });
+    barisRek.push({ label: 'Nama', potong: bungkus(r.account_name, reg, 9, wNilaiK), mono: false });
+    barisRek.push({ label: 'Bank', potong: bungkus(r.bank_name, reg, 9, wNilaiK), mono: false });
+    barisRek.push({ label: 'No. Rekening', potong: bungkus(r.account_number, mono, 9, wNilaiK), mono: true });
   }
+  const jumlahBarisRek = barisRek.reduce((a, r) => a + r.potong.length, 0);
   const totalPajak = d.rincian_pajak.reduce((a, p) => a + p.nominal, 0);
-  const hKananTeks = aKanan.length * 12.5 + 8 + 12.5 * (4 + Math.max(1, d.rincian_pajak.length)) + 30;
-  const hKolom = Math.max(hKananTeks, 262);
+  const hKananTeks = 12.5 + jumlahBarisRek * 12.5 + 8 + 12.5 * (4 + Math.max(1, d.rincian_pajak.length)) + 30;
+  // kolom kiri butuh ruang tetap untuk tanggal, QR, nomor, stempel, dan penandatangan agar tidak meluber dari kotak
+  const hKiriMin = 292;
+  const hKolom = Math.max(hKananTeks, hKiriMin);
   kotak(M, y - hKolom, isi, hKolom); garis(xKanan, y, xKanan, y - hKolom);
   // kiri
   let ky = y - 16;
@@ -191,7 +198,11 @@ export async function bangunBundel(d: DataLembar, tpl: TemplateVerifikasi, urlKe
   ky -= 12; tengah(`NIP. ${d.verifikator_nip ?? '-'}`, M + wKiri / 2, ky, reg, 8.5);
   // kanan
   let py = y - 16;
-  for (const a of aKanan) { teks(a.t, xKanan + a.x, py, a.f, a.s); py -= 12.5; }
+  teks(tpl.label_penerima, xKanan + 12, py, tebal, 9.5); py -= 12.5;
+  for (const r of barisRek) {
+    teks(r.label, xKanan + 12, py, reg, 9, abu); teks(':', xKanan + 12 + wLabelK, py, reg, 9);
+    for (const l of r.potong) { teks(l, xKanan + 12 + wLabelK + 10, py, r.mono ? mono : reg, 9); py -= 12.5; }
+  }
   py -= 4; garis(xKanan, py + 8, M + isi, py + 8);
   const barisUang = (label: string, nilai: string, f: typeof reg, s: number, indent = 12) => { teks(label, xKanan + indent, py, f, s); kanan(nilai, M + isi - 12, py, f === tebal ? tebal : mono, s); py -= 12.5; };
   barisUang('Jumlah yang diminta', rp(d.bruto), tebal, 9.5);

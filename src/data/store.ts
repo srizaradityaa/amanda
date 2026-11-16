@@ -55,7 +55,7 @@ export function kosongkanDataContoh(): void {
     data.masterSOTK, data.masterPersonel, data.pangkatHistory, data.akunLogin, data.masterSubkegiatan,
     data.masterRekeningBelanja, data.masterDokumen, data.masterJenisPajak, data.formDinamis, data.tahunAnggaran, data.seksiTA, data.pemetaanSubkegiatanTA, data.subkegiatanTA,
     data.penugasanTA, data.penugasanDelegasi, data.registerSK, data.versiAlokasiAnggaran, data.jendelaAlokasi,
-    data.ledgerSPD, data.alokasiSubkegiatan, data.alokasiRekening, data.kuitansi, data.spj, data.bku, data.tokenVerifikasi,
+    data.ledgerSPD, data.alokasiSubkegiatan, data.alokasiRekening, data.kuitansi, data.spj, data.bku, data.bkuDraf, data.tokenVerifikasi,
     data.formatNomorVerifikasi, data.direktoriTransaksional, data.rekeningBankDirektori, data.auditEvents,
   ] as unknown[][]) arr.length = 0;
   for (const k of Object.keys(data.verifikasiSeq)) delete data.verifikasiSeq[k];
@@ -86,7 +86,7 @@ export function muatSemua(ringan = false): Promise<void> {
   berjalan = (async () => {
     const [
       sotk, personel, pangkat, akun, sub, rek, pajak, form, ta, seksi, pemetaan, kolam, tugas, delegasi, sk,
-      versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, token, fmt, dir, dirRef, rekBank, audit, konf, mdok,
+      versiA, versiRinci, jendela, ledger, alokSub, alokRek, kui, spj, spjPajak, spjRek, bku, bkuDraf, token, fmt, dir, dirRef, rekBank, audit, konf, mdok,
     ] = await Promise.all([
       M('sotk', 'id,nama_unit,tmt_mulai,tmt_selesai,dasar_hukum,pengganti_dari_id,status_versi', ['id']),
       M('personel', 'id,gelar_depan,nama,gelar_belakang,nip,nik,pangkat,tmt,no_whatsapp', ['id']),
@@ -114,6 +114,7 @@ export function muatSemua(ringan = false): Promise<void> {
       ambil('spj_pajak', 'id,spj_id,jenis_pajak_id,nominal', ['id']),
       ambil('spj_rekening_penerima', 'id,spj_id,account_name,bank_name,account_number,alias', ['id']),
       ambil('bku', 'id,ta_id,kuitansi_id,spj_id,nomor_bku,tanggal_bku,status', ['tanggal_bku', 'id']),
+      ambil('bku_draf', 'id,ta_id,spj_id,nomor_bku,tanggal_bku', ['tanggal_bku', 'id']),
       ambil('token_verifikasi_spj', 'id,ta_id,spj_id,token,nomor_verifikasi,urut,tanggal_verifikasi,verifikator_nama,verifikator_nip,status', ['urut', 'id']),
       ambil('format_nomor_verifikasi', 'ta_id,awalan,pemisah,pola_tahun,digit', ['ta_id']),
       ambil('direktori_transaksional', 'id,nip_nik,nama', ['nip_nik']),
@@ -162,6 +163,7 @@ export function muatSemua(ringan = false): Promise<void> {
     const rekPer = new Map<string, Baris[]>(); for (const r of a<Baris>(spjRek)) { const l = rekPer.get(r.spj_id) ?? []; l.push({ id: r.id, account_name: r.account_name, bank_name: r.bank_name, account_number: r.account_number, alias: r.alias ?? null }); rekPer.set(r.spj_id, l); }
     ganti(data.spj, a<Baris>(spj).map((r) => ({ ...r, entri_pajak: pajakPer.get(r.id) ?? [], rekening_penerima: rekPer.get(r.id) ?? [] }) as SPJ));
     ganti(data.bku, a(bku));
+    ganti(data.bkuDraf, a(bkuDraf));
     ganti(data.tokenVerifikasi, a(token));
     ganti(data.formatNomorVerifikasi, a<FormatNomorVerifikasi>(fmt));
 

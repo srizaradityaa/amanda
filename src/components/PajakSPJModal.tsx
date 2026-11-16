@@ -1,7 +1,7 @@
 // PJK-01 — Panel pajak SPJ (langkah 3 pada pop-up SPJ): banyak entri, jenis dari Master aktif, nominal manual (D02 §5, D03 §4 poin 11).
 // State baris dipegang induk (EditSPJModal); penyimpanan dilakukan induk saat berpindah langkah.
 import type { Dispatch, SetStateAction } from 'react';
-import { Button, Field, RupiahInput, Select } from '@/components/ui';
+import { Button, Field, RupiahInput, Select, TombolIkon } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { formatRupiah } from '@/lib/format';
 import type { SPJ } from '@/data/types';
@@ -45,9 +45,7 @@ export function PajakSPJPanel({ spj, isDraft, baris, setBaris }: {
           <Field label="Nominal" required>
             <RupiahInput value={r.nominal} onChange={(v) => ubahBaris(r.key, { nominal: v })} />
           </Field>
-          <button onClick={() => hapusBaris(r.key)} className="mb-1 rounded p-1 text-mist-dim hover:text-crit" title="Hapus entri" aria-label="Hapus entri">
-            <Trash2 size={14} />
-          </button>
+          <TombolIkon ikon={Trash2} label="Hapus entri" variant="danger" onClick={() => hapusBaris(r.key)} />
         </div>
       ))}
       {isDraft && <Button variant="secondary" onClick={tambahBaris}><Plus size={14} /> Tambah Entri Pajak</Button>}

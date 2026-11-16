@@ -196,7 +196,7 @@ function DetailVerifikasi({ spj, onClose }: { spj: SPJ; onClose: () => void }) {
             {spj.lampiran_nama_asli ? (
               <div className="flex items-center gap-2">
                 <span className="text-mist">{spj.lampiran_nama_asli}</span>
-                {bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli) ? <button className="text-teal hover:underline" onClick={() => { void bukaLampiranSPJ(spj.id); }}>Buka</button> : <span>(isi berkas hanya tersedia pada sesi unggah; penyimpanan permanen menunggu backend)</span>}
+                {bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli) ? <Button variant="secondary" onClick={() => { void bukaLampiranSPJ(spj.id); }}>Buka lampiran</Button> : <span>(isi berkas hanya tersedia pada sesi unggah; penyimpanan permanen menunggu backend)</span>}
               </div>
             ) : <p>Belum ada lampiran.</p>}
           </div>

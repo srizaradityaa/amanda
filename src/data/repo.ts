@@ -57,6 +57,9 @@ export const repo = {
   // --- Tahap 3: BKU ---
   catatBKU: mut(repoDemo.catatBKU, server.catatBKU),
   koreksiBKU: mut(repoDemo.koreksiBKU, server.koreksiBKU),
+  simpanDrafBKU: mut(repoDemo.simpanDrafBKU, server.simpanDrafBKU),
+  hapusDrafBKU: mut(repoDemo.hapusDrafBKU, server.hapusDrafBKU),
+  setujuiDrafBKU: mut(repoDemo.setujuiDrafBKU, server.setujuiDrafBKU),
   cabutBKU: mut(repoDemo.cabutBKU, server.cabutBKU),
   // --- Tahap 4: kuitansi, SPJ, verifikasi ---
   buatKuitansi: mut(repoDemo.buatKuitansi, server.buatKuitansi),

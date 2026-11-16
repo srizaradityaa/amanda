@@ -2,7 +2,7 @@
 // D02 §2.3: opsi unggah .doc/.docx sebagai alternatif. Editor mengatur template, bukan data transaksi.
 import { useState, useRef } from 'react';
 import { simpanAset, hapusAset } from '@/lib/aset';
-import { Card, Button, Field, Input, useToast } from '@/components/ui';
+import { Card, Button, Field, Input, useToast, TombolIkon } from '@/components/ui';
 import { repo } from '@/data/repo';
 import type { TemplateKuitansi } from '@/data/types';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
@@ -99,7 +99,7 @@ export function TemplateKuitansiPage() {
             <div className="flex items-center gap-2 rounded-md border border-ink-edge px-3 py-2">
               <FileText size={14} className="text-mist-dim" />
               <span className="flex-1 truncate text-2xs text-mist">{t.berkas_doc}</span>
-              <button onClick={hapusBerkas} className="rounded p-1 text-mist-dim hover:text-crit" aria-label="Hapus berkas"><X size={14} /></button>
+              <TombolIkon ikon={X} label="Hapus berkas" variant="danger" onClick={hapusBerkas} />
             </div>
           ) : (
             <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-ink-edge px-3 py-2 text-2xs text-mist-dim hover:border-mist-dim hover:text-mist">

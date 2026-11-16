@@ -6,7 +6,7 @@
 import { useState, useRef } from 'react';
 import { namaLengkap } from '@/lib/nama';
 import { KELOMPOK_PANGKAT, pangkatBaku } from '@/data/pangkat';
-import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager } from '@/components/ui';
+import { Card, StatusBadge, Button, Field, Input, Select, EmptyState, Modal, SearchBox, FilterSelect, TableHead, ProtectedNotice, usePaging, Pager, TombolIkon } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { bacaKodeNama } from '@/lib/xlsxBaca';
 import { bacaPersonel, bacaSOTK, KOLOM_PERSONEL, KOLOM_SOTK } from '@/lib/imporMaster';
@@ -193,11 +193,11 @@ export function SOTKPage() {
                   <div className="flex gap-1.5">
                     {s.status_versi === 'Aktif' && (
                       <>
-                        <button onClick={() => setModal({ mode: 'ubah', id: s.id })} className="rounded p-1 text-mist-dim hover:text-mist" title="Ubah"><Pencil size={14} /></button>
-                        <button onClick={() => setModal({ mode: 'arsip', id: s.id })} className="rounded p-1 text-mist-dim hover:text-warn" title="Arsipkan"><Archive size={14} /></button>
+                        <TombolIkon ikon={Pencil} label="Ubah" variant="ghost" onClick={() => setModal({ mode: 'ubah', id: s.id })} />
+                        <TombolIkon ikon={Archive} label="Arsipkan" variant="ghost" onClick={() => setModal({ mode: 'arsip', id: s.id })} />
                       </>
                     )}
-                    <button onClick={() => setHistoryModal({ id: s.id })} className="rounded p-1 text-mist-dim hover:text-teal" title="Riwayat Unit"><History size={14} /></button>
+                    <TombolIkon ikon={History} label="Riwayat Unit" variant="secondary" onClick={() => setHistoryModal({ id: s.id })} />
                   </div>
                 </td>
               </tr>
@@ -374,9 +374,9 @@ export function PersonelPage() {
                   </td>
                   <td className="std-row px-4">
                     <div className="flex gap-1.5">
-                      <button onClick={() => setModal({ mode: 'edit', id: p.id })} className="rounded p-1 text-mist-dim hover:text-mist" title="Edit"><Pencil size={14} /></button>
-                      <button onClick={() => setAkunModal({ personelId: p.id })} className="rounded p-1 text-mist-dim hover:text-amber" title="Kelola Akun"><KeyRound size={14} /></button>
-                      <button onClick={() => setPangkatModal({ personelId: p.id })} className="rounded p-1 text-mist-dim hover:text-teal" title="Histori Pangkat"><Layers size={14} /></button>
+                      <TombolIkon ikon={Pencil} label="Edit" variant="ghost" onClick={() => setModal({ mode: 'edit', id: p.id })} />
+                      <TombolIkon ikon={KeyRound} label="Kelola Akun" variant="ghost" onClick={() => setAkunModal({ personelId: p.id })} />
+                      <TombolIkon ikon={Layers} label="Histori Pangkat" variant="secondary" onClick={() => setPangkatModal({ personelId: p.id })} />
                     </div>
                   </td>
                 </tr>
@@ -981,10 +981,10 @@ export function PajakPage() {
                 <td className="std-row px-4">{j.status === 'Aktif' ? <StatusBadge kind="ok" label="Aktif" /> : <StatusBadge kind="neutral" label="Nonaktif" />}</td>
                 <td className="std-row px-4">
                   <div className="flex gap-1.5">
-                    <button onClick={() => setModal({ mode: 'edit', id: j.id })} className="rounded p-1 text-mist-dim hover:text-mist" title="Edit"><Pencil size={14} /></button>
+                    <TombolIkon ikon={Pencil} label="Edit" variant="ghost" onClick={() => setModal({ mode: 'edit', id: j.id })} />
                     {j.status === 'Aktif'
-                      ? <button onClick={() => toggleStatus(j.id)} className="rounded p-1 text-mist-dim hover:text-warn" title="Nonaktifkan"><PowerOff size={14} /></button>
-                      : <button onClick={() => toggleStatus(j.id)} className="rounded p-1 text-mist-dim hover:text-teal" title="Aktifkan"><Power size={14} /></button>}
+                      ? <TombolIkon ikon={PowerOff} label="Nonaktifkan" variant="ghost" onClick={() => toggleStatus(j.id)} />
+                      : <TombolIkon ikon={Power} label="Aktifkan" variant="secondary" onClick={() => toggleStatus(j.id)} />}
                   </div>
                 </td>
               </tr>
@@ -1047,7 +1047,7 @@ export function DirektoriPage() {
                 <td className="std-row px-4 text-mist">{d.nama}</td>
                 <td className="std-row px-4 text-mist-dim">{d.referensi_spj_ids.length} SPJ</td>
                 <td className="std-row px-4">
-                  <button onClick={() => setEditModal({ id: d.id })} className="rounded p-1 text-mist-dim hover:text-mist" title="Koreksi"><Pencil size={14} /></button>
+                  <TombolIkon ikon={Pencil} label="Koreksi" variant="ghost" onClick={() => setEditModal({ id: d.id })} />
                 </td>
               </tr>
             ))}

@@ -1,9 +1,9 @@
 // TPL-02 — Form Builder Form Dinamis (Admin). Satu form per jenis belanja; setiap simpan membentuk versi baru.
 import { useState } from 'react';
-import { Card, Button, Field, Input, Select, Modal, EmptyState, useToast } from '@/components/ui';
+import { Card, Button, Field, Input, Select, Modal, EmptyState, useToast, TombolIkon } from '@/components/ui';
 import { repo } from '@/data/repo';
 import type { FieldFormDinamis, BlokBerulangFormDinamis } from '@/data/types';
-import { TAG_SISTEM, TAG_SISTEM_LABEL, TAG_SISTEM_SINGKAT, TIPE_FIELD_LABEL, KELOMPOK_TIPE, TIPE_BERPILIHAN, TIPE_KISI, validasiFieldForm } from '@/lib/formDinamis';
+import { TAG_SISTEM, TAG_SISTEM_LABEL, TAG_SISTEM_SINGKAT, TIPE_FIELD_LABEL, KELOMPOK_TIPE, TIPE_BERPILIHAN, TIPE_KISI, validasiFieldForm, peringatanTagTanggal } from '@/lib/formDinamis';
 import { FormPreviewTab } from '@/components/FormPreviewTab';
 import { Plus, Trash2, ArrowUp, ArrowDown, Layers, FileText, Pencil, X } from 'lucide-react';
 
@@ -49,7 +49,8 @@ export function FormBuilderPage() {
     if (isiErr) { setErr(isiErr); return; }
     const r = await repo.simpanVersiForm(draft.jenis, draft.fields.map((f, i) => ({ ...f, urutan: i + 1 })), draft.blok ? { ...draft.blok, fields: draft.blok.fields.map((f, i) => ({ ...f, urutan: i + 1 })) } : null);
     if (!r.ok) { setErr(r.error ?? 'Gagal menyimpan.'); return; }
-    toast.notify('Tersimpan');
+    const peringatan = peringatanTagTanggal(draft.fields, draft.blok);
+    toast.notify(peringatan ? `Tersimpan. Peringatan: ${peringatan}` : 'Tersimpan');
     setErr('');
     setAktif(draft.jenis);
     setDraft(draftDari(draft.jenis));
@@ -164,10 +165,10 @@ function FieldTable({ fields, onHapus, onPindah, onUbah }: {
               <td className="px-2 py-2 text-mist-dim">{f.system_tag ? TAG_SISTEM_SINGKAT[f.system_tag] : ''}</td>
               <td className="px-2 py-2">
                 <div className="flex gap-1">
-                  <button onClick={() => onPindah(i, -1)} className="rounded p-1 text-mist-dim hover:text-mist" aria-label="Naik"><ArrowUp size={14} /></button>
-                  <button onClick={() => onPindah(i, 1)} className="rounded p-1 text-mist-dim hover:text-mist" aria-label="Turun"><ArrowDown size={14} /></button>
-                  <button onClick={() => onUbah(i)} className="rounded p-1 text-mist-dim hover:text-mist" aria-label="Ubah"><Pencil size={14} /></button>
-                  <button onClick={() => onHapus(i)} className="rounded p-1 text-mist-dim hover:text-crit" aria-label="Hapus"><Trash2 size={14} /></button>
+                  <TombolIkon ikon={ArrowUp} label="Naik" variant="ghost" onClick={() => onPindah(i, -1)} />
+                  <TombolIkon ikon={ArrowDown} label="Turun" variant="ghost" onClick={() => onPindah(i, 1)} />
+                  <TombolIkon ikon={Pencil} label="Ubah" variant="ghost" onClick={() => onUbah(i)} />
+                  <TombolIkon ikon={Trash2} label="Hapus" variant="danger" onClick={() => onHapus(i)} />
                 </div>
               </td>
             </tr>
@@ -187,7 +188,7 @@ function DaftarEditor({ judul, nilai, onChange, tambah }: { judul: string; nilai
           <div key={i} className="flex items-center gap-2">
             <span className="w-5 text-2xs text-mist-dim">{i + 1}.</span>
             <Input value={v} aria-label={`${judul} ${i + 1}`} onChange={(e) => onChange(nilai.map((x, j) => (j === i ? e.target.value : x)))} />
-            <button type="button" className="rounded p-1 text-mist-dim hover:text-crit" aria-label="Hapus" onClick={() => onChange(nilai.filter((_, j) => j !== i))}><X size={14} /></button>
+            <TombolIkon ikon={X} label="Hapus pilihan" variant="danger" onClick={() => onChange(nilai.filter((_, j) => j !== i))} />
           </div>
         ))}
         <Button variant="ghost" onClick={() => onChange([...nilai, ''])}><Plus size={14} /> {tambah}</Button>

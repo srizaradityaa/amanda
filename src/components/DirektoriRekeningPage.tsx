@@ -2,7 +2,7 @@
 // Admin melihat seluruh rekening global lintas seksi, mengoreksi ejaan, dan menggabungkan duplikat.
 // Aksi Admin hanya memengaruhi pencarian ke depan; snapshot rekening pada SPJ tidak berubah (O-114).
 import { useState } from 'react';
-import { Button, Card, EmptyState, Field, Input, Modal, SearchBox, TableHead, useToast } from '@/components/ui';
+import { Button, Card, EmptyState, Field, Input, Modal, SearchBox, TableHead, useToast, TombolIkon } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
 import type { DirektoriRekeningBank } from '@/data/types';
@@ -56,7 +56,7 @@ export function DirektoriRekeningPage() {
                 <td className="std-row px-4 text-mist-dim">{r.alias ?? '—'}</td>
                 <td className="std-row px-4 text-mist-dim whitespace-nowrap">{r.created_at}</td>
                 <td className="std-row px-4">
-                  <button onClick={() => setEditId(r.id)} className="rounded p-1 text-mist-dim hover:text-mist" title="Koreksi"><Pencil size={14} /></button>
+                  <TombolIkon ikon={Pencil} label="Koreksi" variant="ghost" onClick={() => setEditId(r.id)} />
                 </td>
               </tr>
             ))}

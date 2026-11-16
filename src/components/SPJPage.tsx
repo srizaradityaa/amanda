@@ -2,8 +2,7 @@
 import { useReducer, useState } from 'react';
 import {
   Button, Card, StatusBadge, Field, Select, Modal,
-  useToast, SearchBox, FilterSelect, EmptyState,
-} from '@/components/ui';
+  useToast, SearchBox, FilterSelect, EmptyState, TombolIkon } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { gerbangStatus } from '@/data/anggaran';
 import { formatRupiah } from '@/lib/format';
@@ -127,9 +126,7 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setEditSPJ(s)} className="rounded p-1 text-mist-dim hover:text-amber" title="Buka SPJ">
-                            <Eye size={14} />
-                          </button>
+                          <TombolIkon ikon={Eye} label="Buka SPJ" variant="ghost" onClick={() => setEditSPJ(s)} />
                           {s.status === 'Draft' && (
                             <>
                               <button onClick={async () => {
@@ -546,9 +543,7 @@ function FormDinamisEditor({ form, jawaban, setJawaban, isDraft }: {
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-2xs text-mist-dim">Entri {idx + 1}</span>
                   {isDraft && blokRows.length > 1 && (
-                    <button onClick={() => hapusBlokEntri(idx)} className="text-mist-dim hover:text-crit" title="Hapus entri">
-                      <Trash2 size={14} />
-                    </button>
+                    <TombolIkon ikon={Trash2} label="Hapus entri" variant="danger" onClick={() => hapusBlokEntri(idx)} />
                   )}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">

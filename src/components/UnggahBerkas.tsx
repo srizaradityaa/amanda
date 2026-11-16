@@ -1,7 +1,7 @@
 // Pemilih berkas bersama (dipakai Register SK dan lampiran SPJ). Tidak membuat komponen unggah ganda.
 import { useRef } from 'react';
-import { Button } from '@/components/ui';
-import { Paperclip, ExternalLink, X } from 'lucide-react';
+import { Button, TombolIkon } from '@/components/ui';
+import { Paperclip, ExternalLink, Trash2 } from 'lucide-react';
 
 export function UnggahBerkas({
   nama, accept, disabled = false, label = 'Pilih berkas', status, onPilih, onHapus, onBuka, bisaBuka,
@@ -35,10 +35,10 @@ export function UnggahBerkas({
           <span className="flex min-w-0 items-center gap-2 rounded border border-ink-edge bg-ink px-2 py-1 text-2xs text-mist">
             <span className="truncate">{nama}</span>
             {onBuka && bisaBuka && (
-              <button onClick={onBuka} className="text-teal hover:underline" title="Buka berkas"><ExternalLink size={13} /></button>
+              <TombolIkon ikon={ExternalLink} label="Buka berkas" variant="secondary" onClick={onBuka} />
             )}
             {onHapus && !disabled && (
-              <button onClick={onHapus} className="text-mist-dim hover:text-crit" aria-label="Hapus berkas"><X size={13} /></button>
+              <TombolIkon ikon={Trash2} label="Hapus berkas" variant="danger" onClick={onHapus} />
             )}
           </span>
         ) : (

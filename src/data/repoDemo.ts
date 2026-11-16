@@ -9,7 +9,7 @@ import type {
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, SubkegiatanTA, PenugasanTA, PenugasanDelegasi,
   RegisterSK, AlokasiSubkegiatan, AlokasiRekening,
-  Kuitansi, SPJ, BKU, AuditEvent, PeranPenugasan,
+  Kuitansi, SPJ, BKU, BKUDraf, HasilSetujuiDraf, AuditEvent, PeranPenugasan,
   DirektoriTransaksionalSPJ, DirektoriRekeningBank, RekeningPenerimaSPJ, AccountStatus, TAStatus,
   FormDinamis, FieldFormDinamis, BlokBerulangFormDinamis, TemplateKuitansi,
   TokenVerifikasiSPJ, FormatNomorVerifikasi, TemplateVerifikasi,
@@ -128,6 +128,11 @@ function _buatTokenVerifikasi(spj: SPJ, session: SessionPayload): TokenVerifikas
 
 function _tanggalValid(t: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(t) && !Number.isNaN(Date.parse(t));
+}
+
+function _nomorDrafDipakai(ta_id: string, nomor: string, kecuali_spj?: string): boolean {
+  const n = nomor.trim().toLowerCase();
+  return data.bkuDraf.some((d) => d.ta_id === ta_id && d.spj_id !== kecuali_spj && d.nomor_bku.trim().toLowerCase() === n);
 }
 
 function _nomorBkuDipakai(ta_id: string, nomor: string, kecuali_id?: string): boolean {
@@ -266,6 +271,10 @@ function _identitasJadwal(form: FormDinamis, jawaban: SPJ['jawaban']): HasilJadw
   const selesaiUtama = ambil(jawaban, cari(form.fields, '[SYS_END_DATE]'));
   const daftar: IdentitasJadwal[] = [];
   let error: string | null = null;
+  // Pemeriksaan bentrok jadwal hanya berlaku bila form memang punya tag tanggal mulai (mis. perjalanan dinas).
+  // Form tanpa tag tanggal (mis. Jasa Konsultan) tidak diperiksa dan tidak menuntut tanggal.
+  const adaTagMulai = !!cari(form.fields, '[SYS_START_DATE]') || !!(form.blok_berulang && cari(form.blok_berulang.fields, '[SYS_START_DATE]'));
+  if (!adaTagMulai) return { daftar, error };
   const tambah = (nip: string, mulai: string, selesai: string) => {
     if (!nip) return;
     if (!mulai) {
@@ -392,6 +401,7 @@ export const repoDemo = {
   spjByKuitansi: (kuitansi_id: string): SPJ | undefined =>
     data.spj.find((s) => s.kuitansi_id === kuitansi_id),
   bkuByTA: (ta_id: string): BKU[] => data.bku.filter((b) => b.ta_id === ta_id),
+  bkuDrafByTA: (ta_id: string): BKUDraf[] => data.bkuDraf.filter((b) => b.ta_id === ta_id),
 
   // --- Audit ---
   auditByTA: (ta_id: string): AuditEvent[] =>
@@ -963,6 +973,7 @@ export const repoDemo = {
     delete data.verifikasiSeq[ta_id];
     removeAll(data.formatNomorVerifikasi, (f) => f.ta_id === ta_id);
     removeAll(data.bku, (b) => b.ta_id === ta_id);
+    removeAll(data.bkuDraf, (b) => b.ta_id === ta_id);
     removeAll(data.spj, (x) => x.ta_id === ta_id);
     removeAll(data.kuitansi, (k) => k.ta_id === ta_id);
     removeAll(data.alokasiRekening, (a) => a.ta_id === ta_id);
@@ -1520,11 +1531,57 @@ export const repoDemo = {
     if (!nomor) return { ok: false, error: 'No. BKU wajib diisi.' };
     if (!_tanggalValid(tanggal_bku)) return { ok: false, error: 'Tanggal BKU wajib diisi.' };
     if (_nomorBkuDipakai(spj.ta_id, nomor)) return { ok: false, error: `No. BKU ${nomor} sudah dipakai di TA ini.` };
+    if (_nomorDrafDipakai(spj.ta_id, nomor, spj.id)) return { ok: false, error: `No. BKU ${nomor} sudah dipakai pada draf lain.` };
+    removeAll(data.bkuDraf, (d) => d.spj_id === spj.id);
     _bkuSeq += 1;
     data.bku.push({ id: `bku-${Date.now()}-${_bkuSeq}`, ta_id: spj.ta_id, kuitansi_id: spj.kuitansi_id, spj_id: spj.id, nomor_bku: nomor, tanggal_bku, status: 'Aktif' });
     spj.status = 'Dibukukan';
     recordAudit({ ta_id: spj.ta_id, entitas: `BKU ${nomor}`, aksi: 'pencatatan_bku', nilai_sesudah: `No. BKU ${nomor}, Tanggal ${tanggal_bku}`, spj_id: spj.id, kuitansi_id: spj.kuitansi_id });
     return { ok: true };
+  },
+
+  // Draf BKU: nomor dan tanggal disiapkan dulu; realisasi baru terhitung saat disetujui.
+  simpanDrafBKU: (spj_id: string, nomor_bku: string, tanggal_bku: string, session: SessionPayload): { ok: boolean; error?: string } => {
+    const spj = data.spj.find((s) => s.id === spj_id);
+    if (!spj) return { ok: false, error: 'SPJ tidak ditemukan.' };
+    if (session.active_role !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat menyusun draf BKU.' };
+    if (!repoDemo.canAksiSPJ(spj.ta_id)) return { ok: false, error: 'Pencatatan BKU tidak diizinkan pada status TA saat ini.' };
+    if (spj.status !== 'Menunggu BKU') return { ok: false, error: 'Draf BKU hanya dapat dibuat untuk SPJ berstatus Menunggu BKU.' };
+    const nomor = nomor_bku.trim();
+    if (!nomor) return { ok: false, error: 'No. BKU wajib diisi.' };
+    if (!_tanggalValid(tanggal_bku)) return { ok: false, error: 'Tanggal BKU wajib diisi.' };
+    if (_nomorBkuDipakai(spj.ta_id, nomor)) return { ok: false, error: `No. BKU ${nomor} sudah dipakai di TA ini.` };
+    if (_nomorDrafDipakai(spj.ta_id, nomor, spj.id)) return { ok: false, error: `No. BKU ${nomor} sudah dipakai pada draf lain.` };
+    const ada = data.bkuDraf.find((d) => d.spj_id === spj.id);
+    const lama = ada ? `No. ${ada.nomor_bku}, Tanggal ${ada.tanggal_bku}` : null;
+    if (ada) { ada.nomor_bku = nomor; ada.tanggal_bku = tanggal_bku; }
+    else { _bkuSeq += 1; data.bkuDraf.push({ id: `bkd-${Date.now()}-${_bkuSeq}`, ta_id: spj.ta_id, spj_id: spj.id, nomor_bku: nomor, tanggal_bku }); }
+    recordAudit({ ta_id: spj.ta_id, entitas: `Draf BKU ${nomor}`, aksi: 'aksi_administratif', nilai_sebelum: lama, nilai_sesudah: `${ada ? 'Draf diubah' : 'Draf dibuat'}: No. ${nomor}, Tanggal ${tanggal_bku}`, spj_id: spj.id, kuitansi_id: spj.kuitansi_id });
+    return { ok: true };
+  },
+
+  hapusDrafBKU: (spj_id: string, session: SessionPayload): { ok: boolean; error?: string } => {
+    const spj = data.spj.find((s) => s.id === spj_id);
+    const d = data.bkuDraf.find((x) => x.spj_id === spj_id);
+    if (!spj || !d) return { ok: false, error: 'Draf BKU tidak ditemukan.' };
+    if (session.active_role !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat menghapus draf BKU.' };
+    if (!repoDemo.canAksiSPJ(spj.ta_id)) return { ok: false, error: 'Perubahan BKU tidak diizinkan pada status TA saat ini.' };
+    removeAll(data.bkuDraf, (x) => x.id === d.id);
+    recordAudit({ ta_id: spj.ta_id, entitas: `Draf BKU ${d.nomor_bku}`, aksi: 'aksi_administratif', nilai_sebelum: `No. ${d.nomor_bku}, Tanggal ${d.tanggal_bku}`, nilai_sesudah: 'Draf dihapus', spj_id: spj.id, kuitansi_id: spj.kuitansi_id });
+    return { ok: true };
+  },
+
+  // Setujui satu atau banyak draf; tiap baris diproses sendiri sehingga satu kegagalan tidak membatalkan yang lain.
+  setujuiDrafBKU: (spj_ids: string[], session: SessionPayload): { ok: boolean; error?: string; hasil?: HasilSetujuiDraf[] } => {
+    if (session.active_role !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat menyetujui draf BKU.' };
+    if (spj_ids.length === 0) return { ok: false, error: 'Pilih minimal satu draf BKU.' };
+    const hasil: HasilSetujuiDraf[] = spj_ids.map((id) => {
+      const d = data.bkuDraf.find((x) => x.spj_id === id);
+      if (!d) return { spj: id, ok: false, error: 'Draf BKU tidak ditemukan.' };
+      const r = repoDemo.catatBKU(d.spj_id, d.nomor_bku, d.tanggal_bku, session);
+      return { spj: id, ok: r.ok, error: r.error };
+    });
+    return { ok: true, hasil };
   },
 
   // BKU-03: koreksi No./tanggal tanpa pencabutan (nominal tidak berubah karena tidak dapat diubah di sini)
@@ -1575,6 +1632,7 @@ export const repoDemo = {
     // F-33a: hapus tanpa jejak
     purgeAuditForSPJ(spj_id);
     removeAll(data.bku, (b) => b.spj_id === spj_id);
+    removeAll(data.bkuDraf, (b) => b.spj_id === spj_id);
     removeAll(data.tokenVerifikasi, (t) => t.spj_id === spj_id);
     removeAll(data.spj, (s) => s.id === spj_id);
     // Kuitansi kembali Aktif (F-30c)

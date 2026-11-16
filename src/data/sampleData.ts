@@ -2,7 +2,7 @@
 // Master Global tanpa nominal; tiap TA snapshot operasional terisolasi.
 // Lapisan akses data ini bentuknya mengikuti D04 agar mudah diganti backend di Tahap B.
 
-import type { SubkegiatanTA,
+import type { BKUDraf, SubkegiatanTA,
   MasterSOTK, MasterPersonel, PangkatHistoryEntry, AkunLogin,
   MasterSubkegiatan, MasterRekeningBelanja, MasterJenisPajak, MasterDokumen,
   TahunAnggaran, SeksiTA, PemetaanSubkegiatanTA, PenugasanTA, PenugasanDelegasi,
@@ -351,6 +351,7 @@ export const spj: SPJ[] = [
   { id: 'spj-4', ta_id: 'ta-2026', kuitansi_id: 'kui-4', jenis_belanja: 'Belanja Jasa Konsultan', versi_form: 'v1', jawaban: { uraian: 'Jasa konsultan perencanaan' }, entri_pajak: [{ id: 'pj-2', jenis_pajak_id: 'pjk-2', nominal: 750_000 }, { id: 'pj-3', jenis_pajak_id: 'pjk-4', nominal: 1_500_000 }], rekening_penerima: [{ id: 'rp-2', account_name: 'Ahmad Narasumber, S.E.', bank_name: 'Bank BRI', account_number: '001201123456789', alias: 'Narasumber' }], lampiran_nama_asli: 'bukti-konsultan.pdf', lampiran_ukuran_asal: 12_500_000, lampiran_ukuran_final: 7_800_000, lampiran_status_optimasi: 'CLIENT_COMPRESSED', catatan_revisi: null, status: 'Dibukukan' },
 ];
 
+export const bkuDraf: BKUDraf[] = [];
 export const bku: BKU[] = [
   { id: 'bku-1', ta_id: 'ta-2026', kuitansi_id: 'kui-4', spj_id: 'spj-4', nomor_bku: 'BKU-001', tanggal_bku: '2026-03-05', status: 'Aktif' },
 ];

@@ -5,9 +5,10 @@ import { ErrorLine, SectionTitle } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
 import { formatRupiah } from '@/lib/format';
-import { formatTanggalPendek, todayWita } from '@/lib/wita';
+import { formatTanggalPendek } from '@/lib/wita';
 import type { BKU, SPJ } from '@/data/types';
-import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Pencil, Trash2 } from 'lucide-react';
+import { RincianBKUModal } from '@/components/RincianBKUModal';
 
 export function BKUPage() {
   const s = getSession()!;
@@ -22,13 +23,29 @@ export function BKUPage() {
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [catat, setCatat] = useState<SPJ | null>(null);
+  const [pilih, setPilih] = useState<Set<string>>(new Set());
+  const [infoSetuju, setInfoSetuju] = useState<string | null>(null);
+  const toast = useToast();
   const [koreksi, setKoreksi] = useState<BKU | null>(null);
   const [cabut, setCabut] = useState<BKU | null>(null);
 
   const kuitansi = repo.kuitansiByTA(ta_id);
   const seksiList = repo.seksiTAByTA(ta_id);
   const menunggu = repo.spjByTA(ta_id).filter((x) => x.status === 'Menunggu BKU');
+  const drafByspj = new Map(repo.bkuDrafByTA(ta_id).map((d) => [d.spj_id, d]));
   const pgM = usePaging(menunggu);
+  const adaDraf = menunggu.filter((x) => drafByspj.has(x.id));
+  const toggle = (id: string) => setPilih((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const setujui = async (ids: string[]) => {
+    const r = await repo.setujuiDrafBKU(ids, s) as { ok: boolean; error?: string; hasil?: { spj: string; ok: boolean; error?: string }[] };
+    if (!r.ok) { setInfoSetuju(r.error ?? 'Gagal'); return; }
+    const gagal = (r.hasil ?? []).filter((h) => !h.ok);
+    const berhasil = (r.hasil ?? []).length - gagal.length;
+    setPilih(new Set());
+    if (gagal.length === 0) { setInfoSetuju(null); toast.notify(`${berhasil} BKU dibukukan`); }
+    else setInfoSetuju(`${berhasil} berhasil, ${gagal.length} gagal: ` + gagal.map((h) => `${drafByspj.get(h.spj)?.nomor_bku ?? h.spj} (${h.error})`).join('; '));
+    bump();
+  };
   const daftar = repo.bkuByTA(ta_id).filter((b) => {
     const k = kuitansi.find((q) => q.id === b.kuitansi_id);
     if (fSeksi && k?.seksi_ta_id !== fSeksi) return false;
@@ -53,21 +70,33 @@ export function BKUPage() {
 
       {bendahara && (
         <Card>
-          <div className="border-b border-ink-edge px-4 py-3"><h3 className="text-sm font-semibold text-mist">SPJ Menunggu BKU ({menunggu.length})</h3></div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-edge px-4 py-3">
+            <h3 className="text-sm font-semibold text-mist">SPJ Menunggu BKU ({menunggu.length}) <span className="ml-1 text-2xs font-normal text-mist-dim">· draf {adaDraf.length}</span></h3>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setPilih(new Set(adaDraf.map((x) => x.id)))} disabled={adaDraf.length === 0}>Pilih semua draf</Button>
+              <Button variant="success" onClick={() => { void setujui([...pilih]); }} disabled={pilih.size === 0}>Setujui terpilih{pilih.size > 0 ? ` (${pilih.size})` : ''}</Button>
+            </div>
+          </div>
+          {infoSetuju && <p className="px-4 pt-2 text-2xs text-warn">{infoSetuju}</p>}
           <div className="overflow-x-auto">
             {menunggu.length === 0 ? <EmptyState icon={<BookOpen size={28} />} title="Tidak ada SPJ yang menunggu pencatatan BKU" /> : (
               <table className="w-full text-2xs">
                 <thead className="bg-ink text-mist-dim"><tr className="text-left">
-                  {['Seksi', 'Kuitansi', 'Bruto', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
+                  {['', 'Seksi', 'Kuitansi', 'Bruto', 'Draf BKU', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
                 </tr></thead>
                 <tbody>{pgM.baris.map((x, i) => {
                   const k = kuitansi.find((q) => q.id === x.kuitansi_id);
                   return (
                     <tr key={x.id} className={i % 2 ? 'bg-ink-surface/40' : ''}>
+                      <td className="px-4 py-2"><input type="checkbox" aria-label="Pilih draf" disabled={!drafByspj.has(x.id)} checked={pilih.has(x.id)} onChange={() => toggle(x.id)} /></td>
                       <td className="px-4 py-2 text-mist">{seksiList.find((q) => q.id === k?.seksi_ta_id)?.nama_snapshot}</td>
                       <td className="px-4 py-2 text-mist">{k?.uraian}</td>
                       <td className="px-4 py-2 mono tnum text-mist">{formatRupiah(k?.bruto ?? 0)}</td>
-                      <td className="px-4 py-2"><Button variant="secondary" onClick={() => setCatat(x)}><Plus size={14} /> Catat BKU</Button></td>
+                      <td className="px-4 py-2 text-mist">{drafByspj.has(x.id) ? <span className="mono">{drafByspj.get(x.id)!.nomor_bku} · {formatTanggalPendek(drafByspj.get(x.id)!.tanggal_bku)}</span> : <span className="text-mist-dim">Belum ada</span>}</td>
+                      <td className="px-4 py-2"><div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => setCatat(x)}>{drafByspj.has(x.id) ? 'Rincian dan draf' : 'Catat BKU'}</Button>
+                        {drafByspj.has(x.id) && <Button variant="success" onClick={() => { void setujui([x.id]); }}>Setujui</Button>}
+                      </div></td>
                     </tr>
                   );
                 })}</tbody>
@@ -127,8 +156,7 @@ export function BKUPage() {
         <Pager {...pgB} />
       </Card>
 
-      {catat && <FormBKU judul="Catat BKU" awal={{ nomor: '', tanggal: todayWita() }} onClose={() => setCatat(null)}
-        simpan={(n, t) => repo.catatBKU(catat.id, n, t, s)} onSaved={() => { setCatat(null); bump(); }} />}
+      {catat && <RincianBKUModal spj={catat} onClose={() => setCatat(null)} onSaved={() => { setCatat(null); bump(); }} />}
       {koreksi && <FormBKU judul={`Koreksi BKU ${koreksi.nomor_bku}`} awal={{ nomor: koreksi.nomor_bku, tanggal: koreksi.tanggal_bku }} catatan="Nominal tidak berubah. Perubahan tercatat di Jejak Audit dengan nilai lama dan baru."
         onClose={() => setKoreksi(null)} simpan={(n, t) => repo.koreksiBKU(koreksi.id, { nomor_bku: n, tanggal_bku: t }, s)} onSaved={() => { setKoreksi(null); bump(); }} />}
       {cabut && <KonfirmasiCabut bku={cabut} onClose={() => setCabut(null)} onDone={() => { setCabut(null); bump(); }} />}

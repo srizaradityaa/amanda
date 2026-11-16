@@ -1,7 +1,7 @@
 // TPL-03 — Pratinjau Langsung Form Dinamis (Admin). Hanya memori browser; tidak menyimpan apa pun.
 // D01 §9 poin 11; D03 §2.4. Cek bentrok memakai data contoh terisolasi (I-64e).
 import { useState } from 'react';
-import { Card, Button } from '@/components/ui';
+import { Card, Button, TombolIkon } from '@/components/ui';
 import { IsianField } from '@/components/IsianField';
 import { repo } from '@/data/repo';
 import type { FieldFormDinamis, BlokBerulangFormDinamis } from '@/data/types';
@@ -147,9 +147,7 @@ export function FormPreviewTab({ fields, blok }: { fields: FieldFormDinamis[]; b
               <div className="flex items-center justify-between">
                 <p className="text-2xs text-mist-dim">Entri {i + 1}</p>
                 {entri.length > 1 && (
-                  <button onClick={() => hapusEntri(i)} className="flex items-center gap-1 rounded p-1 text-mist-dim hover:text-crit" aria-label="Hapus entri">
-                    <Trash2 size={14} />
-                  </button>
+                  <TombolIkon ikon={Trash2} label="Hapus entri" variant="danger" onClick={() => hapusEntri(i)} />
                 )}
               </div>
               {blok.fields.map((f) => (

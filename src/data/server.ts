@@ -196,6 +196,9 @@ export const server = {
   catatBKU: (spj: string, nomor: string, tanggal: string, _s?: SessionPayload) => jalankan(api.bend_bku_catat({ p_spj: spj, p_nomor: nomor, p_tanggal: tanggal })),
   koreksiBKU: (bku: string, patch: { nomor_bku: string; tanggal_bku: string }, _s?: SessionPayload) =>
     jalankan(api.bend_bku_koreksi({ p_bku: bku, p_nomor: patch.nomor_bku, p_tanggal: patch.tanggal_bku })),
+  simpanDrafBKU: (spj: string, nomor: string, tanggal: string, _s?: SessionPayload) => jalankan(api.bend_bku_draf_simpan({ p_spj: spj, p_nomor: nomor, p_tanggal: tanggal })),
+  hapusDrafBKU: (spj: string, _s?: SessionPayload) => jalankan(api.bend_bku_draf_hapus({ p_spj: spj })),
+  setujuiDrafBKU: (spjs: string[], _s?: SessionPayload) => jalankan(api.bend_bku_setujui({ p_spjs: spjs })),
   cabutBKU: (bku: string, _s?: SessionPayload) => jalankan(api.bend_bku_cabut({ p_bku: bku })),
 
   // ------------------------- Tahap 4: kuitansi, SPJ, verifikasi -------------------------

@@ -1,6 +1,6 @@
 // REK-01/REK-02 — Split View rekening penerima pada SPJ (D02 §5, D03 §13, D01 §14)
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { Button, Field, Input, SearchBox, EmptyState, useToast } from '@/components/ui';
+import { Button, Field, Input, SearchBox, EmptyState, useToast, TombolIkon } from '@/components/ui';
 import { ErrorLine } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
 import type { SPJ, SessionPayload } from '@/data/types';
@@ -70,9 +70,7 @@ export function RekeningPenerimaPanel({ sesi, spj, isDraft, baris, setBaris }: {
             <div className="mb-2 flex items-center justify-between">
               <span className="text-2xs text-mist-dim">Rekening {idx + 1}</span>
               {isDraft && (
-                <button onClick={() => hapusBaris(r.key)} className="text-mist-dim hover:text-crit" title="Hapus baris">
-                  <Trash2 size={14} />
-                </button>
+                <TombolIkon ikon={Trash2} label="Hapus baris" variant="danger" onClick={() => hapusBaris(r.key)} />
               )}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

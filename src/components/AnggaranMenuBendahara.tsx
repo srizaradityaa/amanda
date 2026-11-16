@@ -1,5 +1,6 @@
 import { Fragment, useReducer, useState, type ReactNode } from 'react';
-import { Button, Input, Modal, RupiahInput, Select, useToast } from '@/components/ui';
+import { Trash2, Unlink } from 'lucide-react';
+import { Button, Input, Modal, RupiahInput, Select, TombolIkon, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
 import * as anggaran from '@/data/anggaran';
 import { formatRupiah } from '@/lib/format';
@@ -96,7 +97,7 @@ function TarikTab({ ta_id, aktor, onChanged }: Ctx) {
                 <tr key={k.id} className="pro-row border-t border-ink-line">
                   <td className="py-1.5 text-mist"><span className="mono">{k.kode_snapshot}</span> {k.nama_snapshot}</td>
                   <td className={p ? 'text-mist' : 'text-warn'}>{p ? seksiNama(p.seksi_ta_id) : 'Belum dikaitkan'}</td>
-                  <td className="text-right">{!p && !kunci && <button type="button" className="text-2xs text-crit hover:underline" onClick={() => { void buang(k.subkegiatan_id); }}>Buang</button>}</td>
+                  <td className="text-right">{!p && !kunci && <TombolIkon ikon={Trash2} label="Buang dari TA" variant="danger" onClick={() => { void buang(k.subkegiatan_id); }} />}</td>
                 </tr>
               );
             })}
@@ -198,7 +199,7 @@ function KaitkanTab({ ta_id, aktor, onChanged }: Ctx) {
                 <tr key={k.id} className="pro-row border-t border-ink-line">
                   <td className="py-1.5 text-mist"><span className="mono">{k.kode_snapshot}</span> {k.nama_snapshot}</td>
                   <td className="text-mist-dim">{repo.seksiTAById(p.seksi_ta_id)?.nama_snapshot}</td>
-                  <td className="w-16 text-right">{!kunci && <button type="button" className="text-2xs text-crit hover:underline" onClick={() => { void lepas(p.id); }}>Lepas</button>}</td>
+                  <td className="w-16 text-right">{!kunci && <TombolIkon ikon={Unlink} label="Lepas dari seksi" variant="danger" onClick={() => { void lepas(p.id); }} />}</td>
                 </tr>
               );
             })}
@@ -290,7 +291,7 @@ function PaguIsi({ ta_id, aktor, onChanged }: Ctx) {
         </>
       ) : (
         <>
-          <button type="button" className="mb-3 text-sm text-amber hover:underline" onClick={() => setSeksiId(null)}>‹ Semua seksi</button>
+          <div className="mb-3"><Button variant="ghost" onClick={() => setSeksiId(null)}>Kembali ke semua seksi</Button></div>
           <p className="mb-2 text-sm font-semibold text-mist">{sk.nama_snapshot}</p>
           <table className="w-full text-sm">
             <tbody>

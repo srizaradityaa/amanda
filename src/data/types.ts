@@ -396,6 +396,17 @@ export interface BKU {
   status: 'Aktif' | 'Dicabut';
 }
 
+/** Draf BKU: nomor dan tanggal disiapkan Bendahara, belum menjadi realisasi sampai disetujui. */
+export interface BKUDraf {
+  id: string;
+  ta_id: string;
+  spj_id: string;
+  nomor_bku: string;
+  tanggal_bku: string; // ISO date WITA
+}
+
+export interface HasilSetujuiDraf { spj: string; ok: boolean; error?: string }
+
 // ===== Token & nomor verifikasi SPJ (VER-03, D02 §8, D04 §2.2) =====
 export interface TokenVerifikasiSPJ {
   id: string;

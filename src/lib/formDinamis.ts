@@ -126,6 +126,14 @@ export function validasiTagSistem(fields: FieldFormDinamis[], blok: BlokBerulang
   return null;
 }
 
+/** Peringatan tak-memblokir: tag NIP/NIK dipasang tetapi tidak ada tag tanggal mulai, sehingga bentrok jadwal tidak diperiksa. */
+export function peringatanTagTanggal(fields: FieldFormDinamis[], blok: BlokBerulangFormDinamis | null): string | null {
+  const semua = [...fields, ...(blok ? blok.fields : [])];
+  const adaId = semua.some((f) => f.system_tag === '[SYS_PERSONNEL_ID]');
+  const adaMulai = semua.some((f) => f.system_tag === '[SYS_START_DATE]');
+  return adaId && !adaMulai ? 'Tag NIP/NIK terpasang tetapi tidak ada tag Tanggal mulai tugas, sehingga pemeriksaan bentrok jadwal tidak berjalan untuk form ini.' : null;
+}
+
 export function versiBerikutnya(versi: string | undefined): string {
   const n = versi ? parseInt(versi.replace(/^v/, ''), 10) : 0;
   return `v${(Number.isFinite(n) ? n : 0) + 1}`;

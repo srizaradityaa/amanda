@@ -17,3 +17,6 @@ Sudah diterapkan (15 Nov 2026). Admin boleh melihat/mengunduh Arsip (hanya baca)
 
 ### Catatan 0025: kolam subkegiatan TA
 Migrasi `subkegiatan_ta_tarik_lalu_kaitkan`: tabel `subkegiatan_ta` (RLS baca per TA, bukan PPTK), RPC `bend_subkegiatan_tarik`, `bend_subkegiatan_buang`; `bend_pemetaan_tambah` mensyaratkan subkegiatan sudah ada di kolam; `bend_pemetaan_hapus` mengembalikan ke kolam dan ditolak bila pagu>0, kuitansi, atau SPD ada.
+
+### Catatan 0026: draf BKU
+Migrasi `bku_draf_setujui_massal`: tabel `bku_draf` (satu draf per SPJ, nomor unik per TA tanpa memandang huruf besar), RPC `bend_bku_draf_simpan`, `bend_bku_draf_hapus`, `bend_bku_setujui(p_spjs)` (per baris, memanggil `bend_bku_catat`); `bend_bku_catat` kini menolak nomor yang dipakai draf SPJ lain dan menghapus draf SPJ-nya saat dibukukan.

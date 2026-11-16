@@ -15,10 +15,10 @@ import { UnggahBerkas } from '@/components/UnggahBerkas';
 import { simpanBerkasSesi, hapusBerkasSesi, formatUkuran } from '@/lib/berkas';
 import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
 import { modeServer } from '@/lib/supabase';
-import { RekeningPenerimaPanel, barisDariSPJ, type BarisRekening } from '@/components/RekeningPenerimaPanel';
+import { RekeningPenerimaPanel, barisDariSPJ, barisUntukSimpan, type BarisRekening } from '@/components/RekeningPenerimaPanel';
 import { IsianField } from '@/components/IsianField';
 import type { SPJ, Kuitansi, SessionPayload, FormDinamis, FieldFormDinamis } from '@/data/types';
-import { ScrollText, Plus, Trash2, Send, Clock as Unlock, Lock, Eye, Pencil, Printer, Circle as XCircle } from 'lucide-react';
+import { ArrowRight, ScrollText, Plus, Trash2, Send, Clock as Unlock, Lock, Eye, Pencil, Printer, Circle as XCircle } from 'lucide-react';
 
 export function SPJPage() {
   const sesi = getSession();
@@ -163,7 +163,7 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
       {showCreate && (
         <BuatSPJModal sesi={sesi} ta_id={ta_id} kuitansiOptions={kuitansiUntukSPJ} jenisBelanjaList={jenisBelanjaList}
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); notify('Tersimpan'); onChanged(); }} />
+          onCreated={(baru) => { setShowCreate(false); notify('Tersimpan'); if (baru) setEditSPJ(baru); onChanged(); }} />
       )}
 
       {editSPJ && (
@@ -195,11 +195,14 @@ function BuatSPJModal({ sesi, ta_id, kuitansiOptions, jenisBelanjaList, onClose,
   sesi: SessionPayload; ta_id: string;
   kuitansiOptions: Kuitansi[];
   jenisBelanjaList: string[];
-  onClose: () => void; onCreated: () => void;
+  onClose: () => void; onCreated: (spj?: SPJ) => void;
 }) {
   const [kuitansiId, setKuitansiId] = useState('');
   const [jenis, setJenis] = useState('');
+  const [cari, setCari] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const q = cari.trim().toLowerCase();
+  const daftar = kuitansiOptions.filter((k) => !q || `${k.penerima} ${k.uraian}`.toLowerCase().includes(q));
 
   const simpan = async () => {
     setErr(null);
@@ -207,28 +210,43 @@ function BuatSPJModal({ sesi, ta_id, kuitansiOptions, jenisBelanjaList, onClose,
     if (!jenis) { setErr('Pilih jenis belanja.'); return; }
     const r = await repo.buatSPJ({ ta_id, kuitansi_id: kuitansiId, jenis_belanja: jenis }, sesi);
     if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
-    onCreated();
+    onCreated(r.spj);
   };
 
   return (
     <Modal open={true} onClose={onClose} title="Buat SPJ" wide
-      footer={<div className="flex items-center justify-between"><ErrorLine msg={err} /><div className="flex gap-2"><Button variant="ghost" onClick={onClose}>Batal</Button><Button variant="primary" onClick={simpan}>Buat SPJ</Button></div></div>}>
+      footer={<div className="flex items-center justify-between"><ErrorLine msg={err} /><div className="flex gap-2"><Button variant="ghost" onClick={onClose}>Batal</Button><Button variant="primary" onClick={simpan} ikon={<ArrowRight size={16} />} disabled={!kuitansiId || !jenis}>Lanjut isi formulir</Button></div></div>}>
       <div className="space-y-4">
-        <Field label="Kuitansi Aktif (tanpa SPJ)" required>
-          <Select value={kuitansiId} onChange={(e) => setKuitansiId(e.target.value)}>
-            <option value="">Pilih kuitansi</option>
-            {kuitansiOptions.map((k) => (
-              <option key={k.id} value={k.id}>{formatTanggalPendek(k.tanggal_kuitansi)} — {k.uraian} ({formatRupiah(k.bruto)})</option>
-            ))}
-          </Select>
-        </Field>
+        <div>
+          <p className="mb-1 text-sm font-medium text-mist">Kuitansi Aktif (tanpa SPJ) <span className="text-crit">*</span></p>
+          <SearchBox value={cari} onChange={setCari} placeholder="Cari penerima atau uraian..." />
+          <div className="mt-2 max-h-72 space-y-2 overflow-y-auto" role="radiogroup" aria-label="Pilih kuitansi">
+            {daftar.length === 0 && <p className="py-3 text-2xs text-mist-dim">Tidak ada kuitansi yang cocok.</p>}
+            {daftar.map((k) => {
+              const pem = repo.pemetaanByTA(ta_id).find((p) => p.id === k.pemetaan_subkegiatan_id);
+              const rek = repo.masterRekeningBelanja().find((r) => r.id === k.rekening_id);
+              const aktif = kuitansiId === k.id;
+              return (
+                <button key={k.id} type="button" role="radio" aria-checked={aktif} onClick={() => setKuitansiId(k.id)}
+                  className={`block w-full rounded-lg border p-3 text-left transition-colors ${aktif ? 'border-amber bg-amber/10' : 'border-ink-edge bg-ink hover:border-mist-dim/50'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-sm font-medium text-mist">{k.uraian}</span>
+                    <span className="mono tnum shrink-0 text-sm text-mist">{formatRupiah(k.bruto)}</span>
+                  </div>
+                  <div className="mt-1 text-2xs text-mist-dim">Penerima: <span className="text-mist">{k.penerima}</span> · {formatTanggalPendek(k.tanggal_kuitansi)}</div>
+                  <div className="text-2xs text-mist-dim">{pem ? `${pem.kode_snapshot} ${pem.nama_snapshot}` : '-'}{rek ? ` · ${rek.kode_rekening} ${rek.nama}` : ''}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <Field label="Jenis Belanja" required hint="Menentukan Form Dinamis yang tampil. Tidak dapat diubah setelah SPJ dibuat.">
           <Select value={jenis} onChange={(e) => setJenis(e.target.value)}>
             <option value="">Pilih jenis belanja</option>
             {jenisBelanjaList.map((j) => <option key={j} value={j}>{j}</option>)}
           </Select>
         </Field>
-        <p className="text-2xs text-mist-dim">SPJ berpasangan 1:1 dengan kuitansi. Kuitansi akan terkunci sejak SPJ Draft dibuat.</p>
+        <p className="text-2xs text-mist-dim">SPJ berpasangan 1:1 dengan kuitansi. Setelah Lanjut, formulir SPJ langsung terbuka dan kuitansi terkunci. Menutup formulir di tengah jalan tidak menghilangkan draf; SPJ tetap ada di daftar dengan status Draft.</p>
       </div>
     </Modal>
   );
@@ -319,7 +337,7 @@ function EditSPJModal({ sesi, spj: spjAwal, kuitansi, onClose, onSaved }: {
     }
     if (n === 1) {
       // REK-02: rincian penerima (auto-capture ke Direktori Rekening Bank)
-      const r = await repo.simpanRekeningSPJ(spj.id, rekBaris, sesi);
+      const r = await repo.simpanRekeningSPJ(spj.id, barisUntukSimpan(rekBaris), sesi);
       if (!r.ok) { setLangkah(1); setErr(r.error ?? 'Gagal'); return false; }
     }
     if (n === 2) {
@@ -398,9 +416,11 @@ function EditSPJModal({ sesi, spj: spjAwal, kuitansi, onClose, onSaved }: {
     >
       {/* Info kuitansi */}
       {kuitansi && (
-        <div className="mb-4 rounded-md border border-ink-edge bg-ink p-3 text-2xs text-mist-dim">
+        <div className="mb-4 rounded-md border border-amber/30 bg-ink p-3 text-2xs text-mist-dim">
           <div>Kuitansi: <span className="text-mist">{kuitansi.uraian}</span></div>
-          <div>Bruto: <span className="text-mist mono tnum">{formatRupiah(kuitansi.bruto)}</span> • Penerima: <span className="text-mist">{kuitansi.penerima}</span></div>
+          <div>Penerima: <span className="text-mist">{kuitansi.penerima}</span> • Nilai: <span className="text-mist mono tnum">{formatRupiah(kuitansi.bruto)}</span> • Tanggal: <span className="text-mist">{formatTanggalPendek(kuitansi.tanggal_kuitansi)}</span></div>
+          <div>Subkegiatan: <span className="text-mist">{(() => { const pm = repo.pemetaanByTA(kuitansi.ta_id).find((x) => x.id === kuitansi.pemetaan_subkegiatan_id); return pm ? `${pm.kode_snapshot} ${pm.nama_snapshot}` : '-'; })()}</span></div>
+          <div>Rekening belanja: <span className="text-mist">{(() => { const rk = repo.masterRekeningBelanja().find((x) => x.id === kuitansi.rekening_id); return rk ? `${rk.kode_rekening} ${rk.nama}` : '-'; })()}</span></div>
           <div>Status SPJ: <SPJStatusBadge status={spj.status} /></div>
           {spj.catatan_revisi && <div className="mt-1 text-warn">Catatan revisi: {spj.catatan_revisi}</div>}
         </div>

@@ -47,3 +47,12 @@ Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; p
 - Syarat tarik, kaitkan, lepas, buang: peran Bendahara, TA bukan Arsip/Transisi, jendela alokasi terbuka, belum disahkan. Subkegiatan yang sudah punya pagu (>0), dipakai kuitansi, atau SPD-nya terbit tidak dapat dilepas. Subkegiatan yang masih terkait seksi tidak dapat dibuang.
 - Halaman Anggaran Bendahara dipecah jadi 4 menu: **Persiapan** (jendela waktu lewat pop-up, pemantau kesiapan), **Subkegiatan** (tab Tarik dari Kamus, Kaitkan ke Seksi), **Pagu** (drilldown seksi, subkegiatan, rekening), **Sahkan dan SPD** (tab Sahkan, SPD dan Efisiensi, Pergeseran, APBD-P dan Riwayat Versi).
 - Admin hanya melihat daftar subkegiatan per seksi (tidak menempatkan). Menu PPTK tidak berubah.
+
+## Draf BKU, rincian bisa disalin, tombol aksi, SPJ lebih jelas (2026-11-17)
+
+- **Draf BKU:** pada "Catat BKU" Bendahara membuka pop-up rincian lengkap (uraian "[uraian] pada subkeg [subkegiatan]", kuitansi, pajak, rekening belanja, rekening bank penerima), tiap baris punya tombol Salin sendiri (tanpa "Salin semua"). Nomor dan tanggal BKU disimpan sebagai **draf**. Draf disetujui satu per satu atau massal ("Setujui terpilih"); kegagalan satu baris (mis. nomor ganda) tidak membatalkan yang lain.
+- Realisasi terhitung **hanya saat draf disetujui**. SPJ tetap "Menunggu BKU" selama draf. Nomor BKU diketik Bendahara, wajib unik di antara draf dan BKU resmi, diperiksa ulang saat disetujui. Jejak audit pembukuan hanya saat Setujui; pembuatan/ubah/hapus draf dicatat ringan (aksi_administratif).
+- **Galat tanggal tugas:** pemeriksaan bentrok jadwal hanya berjalan bila form punya tag tanggal mulai; Form Builder memberi peringatan bila tag NIP/NIK dipasang tanpa tag tanggal.
+- **Lembar Hasil Verifikasi di Arsip** disamakan dengan lembar di halaman SPJ (kotak kolom kiri tidak lagi meluber; baris rekening berlabel selaras).
+- **Tombol aksi:** komponen tombol bersama bergaya baru, ikon otomatis dari teks, tombol hanya-ikon bertooltip (teks muncul saat kursor/fokus keyboard). Tautan teks aksi diganti tombol.
+- **Buat SPJ:** kuitansi dipilih dari kartu (penerima, uraian, nilai, rekening), Lanjut langsung membuka formulir SPJ dengan detail kuitansi di atasnya. **Rekening penerima:** pilihan dari direktori tampil hanya-baca; isian manual hanya lewat "Rekening baru (belum ada di direktori)" dan masuk direktori lewat auto-capture (D01 §14).

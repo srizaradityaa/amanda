@@ -31,7 +31,7 @@ export async function unduhLampiranSPJ(spjId: string, nama: string): Promise<{ o
   const r = await ambil(spjId);
   if (!r.ok || !r.blob) return { ok: false, error: r.error };
   const u = URL.createObjectURL(r.blob);
-  const a = document.createElement('a'); a.href = u; a.download = r.nama ?? nama; document.body.appendChild(a); a.click(); a.remove();
+  const a = document.createElement('a'); a.href = u; a.download = nama || r.nama || 'lampiran.pdf'; document.body.appendChild(a); a.click(); a.remove();
   window.setTimeout(() => URL.revokeObjectURL(u), 10_000);
   return { ok: true };
 }

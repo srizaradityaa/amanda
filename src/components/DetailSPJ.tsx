@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button, Modal, StatusBadge } from '@/components/ui';
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
 import { repo } from '@/data/repo';
+import { namaLampiranSPJ } from '@/lib/namaLampiran';
 import { formatRupiah } from '@/lib/format';
 import { formatTanggalPendek } from '@/lib/wita';
 import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
@@ -102,7 +103,7 @@ export function DetailSPJ({ spj_id, onClose, footerTambahan }: { spj_id: string;
           <Bagian judul="Lampiran PDF">
             {spj.lampiran_nama_asli ? (
               <div className="flex items-center gap-2">
-                <span className="text-mist">{spj.lampiran_nama_asli}</span>
+                <span className="text-mist">{namaLampiranSPJ(spj.id, spj.lampiran_nama_asli)}</span>
                 {bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli)
                   ? <Button variant="secondary" onClick={() => { void bukaLampiranSPJ(spj.id); }}>Buka lampiran</Button>
                   : <span>(isi berkas hanya tersedia pada sesi unggah)</span>}

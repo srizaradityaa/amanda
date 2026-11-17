@@ -7,6 +7,7 @@ import { buatLaporan, DAFTAR_LAPORAN, laporanBolehUntuk, type FilterLaporan, typ
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
 import { bisaBukaLampiran, unduhLampiranSPJ } from '@/lib/lampiran';
+import { namaLampiranSPJ } from '@/lib/namaLampiran';
 import { formatRupiah } from '@/lib/format';
 import { FileDown, Paperclip } from 'lucide-react';
 
@@ -119,7 +120,7 @@ function LampiranSPJPanel({ ta_id }: { ta_id: string }) {
   const unduh = async (spj_id: string) => {
     const r = repo.unduhLampiranSPJ(spj_id, s);
     if (!r.ok) { toast.notify(r.error ?? 'Gagal'); return; }
-    const u = await unduhLampiranSPJ(spj_id, r.nama!);
+    const u = await unduhLampiranSPJ(spj_id, namaLampiranSPJ(spj_id, r.nama));
     if (!u.ok) toast.notify(u.error ?? 'Gagal');
   };
   return (
@@ -136,7 +137,7 @@ function LampiranSPJPanel({ ta_id }: { ta_id: string }) {
                   <td className="px-4 py-2 text-mist-dim">{k ? repo.seksiTAById(k.seksi_ta_id)?.nama_snapshot : '—'}</td>
                   <td className="px-4 py-2 text-mist">{k?.uraian} <span className="text-mist-dim">({formatRupiah(k?.bruto ?? 0)})</span></td>
                   <td className="px-4 py-2"><StatusBadge kind="neutral" label={x.status} /></td>
-                  <td className="px-4 py-2 text-mist-dim">{x.lampiran_nama_asli}{bisaBukaLampiran(x.id, true) ? '' : ' (isi tidak tersedia pada sesi ini)'}</td>
+                  <td className="px-4 py-2 text-mist-dim">{namaLampiranSPJ(x.id, x.lampiran_nama_asli)}{bisaBukaLampiran(x.id, true) ? '' : ' (isi tidak tersedia pada sesi ini)'}</td>
                   <td className="px-4 py-2"><Button variant="secondary" onClick={() => unduh(x.id)}>Unduh</Button></td>
                 </tr>
               );

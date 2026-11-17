@@ -10,6 +10,7 @@ import { getSession } from '@/lib/auth';
 import { formatRupiah } from '@/lib/format';
 import { formatTanggalPendek } from '@/lib/wita';
 import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
+import { namaLampiranSPJ } from '@/lib/namaLampiran';
 import type { SPJ } from '@/data/types';
 import { Check, Printer, ScrollText, Undo2 } from 'lucide-react';
 
@@ -191,7 +192,7 @@ function DetailVerifikasi({ spj, onClose }: { spj: SPJ; onClose: () => void }) {
             <h4 className="mb-1 text-sm font-semibold text-mist">Lampiran PDF</h4>
             {spj.lampiran_nama_asli ? (
               <div className="flex items-center gap-2">
-                <span className="text-mist">{spj.lampiran_nama_asli}</span>
+                <span className="text-mist">{namaLampiranSPJ(spj.id, spj.lampiran_nama_asli)}</span>
                 {bisaBukaLampiran(spj.id, !!spj.lampiran_nama_asli) ? <Button variant="secondary" onClick={() => { void bukaLampiranSPJ(spj.id); }}>Buka lampiran</Button> : <span>(isi berkas hanya tersedia pada sesi unggah; penyimpanan permanen menunggu backend)</span>}
               </div>
             ) : <p>Belum ada lampiran.</p>}

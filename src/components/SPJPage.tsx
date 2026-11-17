@@ -105,7 +105,6 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                 <tr className="text-left">
                   <th className="px-4 py-2 font-medium whitespace-nowrap">Kuitansi</th>
                   <th className="px-4 py-2 font-medium whitespace-nowrap">Jenis Belanja</th>
-                  <th className="px-4 py-2 font-medium whitespace-nowrap">Versi Form</th>
                   <th className="px-4 py-2 font-medium whitespace-nowrap">Status</th>
                   <th className="px-4 py-2 font-medium whitespace-nowrap">Aksi</th>
                 </tr>
@@ -120,7 +119,6 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                         <div className="text-mist-dim">{k && formatTanggalPendek(k.tanggal_kuitansi)} • {formatRupiah(k?.bruto ?? 0)}</div>
                       </td>
                       <td className="px-4 py-2 text-mist-dim">{s.jenis_belanja}</td>
-                      <td className="px-4 py-2 text-mist-dim mono">{s.versi_form}</td>
                       <td className="px-4 py-2">
                         <SPJStatusBadge status={s.status} />
                         {s.catatan_revisi && <div className="mt-1 text-2xs text-warn">Revisi: {s.catatan_revisi}</div>}

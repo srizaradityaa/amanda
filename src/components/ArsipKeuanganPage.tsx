@@ -187,7 +187,7 @@ function TabBKU({ tahun }: { tahun: string }) {
           <Baris label="Potongan Pajak" nilai={formatRupiah(detail.pajak)} mono />
           <Baris label="Nilai Netto" nilai={formatRupiah(detail.bruto - detail.pajak)} mono />
           <Baris label="No. Verifikasi" nilai={detail.nomor_verifikasi} mono />
-          <Baris label="Lampiran" nilai={detail.lampiran_nama ? `${detail.lampiran_nama}${detail.lampiran_ukuran ? ` (${formatUkuran(detail.lampiran_ukuran)})` : ''}` : null} />
+          <Baris label="Lampiran" nilai={detail.lampiran_nama ? `${arsip.namaBerkasBKU(detail.nomor_bku)}${detail.lampiran_ukuran ? ` (${formatUkuran(detail.lampiran_ukuran)})` : ''}` : null} />
         </Modal>
       )}
       {lihat && <PratinjauPdf judul={`Arsip BKU ${lihat.nomor_bku}`} ambil={async () => { try { const { blob } = await arsip.blobBundelBKU(lihat); void arsip.catatUnduh('BKU_PDF', `${lihat.nomor_bku} (pratinjau)`, 1); return blob; } catch { return null; } }} onClose={() => setLihat(null)} />}

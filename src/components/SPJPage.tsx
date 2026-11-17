@@ -2,13 +2,14 @@
 import { useReducer, useState } from 'react';
 import {
   Button, Card, StatusBadge, Field, Select, Modal,
-  useToast, SearchBox, FilterSelect, EmptyState, TombolIkon } from '@/components/ui';
+  useToast, SearchBox, FilterSelect, EmptyState, TombolIkon, Tabs } from '@/components/ui';
 import { repo } from '@/data/repo';
 import { gerbangStatus } from '@/data/anggaran';
 import { formatRupiah } from '@/lib/format';
 import { formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
 import { ErrorLine, Panel, SectionTitle } from '@/components/AnggaranShared';
+import { DetailSPJ } from '@/components/DetailSPJ';
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
 import { PajakSPJPanel, barisPajakDariSPJ, type BarisPajak } from '@/components/PajakSPJModal';
 import { UnggahBerkas } from '@/components/UnggahBerkas';
@@ -41,7 +42,8 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
   const [err, setErr] = useState<string | null>(null);
 
   // R-145: filter
-  const [filterStatus, setFilterStatus] = useState('');
+  const [tab, setTab] = useState<'tindakan' | 'proses' | 'selesai'>('tindakan');
+  const [lihatId, setLihatId] = useState<string | null>(null);
   const [filterJenis, setFilterJenis] = useState('');
   const [search, setSearch] = useState('');
 
@@ -49,8 +51,10 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
   const kuitansiSeksi = repo.kuitansiBySeksi(seksi_id).filter((k) => k.ta_id === ta_id);
   const spjSeksi = repo.spjByTA(ta_id).filter((s) => kuitansiSeksi.some((k) => k.id === s.kuitansi_id));
 
+  const tabSPJ = (st: SPJ['status']) => (st === 'Draft' ? 'tindakan' : st === 'Dibukukan' ? 'selesai' : 'proses');
+  const hitung = (t: string) => spjSeksi.filter((x) => tabSPJ(x.status) === t).length;
   const filtered = spjSeksi.filter((s) => {
-    if (filterStatus && s.status !== filterStatus) return false;
+    if (tabSPJ(s.status) !== tab) return false;
     if (filterJenis && s.jenis_belanja !== filterJenis) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -82,22 +86,19 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
         </div>
       </Panel>
 
+      <Tabs nilai={tab} onPilih={setTab} daftar={[['tindakan', `Perlu Tindakan (${hitung('tindakan')})`], ['proses', `Dalam Proses (${hitung('proses')})`], ['selesai', `Selesai (${hitung('selesai')})`]]} />
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-edge px-4 py-3">
           <h3 className="text-sm font-semibold text-mist">Daftar SPJ</h3>
           <div className="flex flex-wrap items-center gap-2">
             <SearchBox value={search} onChange={setSearch} placeholder="Cari uraian/jenis..." />
-            <FilterSelect value={filterStatus} onChange={setFilterStatus} label="Status" options={[
-              { value: 'Draft', label: 'Draft' }, { value: 'Terkunci', label: 'Terkunci' },
-              { value: 'Menunggu BKU', label: 'Menunggu BKU' }, { value: 'Dibukukan', label: 'Dibukukan' },
-            ]} />
             <FilterSelect value={filterJenis} onChange={setFilterJenis} label="Jenis Belanja"
               options={jenisBelanjaList.map((j) => ({ value: j, label: j }))} />
           </div>
         </div>
         <div className="overflow-x-auto">
           {filtered.length === 0 ? (
-            <EmptyState icon={<ScrollText size={28} />} title="Belum ada SPJ" />
+            <EmptyState icon={<ScrollText size={28} />} title="Tidak ada SPJ pada tab ini" />
           ) : (
             <table className="w-full text-2xs">
               <thead className="bg-ink text-mist-dim">
@@ -126,7 +127,7 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-1">
-                          <TombolIkon ikon={Eye} label="Buka SPJ" variant="ghost" onClick={() => setEditSPJ(s)} />
+                          <TombolIkon ikon={Eye} label="Buka SPJ" variant="ghost" onClick={() => (s.status === 'Draft' ? setEditSPJ(s) : setLihatId(s.id))} />
                           {s.status === 'Draft' && (
                             <>
                               <button onClick={async () => {
@@ -166,6 +167,7 @@ function SPJContent({ sesi, ta_id, seksi_id, seksiNama, onChanged }: {
           onCreated={(baru) => { setShowCreate(false); notify('Tersimpan'); if (baru) setEditSPJ(baru); onChanged(); }} />
       )}
 
+      {lihatId && <DetailSPJ spj_id={lihatId} onClose={() => { setLihatId(null); onChanged(); }} />}
       {editSPJ && (
         <EditSPJModal sesi={sesi} spj={editSPJ} kuitansi={kuitansiSeksi.find((k) => k.id === editSPJ.kuitansi_id) ?? null}
           onClose={() => { setEditSPJ(null); onChanged(); }}

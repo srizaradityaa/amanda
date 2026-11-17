@@ -417,3 +417,13 @@ export function Pager({ hal, total, jumlah, ukuran, setHal }: { hal: number; tot
     </div>
   );
 }
+
+export function Tabs<T extends string>({ nilai, onPilih, daftar }: { nilai: T; onPilih: (t: T) => void; daftar: [T, string][] }) {
+  return (
+    <div className="mb-4 flex flex-wrap gap-2" role="tablist">
+      {daftar.map(([k, l]) => (
+        <button key={k} type="button" role="tab" aria-selected={nilai === k} onClick={() => onPilih(k)} className={`rounded-md border px-3 py-1.5 text-2xs ${nilai === k ? 'border-amber/40 bg-amber/10 text-amber' : 'border-ink-edge text-mist-dim hover:text-mist'}`}>{l}</button>
+      ))}
+    </div>
+  );
+}

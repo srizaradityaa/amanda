@@ -1,13 +1,14 @@
 // BKU-01..05 — Buku Kas Umum (murni realisasi pengeluaran belanja). Bendahara mencatat/koreksi/cabut; Verifikator hanya membaca.
 import { useState } from 'react';
-import { Button, Card, EmptyState, Field, FilterSelect, Input, Modal, SearchBox, StatusBadge, useToast, usePaging, Pager } from '@/components/ui';
-import { ErrorLine, SectionTitle } from '@/components/AnggaranShared';
+import { Button, Card, EmptyState, FilterSelect, SearchBox, StatusBadge, Tabs, useToast, usePaging, Pager } from '@/components/ui';
+import { SectionTitle } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
 import { formatRupiah } from '@/lib/format';
 import { formatTanggalPendek } from '@/lib/wita';
-import type { BKU, SPJ } from '@/data/types';
-import { BookOpen, Pencil, Trash2 } from 'lucide-react';
+import type { SPJ } from '@/data/types';
+import { BookOpen } from 'lucide-react';
+import { DetailSPJ } from '@/components/DetailSPJ';
 import { RincianBKUModal } from '@/components/RincianBKUModal';
 
 export function BKUPage() {
@@ -26,8 +27,8 @@ export function BKUPage() {
   const [pilih, setPilih] = useState<Set<string>>(new Set());
   const [infoSetuju, setInfoSetuju] = useState<string | null>(null);
   const toast = useToast();
-  const [koreksi, setKoreksi] = useState<BKU | null>(null);
-  const [cabut, setCabut] = useState<BKU | null>(null);
+  const [tab, setTab] = useState<'tindakan' | 'selesai'>('tindakan');
+  const [lihat, setLihat] = useState<string | null>(null);
 
   const kuitansi = repo.kuitansiByTA(ta_id);
   const seksiList = repo.seksiTAByTA(ta_id);
@@ -68,7 +69,9 @@ export function BKUPage() {
         <p className="text-2xs text-mist-dim">BKU ini tidak memuat penerimaan kas, SP2D, saldo awal, maupun saldo kas.</p>
       </Card>
 
-      {bendahara && (
+      {bendahara && <Tabs nilai={tab} onPilih={setTab} daftar={[['tindakan', `Perlu Tindakan (${menunggu.length})`], ['selesai', `Selesai (${repo.bkuByTA(ta_id).filter((b) => b.status === 'Aktif').length})`]]} />}
+
+      {bendahara && tab === 'tindakan' && (
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-edge px-4 py-3">
             <h3 className="text-sm font-semibold text-mist">SPJ Menunggu BKU ({menunggu.length}) <span className="ml-1 text-2xs font-normal text-mist-dim">· draf {adaDraf.length}</span></h3>
@@ -107,7 +110,7 @@ export function BKUPage() {
         </Card>
       )}
 
-      <Card>
+      {(!bendahara || tab === 'selesai') && <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-edge px-4 py-3">
           <h3 className="text-sm font-semibold text-mist">Daftar BKU</h3>
           <div className="flex flex-wrap items-center gap-2">
@@ -125,7 +128,7 @@ export function BKUPage() {
           {daftar.length === 0 ? <EmptyState icon={<BookOpen size={28} />} title="Belum ada BKU pada filter ini" /> : (
             <table className="w-full text-2xs">
               <thead className="bg-ink text-mist-dim"><tr className="text-left">
-                {['No. BKU', 'Tanggal', 'Seksi', 'Uraian', 'Bruto', 'Status', ...(bendahara ? ['Aksi'] : [])].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
+                {['No. BKU', 'Tanggal', 'Seksi', 'Uraian', 'Bruto', 'Status', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
               </tr></thead>
               <tbody>{pgB.baris.map((b, i) => {
                 const k = kuitansi.find((q) => q.id === b.kuitansi_id);
@@ -137,16 +140,7 @@ export function BKUPage() {
                     <td className="px-4 py-2 text-mist">{k?.uraian ?? '—'}</td>
                     <td className="px-4 py-2 mono tnum text-mist">{formatRupiah(k?.bruto ?? 0)}</td>
                     <td className="px-4 py-2"><StatusBadge kind={b.status === 'Aktif' ? 'ok' : 'crit'} label={b.status} /></td>
-                    {bendahara && (
-                      <td className="px-4 py-2">
-                        {b.status === 'Aktif' && (
-                          <div className="flex gap-2">
-                            <Button variant="secondary" onClick={() => setKoreksi(b)}><Pencil size={14} /> Koreksi</Button>
-                            <Button variant="danger" onClick={() => setCabut(b)}><Trash2 size={14} /> Cabut</Button>
-                          </div>
-                        )}
-                      </td>
-                    )}
+                    <td className="px-4 py-2"><Button variant="secondary" onClick={() => setLihat(b.spj_id)}>Lihat rincian</Button></td>
                   </tr>
                 );
               })}</tbody>
@@ -154,59 +148,10 @@ export function BKUPage() {
           )}
         </div>
         <Pager {...pgB} />
-      </Card>
+      </Card>}
 
       {catat && <RincianBKUModal spj={catat} onClose={() => setCatat(null)} onSaved={() => { setCatat(null); bump(); }} />}
-      {koreksi && <FormBKU judul={`Koreksi BKU ${koreksi.nomor_bku}`} awal={{ nomor: koreksi.nomor_bku, tanggal: koreksi.tanggal_bku }} catatan="Nominal tidak berubah. Perubahan tercatat di Jejak Audit dengan nilai lama dan baru."
-        onClose={() => setKoreksi(null)} simpan={(n, t) => repo.koreksiBKU(koreksi.id, { nomor_bku: n, tanggal_bku: t }, s)} onSaved={() => { setKoreksi(null); bump(); }} />}
-      {cabut && <KonfirmasiCabut bku={cabut} onClose={() => setCabut(null)} onDone={() => { setCabut(null); bump(); }} />}
+      {lihat && <DetailSPJ spj_id={lihat} onClose={() => setLihat(null)} />}
     </div>
-  );
-}
-
-function FormBKU({ judul, awal, catatan, onClose, simpan, onSaved }: {
-  judul: string; awal: { nomor: string; tanggal: string }; catatan?: string;
-  onClose: () => void; simpan: (nomor: string, tanggal: string) => Promise<{ ok: boolean; error?: string }>; onSaved: () => void;
-}) {
-  const toast = useToast();
-  const [nomor, setNomor] = useState(awal.nomor);
-  const [tanggal, setTanggal] = useState(awal.tanggal);
-  const [err, setErr] = useState<string | null>(null);
-  const kirim = async () => {
-    const r = await simpan(nomor, tanggal);
-    if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
-    toast.notify('Tersimpan');
-    onSaved();
-  };
-  return (
-    <Modal open onClose={onClose} title={judul}
-      footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>Batal</Button><Button onClick={kirim}>Simpan</Button></div>}>
-      <div className="space-y-3">
-        <Field label="No. BKU" required><Input value={nomor} onChange={(e) => setNomor(e.target.value)} placeholder="Contoh: BKU-002" /></Field>
-        <Field label="Tanggal BKU" required><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
-        {catatan && <p className="text-2xs text-mist-dim">{catatan}</p>}
-        <ErrorLine msg={err} />
-      </div>
-    </Modal>
-  );
-}
-
-// R-149 — pop-up konfirmasi untuk aksi yang tidak dapat dibatalkan; menutup pop-up tidak mengubah data
-function KonfirmasiCabut({ bku, onClose, onDone }: { bku: BKU; onClose: () => void; onDone: () => void }) {
-  const s = getSession()!;
-  const toast = useToast();
-  const [err, setErr] = useState<string | null>(null);
-  const jalankan = async () => {
-    const r = await repo.cabutBKU(bku.id, s);
-    if (!r.ok) { setErr(r.error ?? 'Gagal'); return; }
-    toast.notify('BKU dicabut');
-    onDone();
-  };
-  return (
-    <Modal open onClose={onClose} title={`Cabut BKU ${bku.nomor_bku}?`}
-      footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>Batal</Button><Button variant="danger" onClick={jalankan}>Ya, cabut BKU</Button></div>}>
-      <p className="text-sm text-mist">Pencabutan tidak dapat dibatalkan. SPJ kembali Menunggu BKU. Untuk mengembalikan transaksi, Verifikator mengembalikan SPJ, lalu Seksi melepas SPJ dan membatalkan kuitansi.</p>
-      <ErrorLine msg={err} />
-    </Modal>
   );
 }

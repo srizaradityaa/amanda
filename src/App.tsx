@@ -12,6 +12,7 @@ import { AdminDasborPage, SOTKPage, PersonelPage, KamusPage, PajakPage, Direktor
 import { TentangPage } from '@/components/TentangPage';
 import { VerifikasiPage } from '@/components/VerifikasiPage';
 import { BKUPage } from '@/components/BKUPage';
+import { KoreksiBKUPage } from '@/components/KoreksiBKUPage';
 import { PersiapanPage, SubkegiatanPage, PaguPage, SahkanSpdPage } from '@/components/AnggaranMenuBendahara';
 import { AnggaranPptkPage } from '@/components/AnggaranPptkPage';
 import { KuitansiPage } from '@/components/KuitansiPage';
@@ -21,7 +22,7 @@ import { repo } from '@/data/repo';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
-import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet, Archive } from 'lucide-react';
+import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet, Archive, Pencil } from 'lucide-react';
 import type { SessionPayload } from '@/data/types';
 
 const TahunAnggaranPage = lazy(() => import('@/components/TAPanels').then((m) => ({ default: m.TahunAnggaranPage })));
@@ -237,6 +238,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'pagu', label: 'Pagu', icon: <Wallet size={18} />, render: () => <PaguPage /> },
       { id: 'sahkan-spd', label: 'Sahkan dan SPD', icon: <Wallet size={18} />, render: () => <SahkanSpdPage /> },
       { id: 'bku', label: 'BKU', icon: <BookOpen size={18} />, render: () => <BKUPage /> },
+      { id: 'koreksi-bku', label: 'Koreksi BKU', icon: <Pencil size={18} />, render: () => <KoreksiBKUPage /> },
       { id: 'arsip', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'rincian', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },
       { id: 'laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },

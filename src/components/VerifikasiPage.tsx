@@ -1,7 +1,8 @@
 // VER-01 / VER-02 — Pemeriksaan SPJ oleh Verifikator: setujui atau kembalikan dengan catatan.
 // Larangan verifikasi mandiri ditegakkan di repo (setujuiSPJ / kembalikanSPJ).
 import { useState } from 'react';
-import { Button, Card, EmptyState, FilterSelect, Modal, SearchBox, StatusBadge, useToast, usePaging, Pager } from '@/components/ui';
+import { Button, Card, EmptyState, FilterSelect, Modal, SearchBox, Tabs, useToast, usePaging, Pager } from '@/components/ui';
+import { DetailSPJ, StatusSPJBadge } from '@/components/DetailSPJ';
 import { ErrorLine, SectionTitle } from '@/components/AnggaranShared';
 import { CetakVerifikasiModal } from '@/components/CetakVerifikasi';
 import { repo } from '@/data/repo';
@@ -12,28 +13,25 @@ import { bisaBukaLampiran, bukaLampiranSPJ } from '@/lib/lampiran';
 import type { SPJ } from '@/data/types';
 import { Check, Printer, ScrollText, Undo2 } from 'lucide-react';
 
-function StatusSPJBadge({ status }: { status: SPJ['status'] }) {
-  const kind = status === 'Draft' ? 'neutral' : status === 'Terkunci' ? 'warn' : status === 'Menunggu BKU' ? 'spike' : 'ok';
-  return <StatusBadge kind={kind} label={status} />;
-}
-
 export function VerifikasiPage() {
   const s = getSession()!;
   const ta_id = s.active_ta_id!;
   const ta = repo.tahunAnggaranById(ta_id)!;
   const [, setTick] = useState(0);
   const [search, setSearch] = useState('');
-  const [fStatus, setFStatus] = useState('Terkunci');
+  const [tab, setTab] = useState<'tindakan' | 'selesai'>('tindakan');
   const [fSeksi, setFSeksi] = useState('');
   const [aktif, setAktif] = useState<string | null>(null);
 
   const seksiList = repo.seksiTAByTA(ta_id);
   const kuitansi = repo.kuitansiByTA(ta_id);
   const semua = repo.spjByTA(ta_id).filter((x) => x.status !== 'Draft');
+  const nTindakan = semua.filter((x) => x.status === 'Terkunci').length;
+  const nSelesai = semua.length - nTindakan;
   const daftar = semua.filter((x) => {
     const k = kuitansi.find((q) => q.id === x.kuitansi_id);
     if (!k) return false;
-    if (fStatus && x.status !== fStatus) return false;
+    if (tab === 'tindakan' ? x.status !== 'Terkunci' : x.status === 'Terkunci') return false;
     if (fSeksi && k.seksi_ta_id !== fSeksi) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -53,17 +51,14 @@ export function VerifikasiPage() {
           <span>Disetujui: <span className="mono tnum">{semua.filter((x) => x.status === 'Menunggu BKU' || x.status === 'Dibukukan').length}</span></span>
         </div>
       </Card>
+      <Tabs nilai={tab} onPilih={setTab} daftar={[['tindakan', `Perlu Tindakan (${nTindakan})`], ['selesai', `Selesai (${nSelesai})`]]} />
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-edge px-4 py-3">
-          <h3 className="text-sm font-semibold text-mist">Daftar SPJ</h3>
+          <h3 className="text-sm font-semibold text-mist">{tab === 'tindakan' ? 'SPJ perlu diperiksa' : 'SPJ selesai diperiksa'}</h3>
           <div className="flex flex-wrap items-center gap-2">
             <SearchBox value={search} onChange={setSearch} placeholder="Cari uraian/penerima..." />
-            <FilterSelect value={fStatus} onChange={setFStatus} label="Status" options={[
-              { value: 'Terkunci', label: 'Terkunci (antrean)' }, { value: 'Menunggu BKU', label: 'Menunggu BKU' },
-              { value: 'Dibukukan', label: 'Dibukukan' },
-            ]} />
             <FilterSelect value={fSeksi} onChange={setFSeksi} label="Seksi" options={seksiList.map((x) => ({ value: x.id, label: x.nama_snapshot }))} />
-            <Button variant="ghost" onClick={() => { setSearch(''); setFStatus(''); setFSeksi(''); }}>Reset</Button>
+            <Button variant="ghost" onClick={() => { setSearch(''); setFSeksi(''); }}>Reset</Button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -82,7 +77,7 @@ export function VerifikasiPage() {
                       <td className="px-4 py-2 text-mist"><div>{k.uraian}</div><div className="text-mist-dim">{formatTanggalPendek(k.tanggal_kuitansi)} • {formatRupiah(k.bruto)}</div></td>
                       <td className="px-4 py-2 text-mist-dim">{x.jenis_belanja}</td>
                       <td className="px-4 py-2"><StatusSPJBadge status={x.status} /></td>
-                      <td className="px-4 py-2"><Button variant="secondary" onClick={() => setAktif(x.id)}>Periksa</Button></td>
+                      <td className="px-4 py-2"><Button variant="secondary" onClick={() => setAktif(x.id)}>{x.status === 'Terkunci' ? 'Periksa' : 'Lihat detail'}</Button></td>
                     </tr>
                   );
                 })}
@@ -92,7 +87,8 @@ export function VerifikasiPage() {
         </div>
         <Pager {...pgV} />
       </Card>
-      {spjAktif && <DetailVerifikasi spj={spjAktif} onClose={() => { setAktif(null); setTick((n) => n + 1); }} />}
+      {spjAktif && spjAktif.status === 'Dibukukan' && <DetailSPJ spj_id={spjAktif.id} onClose={() => { setAktif(null); setTick((n) => n + 1); }} />}
+      {spjAktif && spjAktif.status !== 'Dibukukan' && <DetailVerifikasi spj={spjAktif} onClose={() => { setAktif(null); setTick((n) => n + 1); }} />}
     </div>
   );
 }

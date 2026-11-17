@@ -1198,6 +1198,7 @@ export const repoDemo = {
     if (!k || session.active_seksi_id !== k.seksi_ta_id) return { ok: false, error: 'SPJ bukan milik seksi ini.' };
     if (!repoDemo.canCreateSPJ(k.ta_id)) return { ok: false, error: 'Rekening penerima hanya dapat diubah pada TA Aktif Penuh.' };
     if (spj.status !== 'Draft') return { ok: false, error: 'SPJ yang sudah Terkunci tidak dapat diubah.' };
+    if (baris.filter((x) => x.account_name.trim() || x.bank_name.trim() || x.account_number.trim() || x.alias.trim()).length > 1) return { ok: false, error: 'Satu SPJ hanya boleh memiliki satu rekening penerima.' };
     const snapshot: RekeningPenerimaSPJ[] = [];
     baris.forEach((x, i) => {
       const b = { account_name: x.account_name.trim(), bank_name: x.bank_name.trim(), account_number: x.account_number.trim(), alias: x.alias.trim() };

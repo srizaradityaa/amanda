@@ -56,13 +56,14 @@ export function RincianBKUModal({ spj, onClose, onSaved }: { spj: SPJ; onClose: 
   };
 
   return (
-    <Modal open onClose={onClose} title="Rincian SPJ dan Draf BKU"
+    <Modal open onClose={onClose} title="Rincian SPJ dan Draf BKU" wider
       footer={<div className="flex flex-wrap justify-end gap-2">
         {draf && <Button variant="danger" onClick={hapus}>Hapus draf</Button>}
         <Button variant="ghost" onClick={onClose}>Tutup</Button>
         <Button onClick={simpan} disabled={!nomor.trim()}>Simpan sebagai draf</Button>
       </div>}>
-      <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-4">
         <dl>
           <Baris label="Uraian BKU" nilai={uraianBku} salin={uraianBku} />
           <Baris label="Uraian kuitansi" nilai={k.uraian} salin={k.uraian} />
@@ -91,9 +92,10 @@ export function RincianBKUModal({ spj, onClose, onSaved }: { spj: SPJ; onClose: 
           ))}
         </div>
 
-        <div className="rounded-md border border-amber/30 bg-amber/5 p-3">
+        </div>
+        <div className="h-fit rounded-md border border-amber/30 bg-amber/5 p-3 lg:sticky lg:top-0">
           <p className="mb-2 text-sm font-semibold text-mist">Draf BKU</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3">
             <Field label="No. BKU" required><Input value={nomor} onChange={(e) => setNomor(e.target.value)} placeholder="Contoh: BKU-002" /></Field>
             <Field label="Tanggal BKU" required><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></Field>
           </div>

@@ -1,6 +1,6 @@
 import { Fragment, useReducer, useState, type ReactNode } from 'react';
 import { Trash2, Unlink } from 'lucide-react';
-import { Button, Input, Modal, RupiahInput, Select, TombolIkon, useToast } from '@/components/ui';
+import { Button, Input, Modal, RupiahInput, Select, Tabs, TombolIkon, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
 import * as anggaran from '@/data/anggaran';
 import { formatRupiah } from '@/lib/format';
@@ -22,16 +22,6 @@ function Halaman({ render }: { render: (c: Ctx) => ReactNode }) {
   const ta_id = sesi.active_ta_id;
   if (!repo.tahunAnggaranById(ta_id)) return null;
   return <div>{render({ ta_id, aktor, onChanged: () => bump() })}</div>;
-}
-
-function Tabs<T extends string>({ nilai, onPilih, daftar }: { nilai: T; onPilih: (t: T) => void; daftar: [T, string][] }) {
-  return (
-    <div className="mb-4 flex flex-wrap gap-2" role="tablist">
-      {daftar.map(([k, l]) => (
-        <button key={k} type="button" role="tab" aria-selected={nilai === k} onClick={() => onPilih(k)} className={`rounded-md border px-3 py-1.5 text-2xs ${nilai === k ? 'border-amber/40 bg-amber/10 text-amber' : 'border-ink-edge text-mist-dim hover:text-mist'}`}>{l}</button>
-      ))}
-    </div>
-  );
 }
 
 /* ---------- 1. Persiapan ---------- */

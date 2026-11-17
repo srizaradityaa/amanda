@@ -12,9 +12,10 @@ import { formatTanggalPendek, todayWita } from '@/lib/wita';
 import { formatUkuran } from '@/lib/berkas';
 import { tampilkanGalat, tampilkanInfo } from '@/lib/galat';
 import * as arsip from '@/data/arsip';
+import { TabTelusur } from '@/components/TelusurSPJ';
 import type { ArsipBKU, DokumenArsip, KategoriArsip } from '@/data/arsip';
 
-type Tab = 'bku' | 'dokumen';
+type Tab = 'bku' | 'dokumen' | 'telusur';
 
 function useTunda<T>(nilai: T, ms = 300): T {
   const [v, setV] = useState(nilai);
@@ -42,7 +43,7 @@ export function ArsipKeuanganPage() {
       <Card className="p-5">
         <SectionTitle title="Arsip Keuangan" desc={`TA ${tahun} • berkas hanya-baca${admin ? ' untuk Admin' : ''}; seluruh unduhan dicatat pada jejak audit`} />
         <div className="flex flex-wrap items-center gap-2">
-          {tombolTab('bku', 'Arsip SPJ BKU')}{tombolTab('dokumen', 'Dokumen Keuangan (Non-BKU)')}
+          {tombolTab('bku', 'Arsip SPJ BKU')}{tombolTab('telusur', 'Telusur SPJ')}{tombolTab('dokumen', 'Dokumen Keuangan (Non-BKU)')}
           {admin && (
             <label className="ml-auto flex items-center gap-2 text-2xs text-mist-dim">Tahun Anggaran
               <select value={taAdmin} onChange={(e) => setTaAdmin(e.target.value)} className="rounded-md border border-ink-edge bg-ink px-2 py-1 text-2xs text-mist">
@@ -53,6 +54,7 @@ export function ArsipKeuanganPage() {
         </div>
       </Card>
       {!taId ? <Card className="p-5 text-sm text-mist-dim">Belum ada Tahun Anggaran.</Card>
+        : tab === 'telusur' ? <TabTelusur key={taId} />
         : tab === 'bku' ? <TabBKU key={taId} tahun={tahun} /> : <TabDokumen key={taId} tahun={tahun} bendahara={bendahara} />}
     </div>
   );

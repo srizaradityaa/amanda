@@ -31,15 +31,10 @@ export function RekeningPenerimaPanel({ sesi, spj, isDraft, baris, setBaris }: {
   const [q, setQ] = useState('');
   const hasilCari = repo.cariRekeningBank(q);
 
-  const tambahBaris = (isi: Omit<Baris, 'key'>) => {
-    setBaris((b) => [...b, { key: b.reduce((m, x) => Math.max(m, x.key), -1) + 1, ...isi }]);
-  };
+  // Satu SPJ = satu rekening penerima: memilih atau membuat rekening menggantikan yang ada.
+  const setRekening = (isi: Omit<Baris, 'key'>) => setBaris([{ key: 0, ...isi }]);
   const pilihDariDirektori = (d: { account_name: string; bank_name: string; account_number: string; alias: string | null }) => {
-    if (baris.some((r) => r.account_number.trim() === d.account_number.trim() && r.bank_name.trim().toLowerCase() === d.bank_name.trim().toLowerCase())) {
-      notify('Rekening ini sudah dipilih');
-      return;
-    }
-    tambahBaris({ account_name: d.account_name, bank_name: d.bank_name, account_number: d.account_number, alias: d.alias ?? '', dariDirektori: true });
+    setRekening({ account_name: d.account_name, bank_name: d.bank_name, account_number: d.account_number, alias: d.alias ?? '', dariDirektori: true });
   };
   const ubahBaris = (key: number, patch: Partial<Omit<Baris, 'key'>>) =>
     setBaris((b) => b.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -76,14 +71,14 @@ export function RekeningPenerimaPanel({ sesi, spj, isDraft, baris, setBaris }: {
       </div>
 
       <div className="min-w-0 space-y-3">
-        <h4 className="text-sm font-semibold text-mist">Rincian Penerima / Rekening</h4>
-        {baris.length === 0 && <p className="text-2xs text-mist-dim">Belum ada rekening penerima. Pilih dari direktori di panel kiri, atau tambah rekening baru.</p>}
-        {baris.map((r, idx) => (
+        <h4 className="text-sm font-semibold text-mist">Rekening Penerima <span className="text-2xs font-normal text-mist-dim">(satu SPJ, satu rekening)</span></h4>
+        {baris.length === 0 && <p className="text-2xs text-mist-dim">Belum ada rekening penerima. Pilih dari direktori di panel kiri, atau buat rekening baru.</p>}
+        {baris.slice(0, 1).map((r) => (
           <div key={r.key} className="rounded-md border border-ink-edge bg-ink p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-2xs text-mist-dim">Rekening {idx + 1} · {r.dariDirektori ? 'dari direktori (hanya baca)' : 'rekening baru'}</span>
+              <span className="text-2xs text-mist-dim">{r.dariDirektori ? 'Dari direktori (hanya baca)' : 'Rekening baru'}</span>
               {isDraft && (
-                <TombolIkon ikon={Trash2} label="Hapus rekening ini" variant="danger" onClick={() => hapusBaris(r.key)} />
+                <TombolIkon ikon={Trash2} label="Hapus rekening (untuk memilih yang lain)" variant="danger" onClick={() => hapusBaris(r.key)} />
               )}
             </div>
             {r.dariDirektori ? (
@@ -113,7 +108,7 @@ export function RekeningPenerimaPanel({ sesi, spj, isDraft, baris, setBaris }: {
         ))}
         {isDraft && (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button variant="secondary" ikon={<Plus size={16} />} tip="Hanya bila rekening belum ada di direktori" onClick={() => tambahBaris({ account_name: '', bank_name: '', account_number: '', alias: '', dariDirektori: false })}>
+            <Button variant="secondary" ikon={<Plus size={16} />} tip="Hanya bila rekening belum ada di direktori; menggantikan pilihan saat ini" onClick={() => setRekening({ account_name: '', bank_name: '', account_number: '', alias: '', dariDirektori: false })}>
               Rekening baru (belum ada di direktori)
             </Button>
             <Button variant="primary" onClick={simpan}><Save size={14} /> Simpan Rekening</Button>

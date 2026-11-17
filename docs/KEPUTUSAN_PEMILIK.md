@@ -56,3 +56,13 @@ Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; p
 - **Lembar Hasil Verifikasi di Arsip** disamakan dengan lembar di halaman SPJ (kotak kolom kiri tidak lagi meluber; baris rekening berlabel selaras).
 - **Tombol aksi:** komponen tombol bersama bergaya baru, ikon otomatis dari teks, tombol hanya-ikon bertooltip (teks muncul saat kursor/fokus keyboard). Tautan teks aksi diganti tombol.
 - **Buat SPJ:** kuitansi dipilih dari kartu (penerima, uraian, nilai, rekening), Lanjut langsung membuka formulir SPJ dengan detail kuitansi di atasnya. **Rekening penerima:** pilihan dari direktori tampil hanya-baca; isian manual hanya lewat "Rekening baru (belum ada di direktori)" dan masuk direktori lewat auto-capture (D01 §14).
+
+## Satu SPJ satu rekening, tab SPJ per peran, Koreksi BKU, Telusur SPJ (2026-11-17)
+
+1. Satu SPJ = satu rekening penerima (ditegakkan di aplikasi dan database).
+2. Pembatas login: hanya percobaan gagal yang dihitung (5 per 15 menit); login berhasil menghapus hitungan; pesan galat menyebut sisa waktu tunggu.
+3. Pop-up BKU Bendahara lebih lebar, dua kolom: rincian + rekening di kiri, form draf BKU di kanan.
+4. Tab SPJ per peran dengan jumlah: PPTK (Perlu Tindakan = Draft; Dalam Proses = Terkunci + Menunggu BKU; Selesai = Dibukukan), Verifikator (Perlu Tindakan = Terkunci; Selesai = Menunggu BKU + Dibukukan), Bendahara (Perlu Tindakan = Menunggu BKU; Selesai = BKU Aktif).
+5. Detail SPJ satu halaman, hanya baca, untuk semua SPJ non-Draft; wizard bertab hanya untuk Draft. (Verifikator tetap memakai halaman periksa untuk Terkunci/Menunggu BKU agar tombol Setujui/Kembalikan tersedia.)
+6. Daftar BKU tanpa tombol aksi (hanya Lihat rincian). Koreksi nomor/tanggal dan Cabut BKU hanya di menu Bendahara "Koreksi BKU"; konfirmasi ringan menjelaskan dampak, tanpa ketik nomor dan tanpa kolom alasan; jejak audit menyimpan nilai lama/baru; ditutup saat TA Arsip Read-Only.
+7. Arsip: tab "Telusur SPJ" (hanya layar, tanpa unduhan): filter tanggal BKU, Subkegiatan, Rekening belanja (multi-pilih, bisa dicari); hanya SPJ Dibukukan; dikelompokkan Subkegiatan → Rekening belanja dengan jumlah dan total, bisa dilipat, ada matriks ringkasan yang bisa diklik.

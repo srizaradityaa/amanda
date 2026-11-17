@@ -59,6 +59,7 @@ export const server = {
   simpanPerubahanPangkat: (id: string, pangkat: string, gd: string, gb: string, tmt: string) =>
     jalankan(api.adm_personel_perubahan_pangkat({ p_id: id, p_pangkat: pangkat, p_gelar_depan: gd, p_gelar_belakang: gb, p_tmt: tmt }), { toast: true }),
   buatAkun: (personel_id: string, sandi: string) => jalankan(api.adm_akun_buat({ p_personel_id: personel_id, p_sandi: sandi })),
+  bukaKunciAkun: (akun_id: string) => jalankan(api.adm_akun_buka_kunci({ p_akun_id: akun_id }), { toast: true }),
   resetPassword: (akun_id: string, sandi: string) => jalankan(api.adm_akun_reset_sandi({ p_akun_id: akun_id, p_sandi: sandi }), { toast: true }),
   setAkunStatus: (akun_id: string, status: AccountStatus) => jalankan(api.adm_akun_set_status({ p_akun_id: akun_id, p_status: status }), { toast: true }),
   // ------------------------- Master -------------------------

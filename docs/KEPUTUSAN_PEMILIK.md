@@ -66,3 +66,7 @@ Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; p
 5. Detail SPJ satu halaman, hanya baca, untuk semua SPJ non-Draft; wizard bertab hanya untuk Draft. (Verifikator tetap memakai halaman periksa untuk Terkunci/Menunggu BKU agar tombol Setujui/Kembalikan tersedia.)
 6. Daftar BKU tanpa tombol aksi (hanya Lihat rincian). Koreksi nomor/tanggal dan Cabut BKU hanya di menu Bendahara "Koreksi BKU"; konfirmasi ringan menjelaskan dampak, tanpa ketik nomor dan tanpa kolom alasan; jejak audit menyimpan nilai lama/baru; ditutup saat TA Arsip Read-Only.
 7. Arsip: tab "Telusur SPJ" (hanya layar, tanpa unduhan): filter tanggal BKU, Subkegiatan, Rekening belanja (multi-pilih, bisa dicari); hanya SPJ Dibukukan; dikelompokkan Subkegiatan → Rekening belanja dengan jumlah dan total, bisa dilipat, ada matriks ringkasan yang bisa diklik.
+
+## Pembatas login bertahap (2026-11-17)
+
+Per akun, dihitung sejak login berhasil terakhir: salah ke-5 → tunda 5 menit; salah ke-10 → tunda 15 menit; salah ke-15 → akun disuspend sampai dibuka Admin (tombol "Buka kunci" di Kelola Akun, atau reset password). Login berhasil mengosongkan hitungan. Akun Admin tidak pernah ditunda atau disuspend dan tidak ada batas waktu. Pesan di layar tidak menyebut sisa waktu: "Hubungi Admin." Pelindung per IP (40 gagal / 15 menit) tetap ada di Edge Function. Penegakan ada di database (`verifikasi_login`, kolom `kunci_sampai`), bukan di peramban.

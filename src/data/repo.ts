@@ -19,6 +19,7 @@ export const repo = {
   editPersonel: mut(repoDemo.editPersonel, server.editPersonel),
   simpanPerubahanPangkat: mut(repoDemo.simpanPerubahanPangkat, server.simpanPerubahanPangkat),
   buatAkun: mut(repoDemo.buatAkun, server.buatAkun),
+  bukaKunciAkun: mut(repoDemo.bukaKunciAkun, server.bukaKunciAkun),
   resetPassword: mut(repoDemo.resetPassword, server.resetPassword),
   setAkunStatus: mut(repoDemo.setAkunStatus, server.setAkunStatus),
   tambahSubkegiatan: mut(repoDemo.tambahSubkegiatan, server.tambahSubkegiatan),

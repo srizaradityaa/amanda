@@ -69,7 +69,7 @@ export function TentangPage() {
       </Bagian>
 
       <Bagian judul="Keamanan akun">
-        <p>Masuk memakai NIP atau NIK. Akun non-Admin terkunci setelah 10 kali salah sandi, dan sesi berakhir otomatis setelah 1 jam tanpa aktivitas. Satu akun bekerja pada satu Tahun Anggaran dan satu peran dalam satu sesi; untuk berganti, keluar lalu masuk kembali.</p>
+        <p>Masuk memakai NIP atau NIK. Akun non-Admin ditunda sementara setelah 5 dan 10 kali salah sandi, lalu disuspend setelah 15 kali (dibuka Admin), dan sesi berakhir otomatis setelah 1 jam tanpa aktivitas. Satu akun bekerja pada satu Tahun Anggaran dan satu peran dalam satu sesi; untuk berganti, keluar lalu masuk kembali.</p>
       </Bagian>
 
       <Bagian judul="Versi dan acuan">

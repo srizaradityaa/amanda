@@ -23,6 +23,7 @@ export function buatApi(k: KlienRpc) {
     arsip_kategori_simpan: (a: { p_id: string, p_kode: string, p_nama: string, p_deskripsi?: string, p_aktif?: boolean }) => panggil('arsip_kategori_simpan', a),
     adm_akun_buat: (a: { p_personel_id: string, p_sandi: string }) => panggil('adm_akun_buat', a),
     adm_akun_dampak: (a: { p_akun_id: string }) => panggil('adm_akun_dampak', a),
+    adm_akun_buka_kunci: (a: { p_akun_id: string }) => panggil('adm_akun_buka_kunci', a),
     adm_akun_reset_sandi: (a: { p_akun_id: string, p_sandi: string }) => panggil('adm_akun_reset_sandi', a),
     adm_akun_set_status: (a: { p_akun_id: string, p_status: string, p_alasan?: string }) => panggil('adm_akun_set_status', a),
     adm_apbdp_aktifkan: (a: { p_ta: string, p_pagu?: number }) => panggil('adm_apbdp_aktifkan', a),

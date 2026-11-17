@@ -502,6 +502,12 @@ function AkunModal({ personelId, onClose, onSaved }: { personelId: string; onClo
     recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Password direset' });
     refresh();
   };
+  const bukaKunci = async () => {
+    if (!acc) return;
+    if (gagal(await repo.bukaKunciAkun(acc.id))) return;
+    recordAudit({ ta_id: null, entitas: `Akun: ${personel.nama}`, aksi: 'aksi_administratif', nilai_sesudah: 'Kunci dibuka Admin' });
+    refresh();
+  };
   const toggleStatus = async () => {
     if (!acc) return;
     if (isSelf) return setErr('Tidak dapat menonaktifkan akun sendiri.');
@@ -535,6 +541,12 @@ function AkunModal({ personelId, onClose, onSaved }: { personelId: string; onClo
           </div>
           <Field label="Password Baru (Reset)" hint="Minimal 6 karakter"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
           {err && <p className="text-2xs text-crit">{err}</p>}
+          {acc.username !== 'admin' && (acc.locked || acc.failed_attempts > 0) && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-warn/40 bg-warn/5 p-3 text-2xs text-mist-dim">
+              <span>{acc.locked ? 'Akun disuspend setelah 15 kali salah kata sandi.' : `${acc.failed_attempts} kali salah kata sandi sejak login terakhir.`}</span>
+              <Button variant="secondary" onClick={bukaKunci}>Buka kunci</Button>
+            </div>
+          )}
           <Button variant="secondary" onClick={reset}><KeyRound size={14} /> Reset Password</Button>
           <div className="border-t border-ink-edge pt-4">
             {acc.status === 'ACTIVE' ? (

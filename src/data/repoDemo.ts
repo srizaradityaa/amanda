@@ -568,6 +568,13 @@ export const repoDemo = {
     data.akunLogin.push({ id, personel_id, username, password, status: 'ACTIVE', failed_attempts: 0, locked: false });
     return { ok: true };
   },
+  bukaKunciAkun: (akun_id: string): { ok: boolean; error?: string } => {
+    const acc = data.akunLogin.find((a) => a.id === akun_id);
+    if (!acc) return { ok: false, error: 'Akun tidak ditemukan.' };
+    acc.failed_attempts = 0;
+    acc.locked = false;
+    return { ok: true };
+  },
   resetPassword: (akun_id: string, new_password: string): { ok: boolean; error?: string } => {
     if (new_password.length < 6) return { ok: false, error: 'Password minimal 6 karakter.' };
     const acc = data.akunLogin.find((a) => a.id === akun_id);

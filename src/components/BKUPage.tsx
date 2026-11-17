@@ -1,6 +1,6 @@
 // BKU-01..05 — Buku Kas Umum (murni realisasi pengeluaran belanja). Bendahara mencatat/koreksi/cabut; Verifikator hanya membaca.
 import { useState } from 'react';
-import { Button, Card, EmptyState, FilterSelect, SearchBox, StatusBadge, Tabs, useToast, usePaging, Pager } from '@/components/ui';
+import { Button, Card, EmptyState, FilterSelect, SearchBox, Tabs, useToast, usePaging, Pager } from '@/components/ui';
 import { SectionTitle } from '@/components/AnggaranShared';
 import { repo } from '@/data/repo';
 import { getSession } from '@/lib/auth';
@@ -20,7 +20,6 @@ export function BKUPage() {
   const bump = () => setTick((n) => n + 1);
   const [search, setSearch] = useState('');
   const [fSeksi, setFSeksi] = useState('');
-  const [fStatus, setFStatus] = useState('');
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [catat, setCatat] = useState<SPJ | null>(null);
@@ -48,9 +47,9 @@ export function BKUPage() {
     bump();
   };
   const daftar = repo.bkuByTA(ta_id).filter((b) => {
+    if (b.status !== 'Aktif') return false;
     const k = kuitansi.find((q) => q.id === b.kuitansi_id);
     if (fSeksi && k?.seksi_ta_id !== fSeksi) return false;
-    if (fStatus && b.status !== fStatus) return false;
     if (dari && b.tanggal_bku < dari) return false;
     if (sampai && b.tanggal_bku > sampai) return false;
     if (search) {
@@ -60,7 +59,7 @@ export function BKUPage() {
     return true;
   });
   const pgB = usePaging(daftar);
-  const reset = () => { setSearch(''); setFSeksi(''); setFStatus(''); setDari(''); setSampai(''); };
+  const reset = () => { setSearch(''); setFSeksi(''); setDari(''); setSampai(''); };
 
   return (
     <div className="space-y-4">
@@ -116,7 +115,6 @@ export function BKUPage() {
           <div className="flex flex-wrap items-center gap-2">
             <SearchBox value={search} onChange={setSearch} placeholder="Cari No. BKU/uraian..." />
             <FilterSelect value={fSeksi} onChange={setFSeksi} label="Seksi" options={seksiList.map((x) => ({ value: x.id, label: x.nama_snapshot }))} />
-            <FilterSelect value={fStatus} onChange={setFStatus} label="Status" options={[{ value: 'Aktif', label: 'Aktif' }, { value: 'Dicabut', label: 'Dicabut' }]} />
             <label className="flex items-center gap-1 text-2xs text-mist-dim">Dari
               <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} className="rounded-md border border-ink-edge bg-ink px-2 py-1 text-2xs text-mist" /></label>
             <label className="flex items-center gap-1 text-2xs text-mist-dim">Sampai
@@ -128,7 +126,7 @@ export function BKUPage() {
           {daftar.length === 0 ? <EmptyState icon={<BookOpen size={28} />} title="Belum ada BKU pada filter ini" /> : (
             <table className="w-full text-2xs">
               <thead className="bg-ink text-mist-dim"><tr className="text-left">
-                {['No. BKU', 'Tanggal', 'Seksi', 'Uraian', 'Bruto', 'Status', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
+                {['No. BKU', 'Tanggal', 'Seksi', 'Uraian', 'Bruto', 'Aksi'].map((c) => <th key={c} className="px-4 py-2 font-medium whitespace-nowrap">{c}</th>)}
               </tr></thead>
               <tbody>{pgB.baris.map((b, i) => {
                 const k = kuitansi.find((q) => q.id === b.kuitansi_id);
@@ -139,7 +137,6 @@ export function BKUPage() {
                     <td className="px-4 py-2 text-mist-dim">{seksiList.find((q) => q.id === k?.seksi_ta_id)?.nama_snapshot ?? '—'}</td>
                     <td className="px-4 py-2 text-mist">{k?.uraian ?? '—'}</td>
                     <td className="px-4 py-2 mono tnum text-mist">{formatRupiah(k?.bruto ?? 0)}</td>
-                    <td className="px-4 py-2"><StatusBadge kind={b.status === 'Aktif' ? 'ok' : 'crit'} label={b.status} /></td>
                     <td className="px-4 py-2"><Button variant="secondary" onClick={() => setLihat(b.spj_id)}>Lihat rincian</Button></td>
                   </tr>
                 );

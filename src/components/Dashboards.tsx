@@ -272,7 +272,6 @@ export function VerifikatorDashboard() {
       <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} tindakan={[
         { label: 'SPJ terkunci menunggu verifikasi', jumlah: terkunci.length, menu: 'verifikasi' },
         { label: 'SPJ disetujui menunggu pembukuan', jumlah: spjList.filter((x) => x.status === 'Menunggu BKU').length, menu: 'bku' },
-        { label: 'Draf BKU menunggu persetujuan', jumlah: repo.bkuDrafByTA(ta.id).length, menu: 'bku' },
       ]} />
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">

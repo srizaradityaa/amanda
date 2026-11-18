@@ -259,7 +259,6 @@ function buildNav(role: string): NavItem[] {
       { id: 'rincian', grup: 'Laporan', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },
       { id: 'laporan', grup: 'Laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', grup: 'Laporan', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
-      { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
@@ -272,7 +271,6 @@ function buildNav(role: string): NavItem[] {
       { id: 'rincian', grup: 'Laporan', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },
       { id: 'laporan', grup: 'Laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', grup: 'Laporan', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
-      { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
@@ -285,7 +283,6 @@ function buildNav(role: string): NavItem[] {
       { id: 'rincian', grup: 'Laporan', label: 'Rincian Anggaran', icon: <Layers size={18} />, render: () => <DrilldownPage /> },
       { id: 'laporan', grup: 'Laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', grup: 'Laporan', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
-      { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }
@@ -296,7 +293,6 @@ function buildNav(role: string): NavItem[] {
       { id: 'heatmap', grup: 'Laporan', label: 'Heatmap Realisasi', icon: <BarChart3 size={18} />, render: () => <HeatmapPage /> },
       { id: 'laporan', grup: 'Laporan', label: 'Laporan', icon: <BarChart3 size={18} />, render: () => <LaporanPage /> },
       { id: 'laporan-kustom', grup: 'Laporan', label: 'Laporan Kustom', icon: <BarChart3 size={18} />, render: () => <LaporanKustomPage /> },
-      { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];
   }

@@ -17,7 +17,8 @@ import { PersiapanPage, SubkegiatanPage, PaguPage, SahkanSpdPage } from '@/compo
 import { AnggaranPptkPage } from '@/components/AnggaranPptkPage';
 import { KuitansiPage } from '@/components/KuitansiPage';
 import { SPJPage } from '@/components/SPJPage';
-import { GerbangBanner } from '@/components/AnggaranShared';
+import { GerbangBanner, useTick } from '@/components/AnggaranShared';
+import * as anggaran from '@/data/anggaran';
 import { repo } from '@/data/repo';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
@@ -198,7 +199,8 @@ function AppShell({
   onNavigate: (id: string) => void;
 }) {
   const role = session.active_role;
-  const nav = buildNav(role);
+  useTick(); // jendela alokasi bisa tutup karena waktu; menu mengikuti
+  const nav = sembunyikanMenuAnggaran(buildNav(role), role, session.active_ta_id);
   const active = nav.find((n) => n.id === activeNav) ?? nav[0];
   const bannerTA = session.active_ta_id ?? (role === 'admin' ? repo.tahunAnggaran().find((t) => t.status === 'Aktif Penuh')?.id ?? null : null);
 
@@ -208,6 +210,20 @@ function AppShell({
       {active?.render()}
     </DashboardShell>
   );
+}
+
+// Tampilan saja: menu persiapan anggaran disembunyikan saat tidak dipakai. Halaman, aturan, dan data tidak berubah.
+// Bendahara: Persiapan, Subkegiatan, Pagu hanya tampil selama alokasi belum disahkan (persiapan atau APBD-P).
+// PPTK: Anggaran hanya tampil selama jendela alokasi terbuka. Isi lainnya sudah ada di Rincian Anggaran.
+function sembunyikanMenuAnggaran(nav: NavItem[], role: string, ta_id: string | null): NavItem[] {
+  if (!ta_id) return nav;
+  if (role === 'bendahara' && anggaran.sudahDisahkan(ta_id)) {
+    return nav.filter((n) => !['persiapan', 'subkegiatan', 'pagu'].includes(n.id));
+  }
+  if (role === 'pptk' && !anggaran.jendelaTerbuka(ta_id)) {
+    return nav.filter((n) => n.id !== 'anggaran');
+  }
+  return nav;
 }
 
 function buildNav(role: string): NavItem[] {

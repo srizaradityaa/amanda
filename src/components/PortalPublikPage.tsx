@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { daftarTAPublikAsync, ringkasanPublikAsync, type TAPublik, type KodeKategori, type RingkasanPublik } from '@/data/publik';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Maximize2, Minimize2, Pencil } from 'lucide-react';
 import { pengaturanPortalAsync, type PengaturanPortal } from '@/data/pengaturanPortal';
-import { alamatEmbed } from '@/lib/youtube';
+import { PemutarVideo } from '@/components/PemutarVideo';
 import { Logo } from '@/components/Logo';
 
 const SEGAR_MS = 5 * 60 * 1000; // data diperbarui otomatis tiap 5 menit (layar TV), tanpa memuat ulang halaman
@@ -169,7 +169,7 @@ export function PortalPublikPage({ onBack }: { onBack: () => void }) {
             </section>
             <section aria-label="Video informasi" className="aspect-video w-full overflow-hidden rounded-lg border border-ink-edge bg-black">
               {pengaturan.video_id
-                ? <iframe title="Video informasi" src={alamatEmbed(pengaturan.video_id)} className="h-full w-full" allow="autoplay; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" />
+                ? <PemutarVideo id={pengaturan.video_id} />
                 : <div className="grid h-full place-items-center text-mist-dim"><Logo varian="ikon" tinggi={64} /></div>}
             </section>
             <section aria-label="Proporsi status SPJ" className="flex-1 rounded-lg border border-ink-edge bg-ink-surface p-3">

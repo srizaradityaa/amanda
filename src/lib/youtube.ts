@@ -8,5 +8,5 @@ export function idYoutube(masukan: string): string | null {
 }
 /** Alamat embed: senyap, otomatis, berulang, tanpa kontrol, tanpa pelacakan cookie. */
 export function alamatEmbed(id: string): string {
-  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1`;
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1&cc_load_policy=0&fs=0`;
 }

@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Card, Field, Input } from '@/components/ui';
 import { pengaturanPortalAsync, simpanPengaturanPortal } from '@/data/pengaturanPortal';
-import { alamatEmbed, idYoutube } from '@/lib/youtube';
+import { idYoutube } from '@/lib/youtube';
+import { PemutarVideo } from '@/components/PemutarVideo';
 
 const MAKS_SISI = 256;        // logo diperkecil sampai sisi terpanjang 256 px
 const MAKS_BYTE_DATAURL = 200_000;
@@ -85,7 +86,7 @@ export function PengaturanPortalPage() {
           <div>
             <p className="mb-1 text-2xs text-mist-dim">Pratinjau (jika video tidak tampil, pemilik video melarang diputar di situs lain; pilih video lain):</p>
             <div className="aspect-video w-full max-w-xl overflow-hidden rounded-lg border border-ink-edge bg-black">
-              <iframe title="Pratinjau video" src={alamatEmbed(id)} className="h-full w-full" allow="autoplay; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" />
+              <PemutarVideo id={id} />
             </div>
           </div>
         )}

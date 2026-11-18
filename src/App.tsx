@@ -63,10 +63,22 @@ function AplikasiUtama() {
   const [session, setSession] = useState<SessionPayload | null>(getSession());
   // Halaman aktif disimpan di hash (#/h/<id>) agar reload tetap di halaman yang sama.
   const [activeNav, setActiveNavState] = useState(() => window.location.hash.match(/^#\/h\/([\w-]+)$/)?.[1] ?? 'dashboard');
-  const setActiveNav = (id: string) => {
+  const hashHalaman = () => window.location.hash.match(/^#\/h\/([\w-]+)$/)?.[1] ?? 'dashboard';
+  // Pindah menu menambah riwayat peramban, sehingga tombol kembali/maju bekerja antar menu. ganti=true untuk menimpa (mis. setelah masuk).
+  const setActiveNav = (id: string, ganti = false) => {
     setActiveNavState(id);
-    try { window.history.replaceState(null, '', id === 'dashboard' ? window.location.pathname + window.location.search : `#/h/${id}`); } catch { /* abaikan */ }
+    try {
+      if (hashHalaman() === id && !ganti) return;
+      const url = id === 'dashboard' ? window.location.pathname + window.location.search : `#/h/${id}`;
+      if (ganti) window.history.replaceState(null, '', url); else window.history.pushState(null, '', url);
+    } catch { /* abaikan */ }
   };
+  // Tombol kembali/maju peramban: tampilkan menu sesuai alamat.
+  useEffect(() => {
+    const h = () => setActiveNavState(hashHalaman());
+    window.addEventListener('popstate', h);
+    return () => window.removeEventListener('popstate', h);
+  }, []);
   // Tautan di dalam halaman (mis. dasbor Admin) membuka menu lain lewat peristiwa ini.
   useEffect(() => {
     const h = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (typeof id === 'string') setActiveNav(id); };
@@ -138,7 +150,7 @@ function AplikasiUtama() {
       const s = getSession();
       setSession(s);
       setView('app');
-      setActiveNav('dashboard');
+      setActiveNav('dashboard', true);
     }} />;
   }
 

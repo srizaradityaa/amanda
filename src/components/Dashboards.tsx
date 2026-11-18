@@ -10,6 +10,7 @@ import {
   usePaging, Pager } from '@/components/ui';
 import { formatRupiah, formatPersen } from '@/lib/format';
 import { AngkaRupiah } from '@/components/AngkaHitung';
+import { GrafikAnggaran } from '@/components/GrafikDasbor';
 import { formatTanggal, formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
 import * as anggaran from '@/data/anggaran';
@@ -81,11 +82,6 @@ export function BendaharaDashboard() {
   const gerbang = anggaran.gerbangStatus(ta.id);
   const gateOpen = gerbang.terbuka;
   const bisaSahkan = !gerbang.disahkan && gerbang.seksiBelum.length === 0;
-  const rekAlokasi = anggaran.alokasiRekeningByTA(ta.id);
-  const totalPagu = rekAlokasi.reduce((s, r) => s + r.pagu, 0);
-  const totalRealisasi = rekAlokasi.reduce((s, r) => s + anggaran.realisasiAlokasi(r), 0);
-  const totalSisaSpd = rekAlokasi.reduce((s, r) => s + anggaran.sisaSpdBebas(r), 0);
-  const serapan = totalPagu > 0 ? `${((totalRealisasi / totalPagu) * 100).toFixed(1)}%` : '—';
   const tutupJendela = anggaran.jendelaTutup(ta.id);
   const sahkan = async () => {
     const aktor = aktorSesi();
@@ -101,12 +97,7 @@ export function BendaharaDashboard() {
       <PageHeader title="Dasbor Bendahara Pengeluaran" desc={`TA ${ta.tahun}`} />
 
       <KartuPaguInduk ta={ta} />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Pagu Alokasi</p><p className="mono tnum mt-1 text-lg text-mist"><AngkaRupiah nilai={totalPagu} /></p></Card>
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Realisasi BKU</p><p className="mono tnum mt-1 text-lg text-mist"><AngkaRupiah nilai={totalRealisasi} /></p></Card>
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Sisa SPD Bebas</p><p className="mono tnum mt-1 text-lg text-mist"><AngkaRupiah nilai={totalSisaSpd} /></p></Card>
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Serapan</p><p className="mono tnum mt-1 text-lg text-mist">{serapan}</p></Card>
-      </div>
+      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} />
       {/* Ticker ringkasan (Pro Mode) */}
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">
@@ -267,6 +258,7 @@ export function VerifikatorDashboard() {
     <div className="space-y-6 pro-dashboard">
       <PageHeader title="Dasbor Verifikator" desc={`TA ${ta.tahun}`} />
       <KartuPaguInduk ta={ta} />
+      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} />
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">
           <TikerItem label="Antrean Terkunci" value={`${terkunci.length}`} />
@@ -340,6 +332,12 @@ export function PakpaDashboard() {
     <div className="space-y-6 pro-dashboard">
       <PageHeader title="Dasbor Eksekutif PA/KPA" desc={`TA ${ta.tahun} • drill-down sampai subkegiatan`} />
       <KartuPaguInduk ta={ta} />
+      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)}
+        pie={an.ok ? { judul: 'Zona seksi', segs: [
+          { label: 'Normal', nilai: an.data.ringkasan.normal, warna: '#34D399' },
+          { label: 'Perlu Perhatian', nilai: an.data.ringkasan.perhatian, warna: '#FBBF24' },
+          { label: 'Lonjakan', nilai: an.data.ringkasan.lonjakan, warna: '#FB923C' },
+        ] } : undefined} />
       {/* Ticker ringkasan */}
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">

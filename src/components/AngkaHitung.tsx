@@ -42,3 +42,7 @@ export function AngkaPersen({ nilai }: { nilai: number }) {
   const v = useHitung(nilai, 1);
   return <>{v.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}%</>;
 }
+
+export function AngkaBulat({ nilai }: { nilai: number }) {
+  return <>{Math.round(useHitung(nilai)).toLocaleString('id-ID')}</>;
+}

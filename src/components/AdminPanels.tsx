@@ -18,6 +18,8 @@ import { getSession } from '@/lib/auth';
 import { formatTanggal, formatTanggalPendek, todayWita, tambahHari, selisihHari } from '@/lib/wita';
 import { formatRupiah } from '@/lib/format';
 import type { AccountStatus, DirektoriTransaksionalSPJ } from '@/data/types';
+import { AngkaBulat } from '@/components/AngkaHitung';
+import { BatangDaftar, PieGrafik } from '@/components/GrafikDasbor';
 import { Download, Upload, FileText, Plus, Pencil, Archive, KeyRound, Building2, Users, Lock, Layers, ScrollText, Merge, History, Power, PowerOff } from 'lucide-react';
 
 const SESSION = getSession();
@@ -78,6 +80,36 @@ export function AdminDasborPage() {
         <StatCard icon={<ScrollText size={18} />} label="Rekening belanja aktif" value={`${repo.masterRekeningBelanja().filter((x) => x.status === 'Aktif').length}`} />
         <StatCard icon={<FileText size={18} />} label="Jenis pajak aktif" value={`${repo.masterJenisPajak().filter((x) => x.status === 'Aktif').length}`} />
         <StatCard icon={<History size={18} />} label="Tahun Anggaran" value={`${taList.length}`} />
+      </div>
+
+      {/* Grafik ringkas (tanpa angka anggaran, sesuai batas peran Admin) */}
+      <div className="grid gap-3 lg:grid-cols-12">
+        <Card className="p-4 lg:col-span-4">
+          <h3 className="mb-3 text-sm font-semibold text-mist">Status akun</h3>
+          <PieGrafik judul="Status akun" segs={[
+            { label: 'Aktif', nilai: akun.filter((a) => a.status === 'ACTIVE' && !a.locked).length, warna: '#34D399' },
+            { label: 'Terkunci', nilai: akun.filter((a) => a.locked).length, warna: '#F87171' },
+            { label: 'Nonaktif', nilai: akun.filter((a) => a.status === 'NON-ACTIVE' && !a.locked).length, warna: '#6B7280' },
+          ]} />
+        </Card>
+        <Card className="p-4 lg:col-span-4">
+          <h3 className="mb-3 text-sm font-semibold text-mist">Status Tahun Anggaran</h3>
+          <PieGrafik judul="Status Tahun Anggaran" segs={[
+            { label: 'Aktif Penuh', nilai: taList.filter((t) => t.status === 'Aktif Penuh').length, warna: '#34D399' },
+            { label: 'Draft', nilai: taList.filter((t) => t.status === 'Draft').length, warna: '#F59E0B' },
+            { label: 'Arsip Read-Only', nilai: taList.filter((t) => t.status === 'Arsip Read-Only').length, warna: '#6B7280' },
+          ]} />
+        </Card>
+        <Card className="p-4 lg:col-span-4">
+          <h3 className="mb-2 text-sm font-semibold text-mist">Kelengkapan master</h3>
+          <BatangDaftar rows={[
+            { label: 'Personel', nilai: repo.masterPersonel().length },
+            { label: 'Unit SOTK', nilai: repo.masterSOTK().filter((x) => x.status_versi === 'Aktif').length },
+            { label: 'Subkegiatan', nilai: repo.masterSubkegiatan().filter((x) => x.status === 'Aktif').length },
+            { label: 'Rekening belanja', nilai: repo.masterRekeningBelanja().filter((x) => x.status === 'Aktif').length },
+            { label: 'Jenis pajak', nilai: repo.masterJenisPajak().filter((x) => x.status === 'Aktif').length },
+          ]} />
+        </Card>
       </div>
 
       <div>
@@ -1207,7 +1239,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
       <div className="flex h-10 w-10 items-center justify-center rounded-md border border-ink-edge bg-ink text-amber">{icon}</div>
       <div>
         <div className="text-2xs text-mist-dim">{label}</div>
-        <div className="mono text-xl font-semibold text-mist">{value}</div>
+        <div className="mono text-xl font-semibold text-mist"><AngkaBulat nilai={Number(value)} /></div>
       </div>
     </Card>
   );

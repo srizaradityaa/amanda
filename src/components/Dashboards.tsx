@@ -97,7 +97,11 @@ export function BendaharaDashboard() {
       <PageHeader title="Dasbor Bendahara Pengeluaran" desc={`TA ${ta.tahun}`} />
 
       <KartuPaguInduk ta={ta} />
-      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} />
+      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} tindakan={[
+        { label: 'SPJ menunggu BKU', jumlah: repo.spjByTA(ta.id).filter((x) => x.status === 'Menunggu BKU').length, menu: 'bku' },
+        { label: 'Draf BKU menunggu persetujuan', jumlah: repo.bkuDrafByTA(ta.id).length, menu: 'bku' },
+        { label: 'Seksi belum Seimbang', jumlah: gerbang.seksiBelum.length },
+      ]} />
       {/* Ticker ringkasan (Pro Mode) */}
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">
@@ -199,6 +203,13 @@ export function PptkDashboard() {
             : <StatusBadge kind="crit" label="Gatekeeper Tertutup" />}
         </div>
       </Card>
+      {seksi && (
+        <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} seksi_id={seksi.id} tindakan={[
+          { label: 'Kuitansi Aktif belum dibuatkan SPJ', jumlah: kuitansiSeksi.filter((k) => k.status === 'Aktif' && !spjSeksi.some((x) => x.kuitansi_id === k.id)).length, menu: 'spj' },
+          { label: 'SPJ Draft (belum diajukan)', jumlah: spjSeksi.filter((x) => x.status === 'Draft' && !x.catatan_revisi).length, menu: 'spj' },
+          { label: 'SPJ dikembalikan, perlu revisi', jumlah: spjSeksi.filter((x) => x.status === 'Draft' && !!x.catatan_revisi).length, menu: 'spj' },
+        ]} />
+      )}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <div className="border-b border-ink-edge px-4 py-3">
@@ -258,7 +269,11 @@ export function VerifikatorDashboard() {
     <div className="space-y-6 pro-dashboard">
       <PageHeader title="Dasbor Verifikator" desc={`TA ${ta.tahun}`} />
       <KartuPaguInduk ta={ta} />
-      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} />
+      <GrafikAnggaran ta_id={ta.id} tahun={Number(ta.tahun)} tindakan={[
+        { label: 'SPJ terkunci menunggu verifikasi', jumlah: terkunci.length, menu: 'verifikasi' },
+        { label: 'SPJ disetujui menunggu pembukuan', jumlah: spjList.filter((x) => x.status === 'Menunggu BKU').length, menu: 'bku' },
+        { label: 'Draf BKU menunggu persetujuan', jumlah: repo.bkuDrafByTA(ta.id).length, menu: 'bku' },
+      ]} />
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">
           <TikerItem label="Antrean Terkunci" value={`${terkunci.length}`} />
@@ -337,7 +352,11 @@ export function PakpaDashboard() {
           { label: 'Normal', nilai: an.data.ringkasan.normal, warna: '#34D399' },
           { label: 'Perlu Perhatian', nilai: an.data.ringkasan.perhatian, warna: '#FBBF24' },
           { label: 'Lonjakan', nilai: an.data.ringkasan.lonjakan, warna: '#FB923C' },
-        ] } : undefined} />
+        ] } : undefined}
+        tindakan={an.ok ? [
+          { label: 'Seksi zona Lonjakan', jumlah: an.data.ringkasan.lonjakan, menu: 'heatmap' },
+          { label: 'Seksi zona Perlu Perhatian', jumlah: an.data.ringkasan.perhatian, menu: 'heatmap' },
+        ] : undefined} />
       {/* Ticker ringkasan */}
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">

@@ -1,7 +1,7 @@
 // Grafik dasbor (tampilan saja, SVG sendiri, tanpa pustaka). Data dibaca lewat src/lib/ringkasanDasbor.ts.
 import { Card } from '@/components/ui';
-import { AngkaPersen, AngkaRupiah } from '@/components/AngkaHitung';
-import { jumlahStatusSPJ, kumulatifBulanan, ringkasanAnggaran, serapanPerSeksi, targetWaktu } from '@/lib/ringkasanDasbor';
+import { AngkaBulat, AngkaPersen, AngkaRupiah } from '@/components/AngkaHitung';
+import { jumlahStatusSPJ, kumulatifBulanan, ringkasanAnggaran, serapanPerSeksi, serapanPerSubkegiatan, targetWaktu } from '@/lib/ringkasanDasbor';
 
 const AMBER = '#F59E0B', OK = '#34D399', SPIKE = '#FB923C', TRACK = '#1F2937', DIM = '#9CA3AF';
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -34,8 +34,8 @@ function Donat({ real, komit }: { real: number; komit: number }) {
   );
 }
 
-function Garis({ ta_id, tahun, pagu }: { ta_id: string; tahun: number; pagu: number }) {
-  const nyata = kumulatifBulanan(ta_id, tahun, pagu), target = targetWaktu();
+function Garis({ ta_id, tahun, pagu, seksi_id }: { ta_id: string; tahun: number; pagu: number; seksi_id?: string }) {
+  const nyata = kumulatifBulanan(ta_id, tahun, pagu, seksi_id), target = targetWaktu();
   const X = (i: number) => 8 + (i * 584) / 11, Y = (p: number) => 160 - (Math.min(100, p) / 100) * 140;
   const titikNyata = nyata.map((v, i) => (v === null ? null : `${X(i)},${Y(v)}`)).filter(Boolean).join(' ');
   const titikTarget = target.map((v, i) => `${X(i)},${Y(v)}`).join(' ');
@@ -83,9 +83,9 @@ function Pie({ judul, segs }: { judul: string; segs: SegPie[] }) {
   );
 }
 
-function Batang({ ta_id }: { ta_id: string }) {
-  const rows = serapanPerSeksi(ta_id);
-  if (rows.length === 0) return <p className="text-2xs text-mist-dim">Belum ada seksi aktif.</p>;
+function Batang({ ta_id, seksi_id }: { ta_id: string; seksi_id?: string }) {
+  const rows = seksi_id ? serapanPerSubkegiatan(ta_id, seksi_id) : serapanPerSeksi(ta_id);
+  if (rows.length === 0) return <p className="text-2xs text-mist-dim">{seksi_id ? 'Belum ada subkegiatan.' : 'Belum ada seksi aktif.'}</p>;
   return (
     <ul className="space-y-1">
       {rows.map((r) => (
@@ -101,24 +101,49 @@ function Batang({ ta_id }: { ta_id: string }) {
   );
 }
 
-/** Blok grafik dasbor: angka besar, donat serapan, garis kumulatif, pie, batang per seksi. */
-export function GrafikAnggaran({ ta_id, tahun, pie }: { ta_id: string; tahun: number; pie?: { judul: string; segs: SegPie[] } }) {
-  const m = ringkasanAnggaran(ta_id);
-  const s = jumlahStatusSPJ(ta_id);
-  const pieSegs = pie ?? { judul: 'Status SPJ', segs: [
+export interface ItemTindakan { label: string; jumlah: number; menu?: string }
+
+/** Kartu "Perlu tindakan": daftar hal yang menunggu, dengan angka dan tautan ke menu terkait. */
+export function KartuTindakan({ judul = 'Perlu tindakan', items }: { judul?: string; items: ItemTindakan[] }) {
+  return (
+    <Card className="p-4">
+      <h3 className="mb-2 text-sm font-semibold text-mist">{judul}</h3>
+      <ul className="divide-y divide-ink-edge/60">
+        {items.map((i) => (
+          <li key={i.label} className="flex items-center gap-3 py-2 text-2xs">
+            <span className="flex-1 text-mist">{i.label}</span>
+            <b className={`mono tnum text-sm ${i.jumlah > 0 ? 'text-amber' : 'text-mist-dim'}`}><AngkaBulat nilai={i.jumlah} /></b>
+            {i.menu && i.jumlah > 0 && (
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('amanda:nav', { detail: i.menu }))} className="text-teal hover:underline">Buka</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/** Blok grafik dasbor: angka besar, donat serapan, garis kumulatif, pie, batang, dan kartu perlu tindakan.
+ *  Bila seksi_id diisi (PPTK), semua angka dibatasi pada seksi itu dan batang menampilkan subkegiatan. */
+export function GrafikAnggaran({ ta_id, tahun, seksi_id, pie, tindakan }: {
+  ta_id: string; tahun: number; seksi_id?: string; pie?: { judul: string; segs: SegPie[] }; tindakan?: ItemTindakan[];
+}) {
+  const m = ringkasanAnggaran(ta_id, seksi_id);
+  const s = jumlahStatusSPJ(ta_id, seksi_id);
+  const pieSegs = pie ?? { judul: seksi_id ? 'Status SPJ seksi' : 'Status SPJ', segs: [
     { label: 'Dibukukan', nilai: s.dibukukan, warna: OK }, { label: 'Menunggu BKU', nilai: s.menungguBku, warna: SPIKE },
     { label: 'Terkunci', nilai: s.terkunci, warna: AMBER }, { label: 'Draft', nilai: s.draft, warna: '#6B7280' },
   ] };
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <AngkaBesar label="Pagu" nilai={m.pagu} />
+        <AngkaBesar label={seksi_id ? 'Pagu seksi' : 'Pagu'} nilai={m.pagu} />
         <AngkaBesar label="Realisasi" nilai={m.realisasi} />
         <AngkaBesar label="Sisa anggaran" nilai={m.sisaAnggaran} />
         <AngkaBesar label="Sisa SPD Bebas" nilai={m.sisaSpd} />
       </div>
       <div className="grid gap-3 lg:grid-cols-12">
-        <Card className="p-4 lg:col-span-8"><h3 className="mb-2 text-sm font-semibold text-mist">Realisasi kumulatif terhadap waktu berjalan</h3><Garis ta_id={ta_id} tahun={tahun} pagu={m.pagu} /></Card>
+        <Card className="p-4 lg:col-span-8"><h3 className="mb-2 text-sm font-semibold text-mist">Realisasi kumulatif terhadap waktu berjalan</h3><Garis ta_id={ta_id} tahun={tahun} pagu={m.pagu} seksi_id={seksi_id} /></Card>
         <Card className="p-4 text-center lg:col-span-4">
           <h3 className="mb-2 text-left text-sm font-semibold text-mist">Serapan anggaran</h3>
           <Donat real={m.pctRealisasi} komit={m.pctKomitmen} />
@@ -127,8 +152,26 @@ export function GrafikAnggaran({ ta_id, tahun, pie }: { ta_id: string; tahun: nu
       </div>
       <div className="grid gap-3 lg:grid-cols-12">
         <Card className="p-4 lg:col-span-5"><h3 className="mb-3 text-sm font-semibold text-mist">{pieSegs.judul}</h3><Pie judul={pieSegs.judul} segs={pieSegs.segs} /></Card>
-        <Card className="p-4 lg:col-span-7"><h3 className="mb-2 text-sm font-semibold text-mist">Serapan per seksi</h3><Batang ta_id={ta_id} /></Card>
+        <Card className="p-4 lg:col-span-7"><h3 className="mb-2 text-sm font-semibold text-mist">{seksi_id ? 'Serapan per subkegiatan' : 'Serapan per seksi'}</h3><Batang ta_id={ta_id} seksi_id={seksi_id} /></Card>
       </div>
+      {tindakan && <KartuTindakan items={tindakan} />}
     </div>
   );
 }
+
+/** Batang sederhana dan donat generik untuk dasbor Admin (tanpa angka anggaran). */
+export function BatangDaftar({ rows, maks }: { rows: { label: string; nilai: number }[]; maks?: number }) {
+  const m = maks ?? Math.max(1, ...rows.map((r) => r.nilai));
+  return (
+    <ul className="space-y-1">
+      {rows.map((r) => (
+        <li key={r.label} className="grid grid-cols-[minmax(110px,170px)_1fr_40px] items-center gap-3 py-1 text-2xs">
+          <span className="truncate text-mist">{r.label}</span>
+          <div className="h-2.5 overflow-hidden rounded-full bg-ink"><div className="tumbuh h-full rounded-full bg-amber" style={{ width: `${(r.nilai / m) * 100}%` }} /></div>
+          <b className="mono tnum text-right text-mist">{r.nilai}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
+export { Pie as PieGrafik };

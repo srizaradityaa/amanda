@@ -96,7 +96,7 @@ export function PortalPublikPage({ onBack }: { onBack: () => void }) {
           <Logo varian="ikon" tinggi={36} />
           <div>
             <h1 className="font-bold leading-tight">AMANDA — Portal Keterbukaan</h1>
-            <p className="text-2xs text-mist-dim">Pemerintah Kabupaten Balangan • akses anonim, baca saja</p>
+            <p className="text-2xs text-mist-dim">Pemerintah Kecamatan Batumandi</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

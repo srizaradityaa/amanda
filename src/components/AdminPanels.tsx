@@ -121,7 +121,7 @@ export function AdminDasborPage() {
                   <div className="mt-3">
                     <div className="mb-1 flex justify-between text-2xs text-mist-dim"><span>Kesiapan</span><span className="mono">{ok}/{cek.items.length}</span></div>
                     <div className="h-1.5 overflow-hidden rounded bg-ink-edge" role="progressbar" aria-valuenow={ok} aria-valuemax={cek.items.length} aria-label="Kesiapan TA">
-                      <div className={`h-full ${ok === cek.items.length ? 'bg-ok' : 'bg-amber'}`} style={{ width: `${cek.items.length ? (ok / cek.items.length) * 100 : 0}%` }} />
+                      <div className={`tumbuh h-full ${ok === cek.items.length ? 'bg-ok' : 'bg-amber'}`} style={{ width: `${cek.items.length ? (ok / cek.items.length) * 100 : 0}%` }} />
                     </div>
                   </div>
                 )}

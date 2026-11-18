@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShieldCheck, FileText, ScrollText, LogOut, Menu, X, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { getSession, logout, subscribeSession } from '@/lib/auth';
-import { Logo } from '@/components/Logo';
+import { LogoGerak } from '@/components/Logo';
 import { touchActivity } from '@/lib/auth';
 import { repo } from '@/data/repo';
 import { formatRupiah, formatPersen, persenNumerik } from '@/lib/format';
@@ -103,7 +103,7 @@ export function DashboardShell({
               {terbuka ? <ChevronDown size={12} /> : <ChevronRight size={12} />}{item.grup}
             </button>
           )}
-          {terbuka && <div className={ciut ? 'space-y-1' : 'ml-2 space-y-1 border-l border-ink-edge pl-1.5'}>{anggota.map(renderItem)}</div>}
+          {terbuka && <div className={ciut ? 'space-y-1' : 'submenu-buka ml-2 space-y-1 border-l border-ink-edge pl-1.5'}>{anggota.map(renderItem)}</div>}
         </div>
       );
     });
@@ -118,7 +118,7 @@ export function DashboardShell({
         }`}
       >
         <div className="flex h-12 items-center gap-2 border-b border-ink-edge px-4">
-          <Logo varian="ikon" tinggi={28} />
+          <LogoGerak tinggi={28} />
           {!ciut && <span className="text-sm font-bold tracking-tight">AMANDA</span>}
           <button
             className="ml-auto hidden rounded p-1 text-mist-dim hover:text-mist lg:block"
@@ -170,41 +170,43 @@ function Topbar({ session, onMobileOpen }: { session: SessionPayload; onMobileOp
 
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center gap-3 border-b border-ink-edge bg-ink-surface/95 px-4 backdrop-blur-sm">
-      <button
-        className="rounded p-1 text-mist-dim hover:text-mist lg:hidden"
-        onClick={onMobileOpen}
-        aria-label="Buka menu"
-      >
-        <Menu size={18} />
-      </button>
+      <div className="flex flex-1 items-center gap-3">
+        <button
+          className="rounded p-1 text-mist-dim hover:text-mist lg:hidden"
+          onClick={onMobileOpen}
+          aria-label="Buka menu"
+        >
+          <Menu size={18} />
+        </button>
 
-      {/* Label TA aktif + peran aktif (tanpa dropdown) */}
-      <div className="flex items-center gap-2 text-2xs">
-        {ta ? (
-          <span className="mono rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 font-medium text-mist">
-            TA {ta.tahun}
-          </span>
-        ) : (
+        {/* Label TA aktif + peran aktif (tanpa dropdown) */}
+        <div className="flex items-center gap-2 text-2xs">
+          {ta ? (
+            <span className="mono rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 font-medium text-mist">
+              TA {ta.tahun}
+            </span>
+          ) : (
+            <span className="rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 font-medium text-mist-dim">
+              Tanpa TA
+            </span>
+          )}
           <span className="rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 font-medium text-mist-dim">
-            Tanpa TA
+            {peranLabel(role)}
           </span>
-        )}
-        <span className="rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 font-medium text-mist-dim">
-          {peranLabel(role)}
-        </span>
-        {role === 'admin' && (
-          <span className="rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 text-2xs text-mist-dim lg:hidden">
-            Pagu Induk: {ta ? formatRupiah(ta.pagu_induk) : '—'}
-          </span>
-        )}
+          {role === 'admin' && (
+            <span className="rounded-full border border-ink-edge bg-ink px-2.5 py-0.5 text-2xs text-mist-dim lg:hidden">
+              Pagu Induk: {ta ? formatRupiah(ta.pagu_induk) : '—'}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Mini progress bar — slot di tengah (di desktop) */}
-      <div className="ml-auto hidden items-center gap-4 lg:flex">
+      {/* Mini progress bar — di tengah; rincian muncul saat kursor/fokus/sentuhan */}
+      <div className="hidden shrink-0 items-center lg:flex">
         <MiniProgress role={role} session={session} />
       </div>
 
-      <div className="ml-auto flex items-center gap-2 lg:ml-2">
+      <div className="flex flex-1 items-center justify-end gap-2">
         <span className="hidden text-2xs text-mist-dim sm:inline">{session.nama_snapshot}</span>
         <button
           onClick={() => logout()}
@@ -253,30 +255,35 @@ function MiniProgress({ role, session }: { role: Role | 'pending'; session: Sess
     const pemetaanIds = repo.pemetaanBySeksi(seksiId).map((p) => p.id);
     const milikSeksi = (a: (typeof semuaRek)[number]) => pemetaanIds.includes(a.pemetaan_subkegiatan_id);
     const m = agregat(rekAktif.filter(milikSeksi), semuaRek.filter(milikSeksi));
-    return (
-      <div className="flex items-center gap-3 text-2xs">
-        <Metric label="Pagu" value={formatRupiah(m.pagu)} />
-        <Metric label="Realisasi" value={formatRupiah(m.realisasi)} />
-        <Metric label="Sisa SPD Bebas" value={formatRupiah(m.sisa)} />
-        <Bar pct={persenNumerik(m.realisasi + m.komitmen, m.pagu)} label={formatPersen(m.realisasi + m.komitmen, m.pagu)} />
-      </div>
-    );
+    return <PilProgress m={m} />;
   }
 
   const m = agregat(rekAktif, semuaRek);
+  return <PilProgress m={m} />;
+}
+
+function PilProgress({ m }: { m: { pagu: number; realisasi: number; komitmen: number; sisa: number } }) {
+  const pct = persenNumerik(m.realisasi + m.komitmen, m.pagu);
   return (
-    <div className="flex items-center gap-3 text-2xs">
-      <Metric label="Pagu" value={formatRupiah(m.pagu)} />
-      <Metric label="Realisasi" value={formatRupiah(m.realisasi)} />
-      <Metric label="Sisa SPD Bebas" value={formatRupiah(m.sisa)} />
-      <Bar pct={persenNumerik(m.realisasi + m.komitmen, m.pagu)} label={formatPersen(m.realisasi + m.komitmen, m.pagu)} />
+    <div className="group relative">
+      <button type="button" aria-describedby="rincian-anggaran"
+        className="flex items-center rounded-full border border-ink-edge bg-ink px-3.5 py-1.5 text-2xs">
+        <Bar pct={pct} label={formatPersen(m.realisasi + m.komitmen, m.pagu)} />
+      </button>
+      <div id="rincian-anggaran" role="tooltip"
+        className="invisible absolute left-1/2 top-full z-30 mt-2 w-72 -translate-x-1/2 -translate-y-1 rounded-lg border border-ink-edge bg-ink-surface p-3 text-2xs opacity-0 shadow-xl transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+        <Baris label="Pagu" value={formatRupiah(m.pagu)} />
+        <Baris label="Realisasi" value={formatRupiah(m.realisasi)} />
+        <Baris label="Sisa anggaran" value={formatRupiah(m.pagu - m.realisasi)} />
+        <Baris label="Sisa SPD Bebas" value={formatRupiah(m.sisa)} />
+      </div>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Baris({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-between border-b border-ink-edge py-1.5 last:border-0">
       <span className="text-mist-dim">{label}</span>
       <span className="mono tnum text-mist">{value}</span>
     </div>
@@ -288,7 +295,7 @@ function Bar({ pct, label }: { pct: number; label: string }) {
     <div className="flex items-center gap-2">
       <span className="text-mist-dim">Serapan</span>
       <div className="h-1.5 w-24 overflow-hidden rounded-full bg-ink-edge">
-        <div className="h-full rounded-full bg-amber" style={{ width: `${Math.min(100, pct)}%` }} />
+        <div className="tumbuh h-full rounded-full bg-amber" style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
       <span className="mono tnum text-mist">{label}</span>
     </div>

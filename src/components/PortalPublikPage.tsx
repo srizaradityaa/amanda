@@ -153,7 +153,7 @@ export function PortalPublikPage({ onBack }: { onBack: () => void }) {
                     <span className="mono tnum">{persenTeks(s.persen)}</span>
                   </div>
                   <div className="mt-1 h-2.5 w-full overflow-hidden rounded bg-ink" role="progressbar" aria-label={`Realisasi ${s.nama}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={s.persen ?? undefined} aria-valuetext={persenTeks(s.persen)}>
-                    <div className="h-full bg-amber" style={{ width: `${Math.min(100, s.persen ?? 0)}%` }} />
+                    <div className="tumbuh h-full bg-amber" style={{ width: `${Math.min(100, s.persen ?? 0)}%` }} />
                   </div>
                 </li>
               ))}

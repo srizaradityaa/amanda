@@ -9,6 +9,7 @@ import {
   Card, StatusBadge, EmptyState, Button,
   usePaging, Pager } from '@/components/ui';
 import { formatRupiah, formatPersen } from '@/lib/format';
+import { AngkaRupiah } from '@/components/AngkaHitung';
 import { formatTanggal, formatTanggalPendek } from '@/lib/wita';
 import { getSession } from '@/lib/auth';
 import * as anggaran from '@/data/anggaran';
@@ -101,9 +102,9 @@ export function BendaharaDashboard() {
 
       <KartuPaguInduk ta={ta} />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Pagu Alokasi</p><p className="mono tnum mt-1 text-lg text-mist">{formatRupiah(totalPagu)}</p></Card>
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Realisasi BKU</p><p className="mono tnum mt-1 text-lg text-mist">{formatRupiah(totalRealisasi)}</p></Card>
-        <Card className="p-4"><p className="text-2xs text-mist-dim">Sisa SPD Bebas</p><p className="mono tnum mt-1 text-lg text-mist">{formatRupiah(totalSisaSpd)}</p></Card>
+        <Card className="p-4"><p className="text-2xs text-mist-dim">Pagu Alokasi</p><p className="mono tnum mt-1 text-lg text-mist"><AngkaRupiah nilai={totalPagu} /></p></Card>
+        <Card className="p-4"><p className="text-2xs text-mist-dim">Realisasi BKU</p><p className="mono tnum mt-1 text-lg text-mist"><AngkaRupiah nilai={totalRealisasi} /></p></Card>
+        <Card className="p-4"><p className="text-2xs text-mist-dim">Sisa SPD Bebas</p><p className="mono tnum mt-1 text-lg text-mist"><AngkaRupiah nilai={totalSisaSpd} /></p></Card>
         <Card className="p-4"><p className="text-2xs text-mist-dim">Serapan</p><p className="mono tnum mt-1 text-lg text-mist">{serapan}</p></Card>
       </div>
       {/* Ticker ringkasan (Pro Mode) */}
@@ -200,7 +201,7 @@ export function PptkDashboard() {
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">
           <TikerItem label="Seksi" value={seksi?.nama_snapshot ?? '—'} />
-          <TikerItem label="Pagu Seksi" value={formatRupiah(paguSeksiSaya)} />
+          <TikerItem label="Pagu Seksi" value={<AngkaRupiah nilai={paguSeksiSaya} />} />
           {statusSeksiSaya && <StatusSeksiBadge status={statusSeksiSaya} />}
           {gerbang.terbuka
             ? <StatusBadge kind="ok" label="Gatekeeper Terbuka" />
@@ -343,7 +344,7 @@ export function PakpaDashboard() {
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-4 text-2xs">
           <TikerItem label="Seksi" value={`${seksiList.length}`} />
-          <TikerItem label="Realisasi" value={formatRupiah([...realisasiByRek.values()].reduce((s, v) => s + v, 0))} />
+          <TikerItem label="Realisasi" value={<AngkaRupiah nilai={[...realisasiByRek.values()].reduce((s, v) => s + v, 0)} />} />
           {an.ok && <>
             <TikerItem label="Time Elapsed" value={`${an.data.time_elapsed_pct.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
             <span className="text-mist" aria-label="Ringkasan zona">{an.data.ringkasan.normal} Normal, {an.data.ringkasan.perhatian} Perlu Perhatian, {an.data.ringkasan.lonjakan} Lonjakan</span>
@@ -410,7 +411,7 @@ function KartuPaguInduk({ ta }: { ta: TahunAnggaran }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-2xs text-mist-dim">Pagu Induk TA {ta.tahun}{ta.mode_apbd_p ? ' (APBD-P berlaku)' : ''}</p>
-          <p className="mono tnum text-xl font-semibold text-mist">{formatRupiah(anggaran.paguIndukAktif(ta.id))}</p>
+          <p className="mono tnum text-xl font-semibold text-mist"><AngkaRupiah nilai={anggaran.paguIndukAktif(ta.id)} /></p>
         </div>
         {ta.mode_apbd_p && (
           <div className="space-y-1 text-2xs text-mist-dim">
@@ -432,7 +433,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   );
 }
 
-function TikerItem({ label, value }: { label: string; value: string }) {
+function TikerItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-mist-dim">{label}</span>

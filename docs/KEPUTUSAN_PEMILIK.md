@@ -70,3 +70,12 @@ Keputusan pemilik: peran Pengawas/Auditor dihapus total karena hanya memantau; p
 ## Pembatas login bertahap (2026-11-17)
 
 Per akun, dihitung sejak login berhasil terakhir: salah ke-5 → tunda 5 menit; salah ke-10 → tunda 15 menit; salah ke-15 → akun disuspend sampai dibuka Admin (tombol "Buka kunci" di Kelola Akun, atau reset password). Login berhasil mengosongkan hitungan. Akun Admin tidak pernah ditunda atau disuspend dan tidak ada batas waktu. Pesan di layar tidak menyebut sisa waktu: "Hubungi Admin." Pelindung per IP (40 gagal / 15 menit) tetap ada di Edge Function. Penegakan ada di database (`verifikasi_login`, kolom `kunci_sampai`), bukan di peramban.
+
+
+## Portal keterbukaan untuk layar TV, dasbor baru, menu anggaran (2026-11-18)
+
+- **Tampilan:** warna aplikasi tetap. Perubahan desain saja: progres mini di tengah topbar dengan rincian saat kursor/fokus/sentuh, angka dan grafik dari 0 (sekali saat halaman dibuka, dimatikan oleh "kurangi gerak"), logo sidebar bergerak sekali lalu diam, submenu semua peran, dasbor Bendahara/Verifikator/PA-KPA/PPTK/Admin dengan grafik dan kartu Perlu tindakan (Admin tanpa angka anggaran).
+- **Menu disembunyikan saat tidak dipakai:** Bendahara: Persiapan, Subkegiatan, Pagu hanya selama alokasi belum disahkan (atau APBD-P). PPTK: Anggaran hanya saat jendela alokasi terbuka. Jejak Audit hanya untuk Admin. Tombol kembali/maju peramban berpindah antar menu.
+- **Portal keterbukaan (TV):** satu layar penuh tanpa animasi, alamat langsung `#/portal`, data agregat publik (tanpa nominal), video YouTube di tengah (otomatis, tanpa suara, berulang), logo kabupaten kiri dan logo AMANDA kanan, jam WITA dengan detik, data diperbarui tiap 5 menit, muat ulang dini hari 03:00 WITA. Perangkat TV memakai komputer yang disambung HDMI dan kabel LAN (mode kios).
+- **Pengaturan Portal (Admin):** menu baru untuk tautan video YouTube (divalidasi ketat: hanya youtube.com/youtu.be, yang disimpan hanya ID 11 karakter) dan logo kabupaten (diperkecil di peramban, maksimal 256 px, disimpan sebagai gambar kecil di tabel `pengaturan_portal`). Baca publik lewat `publik_pengaturan_portal`; ubah hanya Admin lewat `adm_portal_simpan` (dicatat di jejak audit). Migrasi `pengaturan_portal_video_dan_logo`.
+- **Ditunda:** halaman login belum diubah (foto kantor dan ringkasan publik menunggu keputusan berikutnya).

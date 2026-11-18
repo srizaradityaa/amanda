@@ -13,6 +13,7 @@ import { TentangPage } from '@/components/TentangPage';
 import { VerifikasiPage } from '@/components/VerifikasiPage';
 import { BKUPage } from '@/components/BKUPage';
 import { KoreksiBKUPage } from '@/components/KoreksiBKUPage';
+import { PengaturanPortalPage } from '@/components/PengaturanPortalPage';
 import { PersiapanPage, SubkegiatanPage, PaguPage, SahkanSpdPage } from '@/components/AnggaranMenuBendahara';
 import { AnggaranPptkPage } from '@/components/AnggaranPptkPage';
 import { KuitansiPage } from '@/components/KuitansiPage';
@@ -23,7 +24,7 @@ import { repo } from '@/data/repo';
 import { getSession, isPending, subscribeSession, logout, modeServer, validasiSesiServer } from '@/lib/auth';
 import { visibleAuditEvents } from '@/lib/audit';
 import { evaluasiDelegasiJatuhTempo } from '@/lib/delegasi';
-import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet, Archive, Pencil } from 'lucide-react';
+import { Info as InfoIcon, BarChart3, BookOpen, LayoutDashboard, ScrollText, History, Building2, Users, Layers, FileText, ScrollText as ScrollIcon, CalendarRange, Wallet, Archive, Pencil, Tv } from 'lucide-react';
 import type { SessionPayload } from '@/data/types';
 
 const TahunAnggaranPage = lazy(() => import('@/components/TAPanels').then((m) => ({ default: m.TahunAnggaranPage })));
@@ -59,7 +60,8 @@ function App() {
 }
 
 function AplikasiUtama() {
-  const [view, setView] = useState<View>('login');
+  // Alamat langsung #/portal membuka portal keterbukaan tanpa login (untuk layar TV).
+  const [view, setView] = useState<View>(() => (window.location.hash === '#/portal' ? 'public' : 'login'));
   const [session, setSession] = useState<SessionPayload | null>(getSession());
   // Halaman aktif disimpan di hash (#/h/<id>) agar reload tetap di halaman yang sama.
   const [activeNav, setActiveNavState] = useState(() => window.location.hash.match(/^#\/h\/([\w-]+)$/)?.[1] ?? 'dashboard');
@@ -112,7 +114,7 @@ function AplikasiUtama() {
     const unsub = subscribeSession(() => {
       const s = getSession();
       setSession(s);
-      if (!s) setView('login');
+      if (!s) setView(window.location.hash === '#/portal' ? 'public' : 'login');
       else if (isPending(s)) setView('context');
       else setView('app');
     });
@@ -131,7 +133,7 @@ function AplikasiUtama() {
   }, []);
 
   if (view === 'public') {
-    return <PortalPublikPage onBack={() => setView('login')} />;
+    return <PortalPublikPage onBack={() => { if (window.location.hash === '#/portal') { try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* abaikan */ } } setView('login'); }} />;
   }
 
   if (view === 'login' || !session) {
@@ -254,6 +256,7 @@ function buildNav(role: string): NavItem[] {
       { id: 'direktori-rekening', grup: 'Direktori', label: 'Direktori Rekening', icon: <Wallet size={18} />, render: () => <DirektoriRekeningPage /> },
       { id: 'arsip', label: 'Arsip Keuangan', icon: <Archive size={18} />, render: () => <ArsipKeuanganPage /> },
       { id: 'tahun-anggaran', label: 'Tahun Anggaran', icon: <CalendarRange size={18} />, render: () => <TahunAnggaranPage /> },
+      { id: 'pengaturan-portal', label: 'Pengaturan Portal', icon: <Tv size={18} />, render: () => <PengaturanPortalPage /> },
       { id: 'audit', label: 'Jejak Audit', icon: <History size={18} />, khusus: true, render: () => <AuditTrail events={visibleAuditEvents()} /> },
       { id: 'tentang', label: 'Tentang AMANDA', icon: <InfoIcon size={18} />, khusus: true, render: () => <TentangPage /> },
     ];

@@ -11,6 +11,7 @@ export function buatApi(k: KlienRpc) {
     return data as T;
   };
   return {
+    adm_portal_simpan: (a: { p_video: string, p_logo?: string | null }) => panggil('adm_portal_simpan', a),
     arsip_bku_daftar: (a?: { p_ta?: string | null }) => panggil('arsip_bku_daftar', a),
     arsip_catat_unduh: (a: { p_jenis: string, p_rujukan: string, p_jumlah: number, p_ta?: string | null }) => panggil('arsip_catat_unduh', a),
     arsip_dokumen_catat: (a: { p_kategori: string, p_nomor: string, p_tanggal: string, p_judul: string, p_keterangan: string, p_key: string, p_nama_asli: string, p_ukuran: number }) => panggil('arsip_dokumen_catat', a),
@@ -111,6 +112,7 @@ export function buatApi(k: KlienRpc) {
     pptk_spj_rekening: (a: { p_spj: string, p_baris: unknown }) => panggil('pptk_spj_rekening', a),
     pub_cek_keaslian: (a: { p_token: string }) => panggil('pub_cek_keaslian', a),
     publik_daftar_ta: () => panggil('publik_daftar_ta'),
+    publik_pengaturan_portal: () => panggil('publik_pengaturan_portal'),
     publik_ringkasan: (a: { p_ta: string }) => panggil('publik_ringkasan', a),
     rekening_bank_cari: (a: { p_q?: string } = {}) => panggil('rekening_bank_cari', a),
     sesi_saya: () => panggil('sesi_saya'),

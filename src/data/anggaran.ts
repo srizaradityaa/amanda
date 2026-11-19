@@ -485,6 +485,56 @@ export function geserSPDDemo(
   return { ok: true };
 }
 
+// Pergeseran multi rekening / multi subkegiatan: Bendahara mengisi Pagu baru (angka akhir) per rekening.
+// Selisih dihitung sistem; total naik harus sama dengan total turun (Pagu Induk tidak berubah). Semua atau tidak sama sekali.
+export function geserMultiDemo(ta_id: string, paguBaru: Record<string, number>, alasan: string, aktor: AktorAnggaran): Hasil {
+  if (aktor.peran !== 'bendahara') return { ok: false, error: 'Hanya Bendahara Pengeluaran yang dapat menggeser anggaran.' };
+  const ta = taById(ta_id);
+  if (!ta) return { ok: false, error: 'TA tidak ditemukan.' };
+  if (ta.status !== 'Aktif Penuh') return { ok: false, error: 'Pergeseran hanya dapat dilakukan pada TA Aktif Penuh.' };
+  const catatan = alasan.trim();
+  if (!catatan) return { ok: false, error: 'Alasan pergeseran wajib diisi.' };
+  const ubah: { rek: AlokasiRekening; d: number }[] = [];
+  for (const [id, baru] of Object.entries(paguBaru)) {
+    if (!isBilanganBulat(baru) || baru < 0) return { ok: false, error: 'Pagu baru harus bilangan bulat rupiah, tidak negatif.' };
+    const rek = data.alokasiRekening.find((a) => a.id === id && a.ta_id === ta_id);
+    if (!rek) return { ok: false, error: 'Rekening tidak ditemukan pada TA ini.' };
+    if (!rek.disahkan) return { ok: false, error: 'Pergeseran hanya dapat dilakukan pada rekening yang alokasinya sudah disahkan.' };
+    if (baru !== rek.pagu) ubah.push({ rek, d: baru - rek.pagu });
+  }
+  if (ubah.length < 2) return { ok: false, error: 'Pergeseran membutuhkan perubahan pada minimal dua rekening.' };
+  const total = ubah.reduce((s, x) => s + x.d, 0);
+  if (total !== 0) return { ok: false, error: `Pergeseran belum seimbang: total naik dan total turun harus sama (selisih ${formatRupiah(Math.abs(total))}).` };
+  for (const x of ubah.filter((y) => y.d < 0)) {
+    const sisa = sisaSpdBebas(x.rek);
+    if (-x.d > sisa) return { ok: false, error: `Pengurangan rekening ${x.rek.kode_rekening_snapshot} melebihi Sisa SPD Bebas (${formatRupiah(sisa)}).` };
+  }
+  const netSub = new Map<string, number>();
+  for (const x of ubah) netSub.set(x.rek.pemetaan_subkegiatan_id, (netSub.get(x.rek.pemetaan_subkegiatan_id) ?? 0) + x.d);
+  for (const [pem, net] of netSub) {
+    const sub = alokasiSubByPemetaan(pem);
+    if (!sub) return { ok: false, error: 'Pagu subkegiatan belum dialokasikan pada TA ini.' };
+    if (sub.pagu + net < 0) return { ok: false, error: 'Pagu subkegiatan sumber tidak cukup untuk pergeseran ini.' };
+  }
+  const nomor = nomorPergeseranBerikutnya(ta_id);
+  for (const [pem, net] of netSub) if (net !== 0) { const sub = alokasiSubByPemetaan(pem)!; sub.pagu += net; }
+  for (const x of [...ubah].sort((a, b) => a.d - b.d)) {
+    x.rek.pagu += x.d;
+    x.rek.spd_aktif += x.d;
+    data.ledgerSPD.push({
+      id: `ldg-${data.ledgerSPD.length + 1}`, ta_id, alokasi_rekening_id: x.rek.id, jenis: 'pergeseran', perubahan: x.d,
+      spd_sesudah: x.rek.spd_aktif, keterangan: catatan, waktu: nowWita(), aktor_id: aktor.id,
+      aktor_nama_snapshot: aktor.nama, aktor_peran_snapshot: aktor.peran, referensi: nomor,
+    });
+  }
+  const turun = ubah.filter((x) => x.d < 0), naik = ubah.filter((x) => x.d > 0);
+  const jumlah = naik.reduce((s, x) => s + x.d, 0);
+  const kode = (a: typeof ubah) => a.map((x) => x.rek.kode_rekening_snapshot).join(', ');
+  catatVersi(ta_id, aktor, `${nomor}: ${turun.length} rekening (-) ke ${naik.length} rekening (+) ${formatRupiah(jumlah)}`, 'pergeseran');
+  recordAudit({ ta_id, entitas: `${nomor} • ${formatRupiah(jumlah)}`, aksi: 'pergeseran_spd', nilai_sebelum: `Sumber (-) ${kode(turun)}`, nilai_sesudah: `Tujuan (+) ${kode(naik)}`, alasan: catatan });
+  return { ok: true };
+}
+
 // ===== APBD-P (TA-09) dan pembanding pagu murni (SPD-04) =====
 
 export function aktifkanApbdPDemo(ta_id: string, _pagu: number, aktor: AktorAnggaran): Hasil {
@@ -620,6 +670,7 @@ export const efisiensiSPD = mut(efisiensiSPDDemo, server.efisiensiSPD);
 export const naikkanSPD = mut(naikkanSPDDemo, server.naikkanSPD);
 export const aturSPDFinal = mut(aturSPDFinalDemo, server.aturSPDFinal);
 export const geserSPD = mut(geserSPDDemo, server.geserSPD);
+export const geserMulti = mut(geserMultiDemo, server.geserMulti);
 export const aktifkanApbdP = mut(aktifkanApbdPDemo, server.aktifkanApbdP);
 export const koreksiPaguApbdP = mut(koreksiPaguApbdPDemo, server.koreksiPaguApbdP);
 export const tempatkanSubkegiatan = mut(tempatkanSubkegiatanDemo, server.tempatkanSubkegiatan);

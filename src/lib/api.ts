@@ -80,6 +80,7 @@ export function buatApi(k: KlienRpc) {
     bend_bku_catat: (a: { p_spj: string, p_nomor: string, p_tanggal: string }) => panggil('bend_bku_catat', a),
     bend_bku_koreksi: (a: { p_bku: string, p_nomor: string, p_tanggal: string }) => panggil('bend_bku_koreksi', a),
     bend_geser: (a: { p_ta: string, p_sumber: string, p_tujuan: string, p_nilai: number, p_alasan?: string }) => panggil('bend_geser', a),
+    bend_geser_multi: (a: { p_ta: string, p_pagu_baru: Record<string, number>, p_alasan?: string }) => panggil('bend_geser_multi', a),
     bend_jendela_atur: (a: { p_ta: string, p_tutup: string }) => panggil('bend_jendela_atur', a),
     bend_subkegiatan_buang: (a: { p_ta: string, p_sub: string }) => panggil('bend_subkegiatan_buang', a),
     bend_subkegiatan_tarik: (a: { p_ta: string, p_subs: string[] }) => panggil('bend_subkegiatan_tarik', a),

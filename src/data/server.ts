@@ -192,6 +192,8 @@ export const server = {
   aturSPDFinal: (ar: string, final: number, ket: string, _a?: unknown) => jalankan(api.bend_spd_final({ p_ar: ar, p_final: final, p_ket: ket })),
   geserSPD: (ta: string, sumber: string, tujuan: string, nilai: number, alasan: string, _a?: unknown) =>
     jalankan(api.bend_geser({ p_ta: ta, p_sumber: sumber, p_tujuan: tujuan, p_nilai: nilai, p_alasan: alasan })),
+  geserMulti: (ta: string, paguBaru: Record<string, number>, alasan: string, _a?: unknown) =>
+    jalankan(api.bend_geser_multi({ p_ta: ta, p_pagu_baru: paguBaru, p_alasan: alasan })),
   aktifkanApbdP: (ta: string, pagu: number, _a?: unknown) => jalankan(api.adm_apbdp_aktifkan({ p_ta: ta, p_pagu: pagu })),
   koreksiPaguApbdP: (ta: string, pagu: number, _a?: unknown) => jalankan(api.adm_apbdp_koreksi({ p_ta: ta, p_pagu: pagu })),
   catatBKU: (spj: string, nomor: string, tanggal: string, _s?: SessionPayload) => jalankan(api.bend_bku_catat({ p_spj: spj, p_nomor: nomor, p_tanggal: tanggal })),

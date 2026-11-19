@@ -91,3 +91,10 @@ Per akun, dihitung sejak login berhasil terakhir: salah ke-5 → tunda 5 menit; 
 3. Pergeseran satu ke satu yang ada tetap dipertahankan.
 4. Pergeseran multi rekening dan multi subkegiatan: Bendahara mengisi **Pagu baru** (angka akhir) per rekening; selisih dihitung dan hanya ditampilkan; ringkasan sebelum dan sesudah per rekening dan per subkegiatan; Simpan hanya aktif bila selisih total nol; satu alasan dan satu nomor berita acara per pergeseran; semua baris tercatat di riwayat dan audit.
 5. Aturan tetap: pengurangan rekening paling banyak Sisa SPD Bebas, SPD ikut berpindah sebesar selisih, pagu baru tidak di bawah realisasi, pagu subkegiatan yang dikurangi harus cukup, hanya pasangan subkegiatan dan rekening yang sudah dialokasikan dan disahkan (tidak bisa menambah rekening baru). Simpan atomik; pemeriksaan ulang di Supabase (fungsi dan migrasi baru).
+
+## Rencana hosting (2026-11-19), ditunda sampai UI dan fitur selesai
+
+- Supabase sekarang hanya untuk uji coba. Produksi: domain berbayar dengan server pribadi; repo dijadikan privat setelah semua fix.
+- Jalur yang disarankan: Supabase self-hosted (Docker) agar fungsi database, aturan akses, dan Edge Function `masuk` tetap sama. Alternatif PostgreSQL biasa plus layanan API sendiri jauh lebih besar pekerjaannya.
+- Pertanyaan terbuka sebelum pindah: lokasi server (kantor atau VPS), spesifikasi dan Docker, pihak perawat dan cadangan harian, domain dan HTTPS.
+- Pengaturan yang ikut saat pindah: `ALLOWED_ORIGIN` diisi alamat domain baru (satu alamat, tanpa jalur). Perlindungan kata sandi bocor Supabase tidak relevan karena sandi pengguna disimpan sebagai hash bcrypt di tabel AMANDA; bila diinginkan, pemeriksaan sandi bocor dibuat sendiri saat Admin membuat atau mereset akun.

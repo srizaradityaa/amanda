@@ -115,3 +115,9 @@ input[type='number'] {
 .gambar-garis { animation: amanda-garis 1.5s ease-out both; }
 @keyframes amanda-seg { from { stroke-dasharray: 0 100; } }
 .gambar-seg { animation: amanda-seg 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+/* Teks berjalan halaman login: berhenti saat kursor di atasnya; diam bila pengguna memilih "kurangi gerak". */
+@keyframes tiker-geser { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tiker-jalan { animation: tiker-geser 70s linear infinite; }
+.tiker-login:hover .tiker-jalan { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .tiker-jalan { animation: none; } .tiker-login { overflow-x: auto; } }

@@ -1,14 +1,15 @@
-// UIX-02 — Halaman login Split-Hero responsif (D03 §1).
-// Panel kiri identitas Pemkab Balangan • Kec. Batumandi + logo + AMANDA + etos.
-// Panel kanan kartu datar; tombol amber "Masuk ke Sistem"; tautan "Lihat Ringkasan Publik".
+// UIX-02 — Halaman login: kartu kaca di tengah, latar kisi yang menjauhi kursor, teks berjalan di atas.
+// Logika masuk tidak berubah; hanya tampilan.
 // Satu kolom identitas: NIP/NIK personel.
 
 import { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, AlertCircle, ShieldCheck, ChevronRight, Lock } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ChevronRight } from 'lucide-react';
 import { loginAsync, modeServer } from '@/lib/auth';
 import { Button, Field, Input } from '@/components/ui';
 import type { LoginResult } from '@/lib/auth';
 import { Logo } from '@/components/Logo';
+import { LatarKisi } from '@/components/LatarKisi';
+import { TikerLogin } from '@/components/TikerLogin';
 
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [identifier, setIdentifier] = useState('');
@@ -43,38 +44,14 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-ink text-mist grid lg:grid-cols-2">
-      {/* Panel Kiri — Identitas & Wibawa Instansi */}
-      <div className="relative flex flex-col justify-between overflow-hidden border-b border-ink-edge p-8 lg:border-b-0 lg:border-r lg:p-12">
-        <div className="grid-ornament pointer-events-none absolute inset-0 opacity-40" aria-hidden />
-        <div className="relative">
-          <header className="text-2xs font-medium uppercase tracking-wider text-mist-dim">
-            Pemerintah Kabupaten Balangan • Kecamatan Batumandi
-          </header>
-          <div className="mt-8">
-            <h1 className="sr-only">AMANDA — Aplikasi Manajemen Data Anggaran</h1>
-            <Logo varian="animasi" tinggi={190} />
-          </div>
-        </div>
-        <div className="relative mt-12">
-          <p className="max-w-sm text-lg leading-relaxed text-mist">
-            "Tertib Administrasi, Akuntabel, dan Transparan dalam Setiap Rupiah."
-          </p>
-        </div>
-        <div className="relative mt-12 flex items-center gap-2 text-2xs text-mist-dim">
-          <ShieldCheck size={14} />
-          <span>Sistem tunduk pada aturan WITA (UTC+8). Sesi berakhir otomatis 1 jam tanpa aktivitas.</span>
-        </div>
-      </div>
-
-      {/* Panel Kanan — Kartu Login Datar */}
-      <div className="flex items-center justify-center p-6 sm:p-10">
+    <div className="relative flex min-h-screen flex-col bg-ink text-mist">
+      <LatarKisi />
+      <TikerLogin />
+      <main className="relative z-10 flex flex-1 items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm">
-          <div className="rounded-lg border border-ink-edge bg-ink-surface p-6 sm:p-8">
-            <h2 className="mb-1 text-lg font-semibold text-mist">Masuk ke Sistem</h2>
-            <p className="mb-6 text-2xs text-mist-dim">
-              Gunakan NIP atau NIK sesuai penugasan Anda.
-            </p>
+          <div className="rounded-2xl border border-amber/30 bg-ink-surface/65 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+            <h1 className="sr-only">AMANDA — Aplikasi Manajemen Data Anggaran</h1>
+            <div className="mb-6 flex justify-center"><Logo varian="animasi" tinggi={150} /></div>
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <Field label="NIP / NIK" required>
@@ -122,35 +99,31 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
               )}
 
               <Button type="submit" disabled={submitting} className="w-full">
-                {submitting ? 'Memeriksa akun...' : 'Masuk ke Sistem'}
+                {submitting ? 'Memeriksa akun...' : 'Masuk'}
               </Button>
             </form>
 
-            <div className="mt-4 flex items-start gap-2 rounded-md border border-ink-edge bg-ink px-3 py-2.5 text-2xs text-mist-dim">
-              <Lock size={14} className="mt-0.5 shrink-0 text-mist-dim" />
-              <span>
-                Lupa password atau akun terkendala? Hubungi Administrator Sistem. Reset password bersifat terpusat oleh Admin.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                window.dispatchEvent(new CustomEvent('amanda:go-public'));
-              }}
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-teal px-4 py-2 text-sm font-medium text-teal transition-colors hover:bg-teal/10"
-            >
-              <span>Lihat Ringkasan Publik</span>
-              <ChevronRight size={16} />
-            </button>
+            <p className="mt-5 border-t border-ink-edge pt-4 text-center text-2xs text-mist-dim">
+              Belum punya akun atau lupa kata sandi? Hubungi Admin.
+            </p>
           </div>
 
-          <p className="mt-6 text-center text-2xs text-mist-dim">
-            AMANDA &copy; 2026 Pemerintah Kabupaten Balangan
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              window.dispatchEvent(new CustomEvent('amanda:go-public'));
+            }}
+            className="mt-5 flex w-full items-center justify-center gap-1 text-2xs text-mist-dim hover:text-mist focus-visible:outline-amber focus-visible:outline-2"
+          >
+            <span>Portal Keterbukaan Informasi Anggaran</span>
+            <ChevronRight size={14} />
+          </button>
+          <p className="mt-3 text-center text-2xs text-mist-dim">
+            AMANDA &copy; 2026 Pemerintah Kabupaten Balangan • Kecamatan Batumandi
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

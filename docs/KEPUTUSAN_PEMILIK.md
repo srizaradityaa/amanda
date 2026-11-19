@@ -79,3 +79,15 @@ Per akun, dihitung sejak login berhasil terakhir: salah ke-5 → tunda 5 menit; 
 - **Portal keterbukaan (TV):** satu layar penuh tanpa animasi, alamat langsung `#/portal`, data agregat publik (tanpa nominal), video YouTube di tengah (otomatis, tanpa suara, berulang), logo kabupaten kiri dan logo AMANDA kanan, jam WITA dengan detik, data diperbarui tiap 5 menit, muat ulang dini hari 03:00 WITA. Perangkat TV memakai komputer yang disambung HDMI dan kabel LAN (mode kios).
 - **Pengaturan Portal (Admin):** menu baru untuk tautan video YouTube (divalidasi ketat: hanya youtube.com/youtu.be, yang disimpan hanya ID 11 karakter) dan logo kabupaten (diperkecil di peramban, maksimal 256 px, disimpan sebagai gambar kecil di tabel `pengaturan_portal`). Baca publik lewat `publik_pengaturan_portal`; ubah hanya Admin lewat `adm_portal_simpan` (dicatat di jejak audit). Migrasi `pengaturan_portal_video_dan_logo`.
 - **Ditunda:** halaman login belum diubah (foto kantor dan ringkasan publik menunggu keputusan berikutnya).
+
+## Login baru dan rencana pergeseran multi rekening (2026-11-19)
+
+**Login (sudah diterapkan, hanya tampilan):** kartu kaca semi-transparan di tengah; latar kisi kotak yang mengecil dan memudar menjauhi kursor atau jari (diam bila "kurangi gerak" atau tab tersembunyi); teks berjalan di atas (realisasi instansi, SPJ dibukukan, peringkat seksi nama dan persen, info layanan dan keamanan); logo AMANDA animasi lengkap berputar terus; tombol mata untuk kata sandi; tanpa foto, tanpa ringkasan portal, tanpa slogan; tautan kecil ke Portal Keterbukaan. Logika masuk, pembatas, dan pesan galat tidak berubah.
+**Ditunda:** warna hijau/merah dan tanda ▲/=/▼ tren seksi (perbandingan 30 hari, butuh fungsi publik baru). Menunggu kepastian pimpinan bahwa tren boleh tampil publik.
+
+**Pergeseran (diputuskan, BELUM diimplementasikan):**
+1. Pergeseran tetap menjadi tab di *Anggaran → Sahkan dan SPD*, bukan menu sendiri. Syaratnya tidak berubah: TA Aktif Penuh dan alokasi sudah disahkan. Tidak terikat ke APBD-P. Saat APBD-P disusun (pengesahan direset) pergeseran tertutup sampai disahkan lagi.
+2. Tab menampilkan daftar anggaran (subkegiatan dan rekening: Pagu, SPD, Realisasi, Sisa SPD Bebas) agar Bendahara melihat apa yang akan digeser.
+3. Pergeseran satu ke satu yang ada tetap dipertahankan.
+4. Pergeseran multi rekening dan multi subkegiatan: Bendahara mengisi **Pagu baru** (angka akhir) per rekening; selisih dihitung dan hanya ditampilkan; ringkasan sebelum dan sesudah per rekening dan per subkegiatan; Simpan hanya aktif bila selisih total nol; satu alasan dan satu nomor berita acara per pergeseran; semua baris tercatat di riwayat dan audit.
+5. Aturan tetap: pengurangan rekening paling banyak Sisa SPD Bebas, SPD ikut berpindah sebesar selisih, pagu baru tidak di bawah realisasi, pagu subkegiatan yang dikurangi harus cukup, hanya pasangan subkegiatan dan rekening yang sudah dialokasikan dan disahkan (tidak bisa menambah rekening baru). Simpan atomik; pemeriksaan ulang di Supabase (fungsi dan migrasi baru).

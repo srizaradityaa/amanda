@@ -1,5 +1,6 @@
 import { Fragment, useReducer, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { ChipTingkat } from '@/components/DrilldownPage';
 import { Button, Input, RupiahInput, useToast } from '@/components/ui';
 import { repo } from '@/data/repo';
 import * as anggaran from '@/data/anggaran';
@@ -155,9 +156,9 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
               const nUbahS = sk.subs.reduce((t, g) => t + g.daftar.filter((r) => nilai(r) !== r.pagu).length, 0);
               return (
                 <Fragment key={sk.sid}>
-                  <tr className="border-t border-ink-edge bg-ink/60">
-                    <td className="px-3 py-2 font-medium text-mist">{panah(kS, sk.nama)}{sk.nama}{nUbahS > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahS} rekening berubah</span>}</td>
-                    <td className="mono tnum px-3 py-2 text-right text-mist">{formatRupiah(paguS)}</td>
+                  <tr className="border-t border-ink-edge bg-ink-surface">
+                    <td className="border-l-4 border-amber px-3 py-2.5 text-[15px] font-semibold text-mist">{panah(kS, sk.nama)}<ChipTingkat tingkat="seksi" />{sk.nama}{nUbahS > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahS} rekening berubah</span>}</td>
+                    <td className="mono tnum whitespace-nowrap px-3 py-2 text-right text-mist">{formatRupiah(paguS)}</td>
                     <td colSpan={4} className="mono tnum px-3 py-2 text-right text-2xs text-mist-dim">{netS !== 0 ? `Seksi menjadi ${formatRupiah(paguS + netS)}` : ''}</td>
                     <td className="px-3 py-2 text-right"><Selisih d={netS} /></td>
                   </tr>
@@ -168,9 +169,9 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
                     const nUbahP = g.daftar.filter((r) => nilai(r) !== r.pagu).length;
                     return (
                       <Fragment key={g.pid}>
-                        <tr className="border-t border-ink-edge/60">
-                          <td className="py-1.5 pl-8 pr-3 font-medium text-mist">{panah(kP, g.sub?.nama_snapshot ?? '')}{g.sub?.kode_snapshot} {g.sub?.nama_snapshot}{nUbahP > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahP} berubah</span>}</td>
-                          <td className="mono tnum px-3 py-1.5 text-right text-mist">{formatRupiah(anggaran.paguSubkegiatan(g.pid))}</td>
+                        <tr className="border-t border-ink-edge/60 bg-ink/50">
+                          <td className="border-l-4 border-mist-dim/40 py-2 pl-8 pr-3 font-medium text-mist">{panah(kP, g.sub?.nama_snapshot ?? '')}<ChipTingkat tingkat="sub" />{g.sub?.kode_snapshot} {g.sub?.nama_snapshot}{nUbahP > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahP} berubah</span>}</td>
+                          <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right text-mist">{formatRupiah(anggaran.paguSubkegiatan(g.pid))}</td>
                           <td colSpan={4} className="mono tnum px-3 py-1.5 text-right text-2xs text-mist-dim">{n !== 0 ? `Subkegiatan menjadi ${formatRupiah(anggaran.paguSubkegiatan(g.pid) + n)}` : ''}</td>
                           <td className="px-3 py-1.5 text-right"><Selisih d={n} /></td>
                         </tr>
@@ -178,11 +179,11 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
                           const d = nilai(r) - r.pagu;
                           return (
                             <tr key={r.id} className={`border-t border-ink-edge/40 ${d !== 0 ? 'bg-amber/5' : ''}`}>
-                              <td className="py-1.5 pl-14 pr-3 text-mist-dim">{r.kode_rekening_snapshot} {r.nama_rekening_snapshot}{masalah.has(r.id) && <span className="mt-0.5 block text-2xs text-crit">{masalah.get(r.id)}</span>}</td>
-                              <td className="mono tnum px-3 py-1.5 text-right">{formatRupiah(r.pagu)}</td>
-                              <td className="mono tnum px-3 py-1.5 text-right">{formatRupiah(r.spd_aktif)}</td>
-                              <td className="mono tnum px-3 py-1.5 text-right">{formatRupiah(anggaran.realisasiAlokasi(r))}</td>
-                              <td className="mono tnum px-3 py-1.5 text-right">{formatRupiah(anggaran.sisaSpdBebas(r))}</td>
+                              <td className="border-l-4 border-transparent py-1.5 pl-14 pr-3 text-[13px] text-mist-dim"><ChipTingkat tingkat="rek" />{r.kode_rekening_snapshot} {r.nama_rekening_snapshot}{masalah.has(r.id) && <span className="mt-0.5 block text-2xs text-crit">{masalah.get(r.id)}</span>}</td>
+                              <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(r.pagu)}</td>
+                              <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(r.spd_aktif)}</td>
+                              <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(anggaran.realisasiAlokasi(r))}</td>
+                              <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(anggaran.sisaSpdBebas(r))}</td>
                               <td className="px-3 py-1"><RupiahInput className="block w-full text-right" value={nilai(r)} onChange={(v) => setBaru((b) => ({ ...b, [r.id]: v }))} aria-label={`Pagu baru ${r.kode_rekening_snapshot}`} /></td>
                               <td className="px-3 py-1.5 text-right"><Selisih d={d} /></td>
                             </tr>

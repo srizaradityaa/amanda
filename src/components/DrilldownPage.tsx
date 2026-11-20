@@ -30,7 +30,7 @@ export function DrilldownPage() {
   const bisaRekening = BOLEH_REKENING.includes(aktor.peran);
   // Kolom Status hanya perlu bila ada seksi yang belum tuntas; bila semua seimbang kolom ini tidak memberi informasi.
   const tampilStatus = seksiRes.data.some((x) => x.status !== 'Tuntas (100% Seimbang)');
-  const kolom = tampilStatus ? 7 : 6;
+  const kolom = tampilStatus ? 5 : 4;
 
   const toggle = (k: string) => setBuka((b) => { const n = new Set(b); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const bukaSemua = () => {
@@ -55,7 +55,7 @@ export function DrilldownPage() {
         </Card>
       )}
       <Card className="p-5">
-        <SectionTitle title="Rincian Anggaran" desc="Seksi, subkegiatan, dan rekening belanja dalam satu daftar. Klik panah untuk membuka tingkat di bawahnya. Nilai setiap tingkat merupakan jumlah tingkat di bawahnya." />
+        <SectionTitle title="Rincian Anggaran"  />
         <div className="mb-3 flex gap-2">
           <Button variant="secondary" onClick={bukaSemua}>Buka semua</Button>
           <Button variant="secondary" onClick={() => setBuka(new Set())}>Tutup semua</Button>
@@ -68,7 +68,7 @@ export function DrilldownPage() {
               <thead>
                 <tr className="border-b border-ink-edge text-left text-2xs text-mist-dim">
                   <th className="py-2">Seksi / Subkegiatan / Rekening Belanja</th>
-                  {(tampilStatus ? HEAD : HEAD.slice(0, 5)).map((h) => <th key={h} className="px-3 py-2 text-right">{h}</th>)}
+                  {(tampilStatus ? HEAD : HEAD.slice(0, 3)).map((h) => <th key={h} className="px-4 py-2 text-right">{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -78,10 +78,10 @@ export function DrilldownPage() {
                   const subRes = terbuka ? drill.drillSubkegiatan(ta_id, sk.seksi_ta_id, aktor) : null;
                   return (
                     <Fragment key={sk.seksi_ta_id}>
-                      <tr className="border-b border-ink-edge bg-ink-surface text-mist">
-                        <td className="border-l-4 border-amber py-3 pl-2 text-[15px] font-semibold"><Pembuka terbuka={terbuka} ada onKlik={() => toggle(kS)} label={sk.nama} /><ChipTingkat tingkat="seksi" />{sk.nama}</td>
-                        <Angka a={sk} />
-                        {tampilStatus && <td className="px-3 text-center"><StatusSeksiBadge status={sk.status} /></td>}
+                      <tr className="border-b border-ink-edge bg-amber/10 text-mist">
+                        <td className="border-l-4 border-amber py-3.5 pl-2 text-base font-semibold"><Pembuka terbuka={terbuka} ada onKlik={() => toggle(kS)} label={sk.nama} /><ChipTingkat tingkat="seksi" />{sk.nama}</td>
+                        <Angka a={sk} warna="#F59E0B" />
+                        {tampilStatus && <td className="px-4 text-center"><StatusSeksiBadge status={sk.status} /></td>}
                       </tr>
                       {subRes && !subRes.ok && <tr><td colSpan={kolom}><ErrorLine msg={subRes.error} /></td></tr>}
                       {subRes?.ok && subRes.data.length === 0 && <tr><td colSpan={kolom} className="py-2 pl-8 text-mist-dim">Belum ada subkegiatan.</td></tr>}
@@ -91,17 +91,17 @@ export function DrilldownPage() {
                         const rekRes = terbukaP ? drill.drillRekening(ta_id, sb.pemetaan_id, aktor) : null;
                         return (
                           <Fragment key={sb.pemetaan_id}>
-                            <tr className="border-b border-ink-edge/60 bg-ink/50 text-mist">
-                              <td className="border-l-4 border-mist-dim/40 py-2.5 pl-8 font-medium"><Pembuka terbuka={terbukaP} ada={bisaRekening} onKlik={() => toggle(kP)} label={sb.nama} /><ChipTingkat tingkat="sub" /><span className="mono text-mist-dim">{sb.kode}</span> {sb.nama}</td>
-                              <Angka a={sb} />
+                            <tr className="border-b border-ink-edge/60 bg-[#38BDF8]/[0.07] text-mist">
+                              <td className="border-l-4 border-[#38BDF8] py-2.5 pl-8 font-medium"><Pembuka terbuka={terbukaP} ada={bisaRekening} onKlik={() => toggle(kP)} label={sb.nama} /><ChipTingkat tingkat="sub" /><span className="mono text-mist-dim">{sb.kode}</span> {sb.nama}</td>
+                              <Angka a={sb} warna="#38BDF8" />
                               {tampilStatus && <td className="px-3 text-center"><StatusSeimbang seimbang={sb.seimbang} /></td>}
                             </tr>
                             {rekRes && !rekRes.ok && <tr><td colSpan={kolom}><ErrorLine msg={rekRes.error} /></td></tr>}
                             {rekRes?.ok && rekRes.data.length === 0 && <tr><td colSpan={kolom} className="py-2 pl-14 text-mist-dim">Belum ada rekening belanja.</td></tr>}
                             {rekRes?.ok && rekRes.data.map((rk) => (
-                              <tr key={rk.alokasi_id} className="border-b border-ink-edge/30 text-[13px] text-mist-dim">
-                                <td className="border-l-4 border-transparent py-1.5 pl-16"><ChipTingkat tingkat="rek" /><span className="mono">{rk.kode}</span> {rk.nama}</td>
-                                <Angka a={rk} />
+                              <tr key={rk.alokasi_id} className="border-b border-ink-edge/30 bg-[#A78BFA]/[0.04] text-[13px] text-mist-dim">
+                                <td className="border-l-4 border-[#A78BFA]/70 py-2 pl-16"><ChipTingkat tingkat="rek" /><span className="mono">{rk.kode}</span> {rk.nama}</td>
+                                <Angka a={rk} warna="#A78BFA" />
                                 {tampilStatus && <td className="px-3 text-center"><StatusSeimbang seimbang={rk.seimbang} /></td>}
                               </tr>
                             ))}
@@ -122,7 +122,7 @@ export function DrilldownPage() {
 
 // Penanda tingkat agar seksi, subkegiatan, dan rekening belanja mudah dibedakan.
 export function ChipTingkat({ tingkat }: { tingkat: 'seksi' | 'sub' | 'rek' }) {
-  const gaya = tingkat === 'seksi' ? 'bg-amber/15 text-amber' : tingkat === 'sub' ? 'bg-mist/10 text-mist' : 'border border-ink-edge text-mist-dim';
+  const gaya = tingkat === 'seksi' ? 'bg-amber/20 text-amber' : tingkat === 'sub' ? 'bg-[#38BDF8]/15 text-[#7DD3FC]' : 'bg-[#A78BFA]/15 text-[#C4B5FD]';
   const teks = tingkat === 'seksi' ? 'Seksi' : tingkat === 'sub' ? 'Subkegiatan' : 'Rekening';
   return <span className={`mr-2 inline-block rounded px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide ${gaya}`}>{teks}</span>;
 }
@@ -138,14 +138,19 @@ function Pembuka({ terbuka, ada, onKlik, label }: { terbuka: boolean; ada: boole
   );
 }
 
-function Angka({ a }: { a: AngkaTingkat }) {
+function Angka({ a, warna }: { a: AngkaTingkat; warna: string }) {
+  const sisa = a.pagu - a.realisasi;
+  const pct = a.pagu > 0 ? Math.min(100, (a.realisasi / a.pagu) * 100) : 0;
   return (
     <>
-      <td className="mono tnum whitespace-nowrap px-3 text-right">{formatRupiah(a.pagu)}</td>
-      <td className="mono tnum whitespace-nowrap px-3 text-right">{formatRupiah(a.realisasi)}</td>
-      <td className="mono tnum whitespace-nowrap px-3 text-right">{formatRupiah(a.komitmen)}</td>
-      <td className="mono tnum whitespace-nowrap px-3 text-right">{formatRupiah(a.sisaSpdBebas)}</td>
-      <td className="mono tnum whitespace-nowrap px-3 text-right">{persen(a.serapanPersen)}</td>
+      <td className="mono tnum whitespace-nowrap px-4 text-right">{formatRupiah(a.pagu)}</td>
+      <td className="whitespace-nowrap px-4 text-right">
+        <span className="mono tnum block">{formatRupiah(a.realisasi)}</span>
+        <span className="mt-1 ml-auto flex h-1 w-24 overflow-hidden rounded-full bg-ink-edge" aria-hidden title={`Serapan ${persen(pct)}`}>
+          <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: warna }} />
+        </span>
+      </td>
+      <td className="mono tnum whitespace-nowrap px-4 text-right">{formatRupiah(sisa)}</td>
     </>
   );
 }
@@ -154,4 +159,4 @@ function StatusSeimbang({ seimbang }: { seimbang: boolean }) {
   return <StatusBadge kind={seimbang ? 'ok' : 'warn'} label={seimbang ? 'Seimbang' : 'Belum Seimbang'} />;
 }
 
-const HEAD = ['Pagu', 'Realisasi BKU', 'Komitmen', 'Sisa SPD Bebas', 'Serapan', 'Status'];
+const HEAD = ['Pagu', 'Realisasi', 'Sisa Anggaran', 'Status'];

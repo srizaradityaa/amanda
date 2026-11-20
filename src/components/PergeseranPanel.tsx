@@ -133,7 +133,7 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
 
   return (
     <div className="mt-3">
-      <p className="mb-3 text-xs text-mist-dim">Isi <b className="text-mist">Pagu baru</b> pada rekening yang berubah; rekening lain dibiarkan. Simpan hanya aktif bila total naik sama dengan total turun. Berita acara berikutnya: <span className="mono">{nomor}</span></p>
+      <p className="mb-3 text-xs text-mist-dim">Berita acara berikutnya: <span className="mono text-mist">{nomor}</span></p>
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <Input className="w-full sm:w-64" value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari subkegiatan atau rekening" aria-label="Cari subkegiatan atau rekening" />
         <Button variant="secondary" onClick={bukaSemua}>Buka semua</Button>
@@ -156,8 +156,8 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
               const nUbahS = sk.subs.reduce((t, g) => t + g.daftar.filter((r) => nilai(r) !== r.pagu).length, 0);
               return (
                 <Fragment key={sk.sid}>
-                  <tr className="border-t border-ink-edge bg-ink-surface">
-                    <td className="border-l-4 border-amber px-3 py-2.5 text-[15px] font-semibold text-mist">{panah(kS, sk.nama)}<ChipTingkat tingkat="seksi" />{sk.nama}{nUbahS > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahS} rekening berubah</span>}</td>
+                  <tr className="border-t border-ink-edge bg-amber/10">
+                    <td className="border-l-4 border-amber px-3 py-3 text-base font-semibold text-mist">{panah(kS, sk.nama)}<ChipTingkat tingkat="seksi" />{sk.nama}{nUbahS > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahS} rekening berubah</span>}</td>
                     <td className="mono tnum whitespace-nowrap px-3 py-2 text-right text-mist">{formatRupiah(paguS)}</td>
                     <td colSpan={4} className="mono tnum px-3 py-2 text-right text-2xs text-mist-dim">{netS !== 0 ? `Seksi menjadi ${formatRupiah(paguS + netS)}` : ''}</td>
                     <td className="px-3 py-2 text-right"><Selisih d={netS} /></td>
@@ -169,8 +169,8 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
                     const nUbahP = g.daftar.filter((r) => nilai(r) !== r.pagu).length;
                     return (
                       <Fragment key={g.pid}>
-                        <tr className="border-t border-ink-edge/60 bg-ink/50">
-                          <td className="border-l-4 border-mist-dim/40 py-2 pl-8 pr-3 font-medium text-mist">{panah(kP, g.sub?.nama_snapshot ?? '')}<ChipTingkat tingkat="sub" />{g.sub?.kode_snapshot} {g.sub?.nama_snapshot}{nUbahP > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahP} berubah</span>}</td>
+                        <tr className="border-t border-ink-edge/60 bg-[#38BDF8]/[0.07]">
+                          <td className="border-l-4 border-[#38BDF8] py-2 pl-8 pr-3 font-medium text-mist">{panah(kP, g.sub?.nama_snapshot ?? '')}<ChipTingkat tingkat="sub" />{g.sub?.kode_snapshot} {g.sub?.nama_snapshot}{nUbahP > 0 && <span className="ml-2 text-2xs font-normal text-amber">{nUbahP} berubah</span>}</td>
                           <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right text-mist">{formatRupiah(anggaran.paguSubkegiatan(g.pid))}</td>
                           <td colSpan={4} className="mono tnum px-3 py-1.5 text-right text-2xs text-mist-dim">{n !== 0 ? `Subkegiatan menjadi ${formatRupiah(anggaran.paguSubkegiatan(g.pid) + n)}` : ''}</td>
                           <td className="px-3 py-1.5 text-right"><Selisih d={n} /></td>
@@ -178,8 +178,8 @@ function FormGeser({ rows, pemetaan, seksi, baru, setBaru, alasan, setAlasan, er
                         {bukaP && g.tampil.map((r) => {
                           const d = nilai(r) - r.pagu;
                           return (
-                            <tr key={r.id} className={`border-t border-ink-edge/40 ${d !== 0 ? 'bg-amber/5' : ''}`}>
-                              <td className="border-l-4 border-transparent py-1.5 pl-14 pr-3 text-[13px] text-mist-dim"><ChipTingkat tingkat="rek" />{r.kode_rekening_snapshot} {r.nama_rekening_snapshot}{masalah.has(r.id) && <span className="mt-0.5 block text-2xs text-crit">{masalah.get(r.id)}</span>}</td>
+                            <tr key={r.id} className={`border-t border-ink-edge/40 ${d !== 0 ? 'bg-amber/10' : 'bg-[#A78BFA]/[0.04]'}`}>
+                              <td className="border-l-4 border-[#A78BFA]/70 py-1.5 pl-14 pr-3 text-[13px] text-mist-dim"><ChipTingkat tingkat="rek" />{r.kode_rekening_snapshot} {r.nama_rekening_snapshot}{masalah.has(r.id) && <span className="mt-0.5 block text-2xs text-crit">{masalah.get(r.id)}</span>}</td>
                               <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(r.pagu)}</td>
                               <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(r.spd_aktif)}</td>
                               <td className="mono tnum whitespace-nowrap px-3 py-1.5 text-right">{formatRupiah(anggaran.realisasiAlokasi(r))}</td>

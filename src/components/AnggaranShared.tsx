@@ -29,11 +29,11 @@ export function sisaWaktu(tutup: string): string {
   return `${hari} hari ${jam} jam ${menit} menit ${detik % 60} detik`;
 }
 
-export function SectionTitle({ title, desc }: { title: string; desc?: string }) {
+// Subjudul deskriptif sengaja tidak ditampilkan (keputusan pemilik 2026-11-20); parameter desc dipertahankan agar pemanggil tidak berubah.
+export function SectionTitle({ title }: { title: string; desc?: string }) {
   return (
     <div className="mb-3">
       <h3 className="text-base font-semibold text-mist">{title}</h3>
-      {desc && <p className="mt-1 text-sm text-mist-dim">{desc}</p>}
     </div>
   );
 }

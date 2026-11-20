@@ -2,7 +2,7 @@
 // Topbar: TA aktif, peran aktif (label), mini progress bar per peran, tombol logout.
 // Tanpa dropdown ganti TA/peran (AUT-03 — isolasi konteks sesi).
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   LayoutDashboard, ShieldCheck, FileText, ScrollText, LogOut, Menu, X, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import { formatRupiah, formatPersen, persenNumerik } from '@/lib/format';
 import type { SessionPayload, Role } from '@/data/types';
 import { peranLabel } from '@/lib/audit';
 import * as anggaran from '@/data/anggaran';
+import { jumlahStatusSPJ } from '@/lib/ringkasanDasbor';
 
 export interface NavItem {
   id: string;
@@ -24,6 +25,22 @@ export interface NavItem {
   khusus?: boolean;
   /** Kelompok submenu; item dengan kelompok sama dikumpulkan di bawah satu judul yang bisa dilipat. */
   grup?: string;
+}
+
+// Warna ikon menu: per menu bila ditentukan, selain itu mengikuti kelompoknya. Hanya penanda visual.
+const WARNA_ID: Record<string, string> = {
+  dashboard: '#34D399', anggaran: '#F59E0B', persiapan: '#F59E0B', subkegiatan: '#F59E0B', pagu: '#F59E0B', 'sahkan-spd': '#F59E0B',
+  kuitansi: '#F472B6', spj: '#A3E635', verifikasi: '#818CF8', bku: '#38BDF8', 'koreksi-bku': '#FB7185', arsip: '#2DD4BF',
+  rincian: '#A78BFA', laporan: '#FB923C', 'laporan-kustom': '#F0ABFC', heatmap: '#F472B6',
+  'tahun-anggaran': '#F59E0B', 'pengaturan-portal': '#A78BFA', audit: '#FB7185', tentang: '#9CA3AF',
+};
+const WARNA_GRUP: Record<string, string> = { 'Master Data': '#38BDF8', 'Templat & Formulir': '#F472B6', Direktori: '#2DD4BF', Anggaran: '#F59E0B', Keuangan: '#38BDF8', Laporan: '#A78BFA' };
+function warnaMenu(item: NavItem): string {
+  return WARNA_ID[item.id] ?? (item.grup ? WARNA_GRUP[item.grup] : undefined) ?? '#9CA3AF';
+}
+function inisial(nama: string): string {
+  const k = nama.trim().split(/\s+/).filter(Boolean);
+  return ((k[0]?.[0] ?? '') + (k.length > 1 ? k[k.length - 1][0] : '')).toUpperCase() || '?';
 }
 
 function bacaLocal(k: string): string | null { try { return localStorage.getItem(k); } catch { return null; } }
@@ -66,25 +83,40 @@ export function DashboardShell({
 
   if (!session) return null;
 
-  const renderItem = (item: NavItem) => (
-    <button
-      key={item.id}
-      onClick={() => {
-        onNavigate(item.id);
-        setMobileOpen(false);
-      }}
-      title={ciut ? item.label : undefined}
-      aria-label={item.label}
-      className={`flex w-full items-center ${ciut ? 'justify-center px-0' : 'gap-2.5 px-3'} rounded-md py-2 text-sm font-medium transition-colors ${
-        activeId === item.id
-          ? 'bg-amber/10 text-amber ring-1 ring-amber/30'
-          : 'text-mist-dim hover:bg-ink-edge/40 hover:text-mist'
-      }`}
-    >
-      {item.icon}
-      {!ciut && <span>{item.label}</span>}
-    </button>
-  );
+  // Lencana angka: jumlah pekerjaan yang menunggu peran ini (angka yang sama dengan kartu Perlu tindakan di dasbor).
+  const lencana = (id: string): number => {
+    const ta = session.active_ta_id;
+    if (!ta) return 0;
+    const role = session.active_role;
+    if (!((role === 'bendahara' && id === 'bku') || (role === 'verifikator' && id === 'verifikasi') || (role === 'pptk' && id === 'spj'))) return 0;
+    try {
+      const j = jumlahStatusSPJ(ta, role === 'pptk' ? session.active_seksi_id ?? undefined : undefined);
+      return role === 'bendahara' ? j.menungguBku : role === 'verifikator' ? j.terkunci : j.draft;
+    } catch { return 0; }
+  };
+
+  const renderItem = (item: NavItem) => {
+    const n = lencana(item.id);
+    return (
+      <button
+        key={item.id}
+        onClick={() => {
+          onNavigate(item.id);
+          setMobileOpen(false);
+        }}
+        aria-label={item.label}
+        aria-current={activeId === item.id ? 'page' : undefined}
+        style={{ '--c': warnaMenu(item) } as CSSProperties}
+        className="nav-it focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber"
+      >
+        <span className="nav-ubin">{item.icon}</span>
+        {!ciut && <span className="truncate">{item.label}</span>}
+        {!ciut && n > 0 && <span className="nav-lencana">{n}</span>}
+        {ciut && n > 0 && <span className="nav-titik" aria-hidden />}
+        {ciut && <span className="nav-tip" aria-hidden>{item.label}{n > 0 ? ` (${n})` : ''}</span>}
+      </button>
+    );
+  };
 
   // Susun menu: item bergrup dikumpulkan di bawah judul grup pada kemunculan pertamanya.
   const renderDaftar = (items: NavItem[]) => {
@@ -96,14 +128,14 @@ export function DashboardShell({
       const anggota = items.filter((i) => i.grup === item.grup);
       const terbuka = ciut || !tutup.includes(item.grup) || anggota.some((a) => a.id === activeId);
       return (
-        <div key={`g-${item.grup}`} className={ciut ? 'space-y-1 border-y border-ink-edge/60 py-1' : ''}>
+        <div key={`g-${item.grup}`} className={ciut ? 'my-2 space-y-1 border-t border-ink-edge pt-2' : 'mt-2'}>
           {!ciut && (
             <button onClick={() => ubahGrup(item.grup!)} aria-expanded={terbuka}
-              className="flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-mist-dim hover:text-mist">
+              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-2xs font-bold uppercase tracking-[0.1em] text-[#6B7280] hover:text-mist">
               {terbuka ? <ChevronDown size={12} /> : <ChevronRight size={12} />}{item.grup}
             </button>
           )}
-          {terbuka && <div className={ciut ? 'space-y-1' : 'submenu-buka ml-2 space-y-1 border-l border-ink-edge pl-1.5'}>{anggota.map(renderItem)}</div>}
+          {terbuka && <div className="submenu-buka space-y-1">{anggota.map(renderItem)}</div>}
         </div>
       );
     });
@@ -113,20 +145,21 @@ export function DashboardShell({
     <div className="flex min-h-screen bg-ink text-mist lg:h-screen lg:overflow-hidden">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 ${ciut ? 'lg:w-16' : ''} w-60 transform border-r border-ink-edge bg-ink-surface transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 ${ciut ? 'lg:w-[4.75rem]' : ''} flex w-[17rem] transform flex-col border-r border-ink-edge bg-ink-surface transition-[transform,width] duration-300 lg:static lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-12 items-center gap-2 border-b border-ink-edge px-4">
+        <div className={`flex ${ciut ? 'flex-col items-center gap-2 px-3 pb-1 pt-3' : 'h-14 items-center gap-2 px-4'}`}>
           <LogoGerak tinggi={28} />
-          {!ciut && <span className="text-sm font-bold tracking-tight">AMANDA</span>}
+          {!ciut && <span className="text-base font-bold tracking-tight">AMANDA</span>}
           <button
-            className="ml-auto hidden rounded p-1 text-mist-dim hover:text-mist lg:block"
+            className="ml-auto hidden h-8 w-8 items-center justify-center rounded-lg border border-ink-edge text-mist-dim transition-colors hover:border-amber hover:text-mist lg:flex"
+            style={ciut ? { marginLeft: 0 } : undefined}
             onClick={ubahCiut}
             aria-label={ciut ? 'Besarkan menu' : 'Kecilkan menu'}
             title={ciut ? 'Besarkan menu' : 'Kecilkan menu'}
           >
-            {ciut ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            {ciut ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
           </button>
           <button
             className="ml-auto rounded p-1 text-mist-dim hover:text-mist lg:hidden"
@@ -136,13 +169,24 @@ export function DashboardShell({
             <X size={18} />
           </button>
         </div>
-        <nav className="flex h-[calc(100%-3rem)] flex-col p-3">
+        <div className={ciut ? 'flex justify-center px-3 py-2' : 'px-3 pb-2'}>
+          <div className={`flex items-center gap-2.5 ${ciut ? '' : 'w-full rounded-2xl border border-ink-edge bg-ink p-2.5'}`} title={ciut ? `${session.nama_snapshot} · ${peranLabel(session.active_role)}` : undefined}>
+            <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-amber/20 text-sm font-bold text-amber">{inisial(session.nama_snapshot)}</span>
+            {!ciut && (
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-sm font-semibold text-mist">{session.nama_snapshot}</span>
+                <span className="block truncate text-2xs text-mist-dim">{peranLabel(session.active_role)}</span>
+              </span>
+            )}
+          </div>
+        </div>
+        <nav className={`flex min-h-0 flex-1 flex-col px-3 pb-3 ${ciut ? 'overflow-visible' : 'overflow-y-auto'}`}>
           <div className="space-y-1">
             {renderDaftar(nav.filter((i) => !i.khusus))}
           </div>
           {nav.some((i) => i.khusus) && (
             <div className="mt-auto space-y-1 border-t border-ink-edge pt-3">
-              {!ciut && <p className="px-3 text-2xs uppercase tracking-wide text-mist-dim">Lainnya</p>}
+              {!ciut && <p className="px-2 text-2xs font-bold uppercase tracking-[0.1em] text-[#6B7280]">Lainnya</p>}
               {nav.filter((i) => i.khusus).map((item) => renderItem(item))}
             </div>
           )}

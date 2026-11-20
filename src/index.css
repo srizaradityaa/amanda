@@ -121,3 +121,17 @@ input[type='number'] {
 .tiker-jalan { animation: tiker-geser 70s linear infinite; }
 .tiker-login:hover .tiker-jalan { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .tiker-jalan { animation: none; } .tiker-login { overflow-x: auto; } }
+
+/* Sidebar: kartu dan ubin berwarna; ikon berwarna per menu (variabel --c diisi dari DashboardShell). */
+.nav-it { --c: #9CA3AF; position: relative; display: flex; width: 100%; align-items: center; gap: .625rem; height: 2.75rem; padding: 0 .4rem; border-radius: .75rem; color: #9CA3AF; font-size: .875rem; font-weight: 500; text-align: left; transition: background .15s, color .15s; }
+.nav-it:hover { background: rgba(255,255,255,.04); color: #E5E7EB; }
+.nav-ubin { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .625rem; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); transition: transform .15s, background .15s; }
+.nav-it:hover .nav-ubin { transform: translateX(2px); }
+.nav-it[aria-current="page"] { background: color-mix(in srgb, var(--c) 13%, transparent); color: #fff; font-weight: 600; }
+.nav-it[aria-current="page"] .nav-ubin { background: var(--c); color: #0B1120; }
+.nav-it[aria-current="page"]::before { content: ""; position: absolute; left: -.75rem; top: .625rem; bottom: .625rem; width: 4px; border-radius: 0 4px 4px 0; background: var(--c); }
+.nav-lencana { margin-left: auto; background: var(--c); color: #0B1120; border-radius: 999px; font-size: .6875rem; font-weight: 700; padding: .0625rem .5rem; }
+.nav-titik { position: absolute; right: .2rem; top: .2rem; width: .625rem; height: .625rem; border-radius: 50%; background: var(--c); border: 2px solid #111827; }
+.nav-tip { position: absolute; left: calc(100% + .5rem); top: 50%; transform: translateY(-50%) translateX(-6px); opacity: 0; pointer-events: none; background: var(--c); color: #0B1120; font-weight: 700; font-size: .8125rem; padding: .4rem .8rem; border-radius: .625rem; white-space: nowrap; box-shadow: 0 8px 20px rgba(0,0,0,.45); z-index: 60; transition: opacity .15s, transform .15s; }
+.nav-it:hover .nav-tip, .nav-it:focus-visible .nav-tip { opacity: 1; transform: translateY(-50%) translateX(0); }
+@media (prefers-reduced-motion: reduce) { .nav-it, .nav-ubin, .nav-tip { transition: none; } .nav-it:hover .nav-ubin { transform: none; } }

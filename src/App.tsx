@@ -2,6 +2,7 @@
 // Menghubungkan login -> seleksi konteks berjenjang -> dasbor per peran.
 
 import { lazy, useEffect, useState, useSyncExternalStore } from 'react';
+import { KerangkaMasuk, LayarMemuat } from '@/components/KerangkaMasuk';
 import { langgananData, versiData, muatSemua } from '@/data/store';
 import { langgananGalat, langgananInfo, langgananSibuk, sedangSibuk } from '@/lib/galat';
 import { LoginPage } from '@/components/LoginPage';
@@ -157,22 +158,17 @@ function AplikasiUtama() {
   }
 
   if (modeServer && dataStatus !== 'siap') {
+    if (dataStatus !== 'gagal') return <LayarMemuat />;
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink p-6 text-mist">
-        <div className="max-w-sm text-center">
-          {dataStatus === 'gagal' ? (
-            <>
-              <p className="mb-3 text-sm">Data tidak dapat dimuat dari server. Periksa koneksi, lalu coba lagi atau masuk kembali.</p>
-              <div className="flex justify-center gap-2">
-                <button className="rounded-md border border-ink-edge px-3 py-1.5 text-sm hover:border-amber/40" onClick={() => { setDataStatus('memuat'); muatSemua().then(() => setDataStatus('siap')).catch(() => setDataStatus('gagal')); }}>Coba lagi</button>
-                <button className="rounded-md border border-ink-edge px-3 py-1.5 text-sm hover:border-amber/40" onClick={() => logout()}>Keluar</button>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-mist-dim" role="status">Memuat data dari server…</p>
-          )}
+      <KerangkaMasuk lebar="max-w-sm">
+        <div className="text-center">
+          <p className="mb-4 text-sm">Data tidak dapat dimuat dari server. Periksa koneksi, lalu coba lagi atau masuk kembali.</p>
+          <div className="flex justify-center gap-2">
+            <button className="rounded-md bg-amber px-3 py-1.5 text-sm font-semibold text-ink hover:opacity-90" onClick={() => { setDataStatus('memuat'); muatSemua().then(() => setDataStatus('siap')).catch(() => setDataStatus('gagal')); }}>Coba lagi</button>
+            <button className="rounded-md border border-ink-edge px-3 py-1.5 text-sm hover:border-amber/40" onClick={() => logout()}>Keluar</button>
+          </div>
         </div>
-      </div>
+      </KerangkaMasuk>
     );
   }
 

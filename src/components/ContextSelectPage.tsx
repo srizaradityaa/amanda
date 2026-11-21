@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { repo } from '@/data/repo';
 import { selectContextForInternal, getSession, isPending, modeServer, konteksPending, pilihKonteksServer, logout } from '@/lib/auth';
 import type { Konteks } from '@/lib/masuk';
-import { Card, Button } from '@/components/ui';
-import { ChevronRight, UserCircle2 } from 'lucide-react';
-import { Logo } from '@/components/Logo';
+import { Button } from '@/components/ui';
+import { KerangkaMasuk } from '@/components/KerangkaMasuk';
+import { ChevronRight, ShieldCheck, Wallet, ClipboardList, BadgeCheck, Landmark, Archive, CalendarDays, UserCircle2, type LucideIcon } from 'lucide-react';
 import type { Role, PeranPenugasan } from '@/data/types';
 
 const PERAN_LABEL: Record<string, string> = {
@@ -18,6 +18,32 @@ const PERAN_LABEL: Record<string, string> = {
   pa_kpa: 'PA/KPA',
   pengelola_arsip: 'Pengelola Arsip',
 };
+
+const PERAN_GAYA: Record<string, { ikon: LucideIcon; warna: string }> = {
+  admin: { ikon: ShieldCheck, warna: '#F59E0B' },
+  bendahara: { ikon: Wallet, warna: '#34D399' },
+  pptk: { ikon: ClipboardList, warna: '#38BDF8' },
+  verifikator: { ikon: BadgeCheck, warna: '#A78BFA' },
+  pa_kpa: { ikon: Landmark, warna: '#FB7185' },
+  pengelola_arsip: { ikon: Archive, warna: '#FB923C' },
+};
+
+// Ubin berwarna: ikon di kiri, judul dan keterangan singkat, panah di kanan.
+function Ubin({ ikon: Ikon, warna, judul, ket, tambahan, onClick, disabled }: { ikon: LucideIcon; warna: string; judul: string; ket: string; tambahan?: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{ ['--c' as string]: warna }}
+      className="group flex w-full items-center gap-3 rounded-xl border border-ink-edge bg-ink/40 px-3 py-2.5 text-left transition hover:border-[color:var(--c)] hover:bg-[color-mix(in_srgb,var(--c)_10%,transparent)] disabled:opacity-60">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--c) 18%, transparent)', color: 'var(--c)' }}>
+        <Ikon size={20} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-mist">{judul}{tambahan}</span>
+        <span className="block truncate text-2xs text-mist-dim">{ket}</span>
+      </span>
+      <ChevronRight size={18} className="text-mist-dim transition group-hover:translate-x-0.5 group-hover:text-[color:var(--c)]" />
+    </button>
+  );
+}
 
 function peranLabel(p: PeranPenugasan): string {
   return PERAN_LABEL[p] ?? p;
@@ -62,19 +88,12 @@ function ServerSelect({ onResolved }: { onResolved: () => void }) {
 
   if (!selectedTA && daftarTA.length > 1) {
     return (
-      <Shell title="Pilih Tahun Anggaran" subtitle={`${p.nama} — pilih TA penugasan`}>
+      <Shell title="Pilih Tahun Anggaran" subtitle={p.nama}>
         <div className="space-y-2">
           {daftarTA.map((k) => {
             const jml = p.konteks.filter((x) => x.ta_id === k.ta_id).length;
             return (
-              <button key={k.ta_id ?? 'x'} onClick={() => setSelectedTA(k.ta_id ?? '')}
-                className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40">
-                <div>
-                  <div className="mono text-sm font-semibold text-mist">TA {k.tahun ?? k.ta_id}</div>
-                  <div className="text-2xs text-mist-dim">{jml} jabatan aktif</div>
-                </div>
-                <ChevronRight size={18} className="text-mist-dim" />
-              </button>
+              <Ubin key={k.ta_id ?? 'x'} ikon={CalendarDays} warna="#F59E0B" judul={`TA ${k.tahun ?? k.ta_id}`} ket={`${jml} jabatan aktif`} onClick={() => setSelectedTA(k.ta_id ?? '')} />
             );
           })}
         </div>
@@ -88,26 +107,15 @@ function ServerSelect({ onResolved }: { onResolved: () => void }) {
   return (
     <Shell
       title={`Pilih Jabatan — TA ${tahun}`}
-      subtitle="Pilih jabatan aktif untuk sesi ini. Ganti TA atau jabatan wajib logout."
+      subtitle=""
       onBack={daftarTA.length > 1 ? () => setSelectedTA(null) : undefined}
     >
       {infoGalat}
       <div className="space-y-2">
         {jabatan.map((k, idx) => (
-          <button key={idx} disabled={sibuk} onClick={() => pilih(k)}
-            className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40 disabled:opacity-60">
-            <div className="flex items-center gap-3">
-              <UserCircle2 size={20} className="text-amber" />
-              <div>
-                <div className="text-sm font-semibold text-mist">
-                  {PERAN_LABEL[k.peran] ?? k.peran}
-                  {k.delegasi && <span className="ml-2 text-2xs text-teal">Plh./Plt.</span>}
-                </div>
-                <div className="text-2xs text-mist-dim">{k.seksi_nama ? `Seksi: ${k.seksi_nama}` : 'Tingkat instansi'}</div>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-mist-dim" />
-          </button>
+          <Ubin key={idx} disabled={sibuk} {...(PERAN_GAYA[k.peran] ?? { ikon: UserCircle2, warna: '#F59E0B' })}
+            judul={PERAN_LABEL[k.peran] ?? k.peran} tambahan={k.delegasi ? <span className="ml-2 text-2xs text-teal">Plh./Plt.</span> : undefined}
+            ket={k.seksi_nama ? `Seksi: ${k.seksi_nama}` : 'Tingkat instansi'} onClick={() => pilih(k)} />
         ))}
       </div>
     </Shell>
@@ -133,25 +141,13 @@ function InternalSelect({ onResolved }: { onResolved: () => void }) {
   // Tahap 1: daftar TA
   if (!selectedTA) {
     return (
-      <Shell title="Pilih Tahun Anggaran" subtitle={`${personel.nama} — pilih TA penugasan`}>
+      <Shell title="Pilih Tahun Anggaran" subtitle={personel.nama}>
         <div className="space-y-2">
           {taIds.map((tid) => {
             const ta = repo.tahunAnggaranById(tid);
             const jabatan = repo.jabatanForPersonelOnTA(personel.id, tid);
             return (
-              <button
-                key={tid}
-                onClick={() => setSelectedTA(tid)}
-                className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40"
-              >
-                <div>
-                  <div className="mono text-sm font-semibold text-mist">TA {ta?.tahun ?? tid}</div>
-                  <div className="text-2xs text-mist-dim">
-                    Status: {ta?.status} • {jabatan.length} jabatan aktif
-                  </div>
-                </div>
-                <ChevronRight size={18} className="text-mist-dim" />
-              </button>
+              <Ubin key={tid} ikon={CalendarDays} warna="#F59E0B" judul={`TA ${ta?.tahun ?? tid}`} ket={`Status: ${ta?.status} • ${jabatan.length} jabatan aktif`} onClick={() => setSelectedTA(tid)} />
             );
           })}
         </div>
@@ -165,31 +161,16 @@ function InternalSelect({ onResolved }: { onResolved: () => void }) {
   return (
     <Shell
       title={`Pilih Jabatan — TA ${ta?.tahun ?? selectedTA}`}
-      subtitle="Pilih jabatan aktif untuk sesi ini. Ganti TA atau jabatan wajib logout."
+      subtitle=""
       onBack={() => setSelectedTA(null)}
     >
       <div className="space-y-2">
         {jabatan.map((j, idx) => {
           const seksi = j.seksi_ta_id ? repo.seksiTAById(j.seksi_ta_id) : undefined;
           return (
-            <button
-              key={idx}
-              onClick={() => resolveJabatan(selectedTA, j.peran, j.seksi_ta_id, j.isDelegasi)}
-              className="flex w-full items-center justify-between rounded-lg border border-ink-edge bg-ink-surface px-4 py-3 text-left hover:border-amber/40"
-            >
-              <div className="flex items-center gap-3">
-                <UserCircle2 size={20} className="text-amber" />
-                <div>
-                  <div className="text-sm font-semibold text-mist">
-                    {peranLabel(j.peran)}
-                    {j.isDelegasi && <span className="ml-2 text-2xs text-teal">Plh./Plt.</span>}
-                  </div>
-                  {seksi && <div className="text-2xs text-mist-dim">Seksi: {seksi.nama_snapshot}</div>}
-                  {!seksi && <div className="text-2xs text-mist-dim">Tingkat instansi</div>}
-                </div>
-              </div>
-              <ChevronRight size={18} className="text-mist-dim" />
-            </button>
+            <Ubin key={idx} {...(PERAN_GAYA[j.peran] ?? { ikon: UserCircle2, warna: '#F59E0B' })}
+              judul={peranLabel(j.peran)} tambahan={j.isDelegasi ? <span className="ml-2 text-2xs text-teal">Plh./Plt.</span> : undefined}
+              ket={seksi ? `Seksi: ${seksi.nama_snapshot}` : 'Tingkat instansi'} onClick={() => resolveJabatan(selectedTA, j.peran, j.seksi_ta_id, j.isDelegasi)} />
           );
         })}
       </div>
@@ -198,42 +179,19 @@ function InternalSelect({ onResolved }: { onResolved: () => void }) {
 }
 
 
-function Shell({
-  title,
-  subtitle,
-  children,
-  onBack,
-}: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  onBack?: () => void;
-}) {
+function Shell({ title, subtitle, children, onBack }: { title: string; subtitle: string; children: React.ReactNode; onBack?: () => void }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink p-6">
-      <div className="w-full max-w-lg">
-        <div className="mb-6 flex items-center gap-3">
-          <Logo varian="ikon" tinggi={44} />
-          <div>
-            <h1 className="text-lg font-bold text-mist">AMANDA</h1>
-            <p className="text-2xs text-mist-dim">Aplikasi Manajemen Data Anggaran</p>
-          </div>
-        </div>
-        <Card className="p-6">
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-mist">{title}</h2>
-            <p className="text-2xs text-mist-dim">{subtitle}</p>
-          </div>
-          {children}
-          {onBack && (
-            <div className="mt-4">
-              <Button variant="ghost" onClick={onBack}>
-                Kembali
-              </Button>
-            </div>
-          )}
-        </Card>
+    <KerangkaMasuk>
+      <div className="mb-4 text-center">
+        <h2 className="text-base font-semibold text-mist">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-2xs text-mist-dim">{subtitle}</p>}
       </div>
-    </div>
+      {children}
+      {onBack && (
+        <div className="mt-4 text-center">
+          <Button variant="ghost" onClick={onBack}>Kembali</Button>
+        </div>
+      )}
+    </KerangkaMasuk>
   );
 }
